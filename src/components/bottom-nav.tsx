@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutGrid, ArrowUpCircle, ArrowDownCircle, CircleUser, Warehouse } from 'lucide-react';
+import { LayoutGrid, ArrowUpCircle, ArrowDownCircle, CircleUser, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const BottomNavItem = ({ href, icon: Icon, label }: { href: string; icon: React.ElementType; label: string }) => {
@@ -28,7 +28,7 @@ export function BottomNav() {
             <BottomNavItem href="/" icon={LayoutGrid} label="Trang chủ" />
             <BottomNavItem href="/export" icon={ArrowUpCircle} label="Xuất" />
             <BottomNavItem href="/import" icon={ArrowDownCircle} label="Nhập" />
-            <BottomNavItem href="/inventory" icon={Warehouse} label="Tồn kho" />
+            <BottomNavItem href="/warranty" icon={ShieldCheck} label="Bảo hành" />
             <BottomNavItem href="/profile" icon={CircleUser} label="Cá nhân" />
         </div>
     </nav>
