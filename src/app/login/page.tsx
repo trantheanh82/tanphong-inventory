@@ -9,34 +9,36 @@ import { Warehouse } from 'lucide-react';
 export default function LoginPage() {
   return (
     <div className="w-full max-w-sm mx-auto animate-in fade-in-0 zoom-in-95 duration-500 p-4">
-        <div className="text-center mb-8">
-            <Link href="/" className="flex items-center justify-center gap-2 text-2xl font-bold text-primary">
-                <Warehouse className="h-8 w-8" />
-                <span>Tân Phong</span>
-            </Link>
-        </div>
-        
-        <div className="space-y-4">
-            <div className="space-y-2 text-center">
-                <h1 className="text-3xl font-bold">Welcome Back</h1>
-                <p className="text-muted-foreground">Enter your credentials to access your inventory.</p>
-            </div>
-            <div className="space-y-4 pt-4">
-                <div className="space-y-2">
-                    <Label htmlFor="username">Username</Label>
-                    <Input id="username" type="text" placeholder="your-username" required />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input id="password" type="password" required />
-                </div>
-                <Button asChild type="submit" className="w-full !mt-6">
-                    <Link href="/">
-                        Login
+        <Card className="bg-white/30 backdrop-blur-md border border-white/50 shadow-2xl rounded-3xl">
+            <CardHeader className="text-center">
+                <CardTitle className="text-4xl font-bold text-white mb-2">Đăng nhập</CardTitle>
+                <CardDescription className="text-gray-200">
+                  Vui lòng đăng nhập vào tài khoản của bạn.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form className="space-y-6">
+                    <div>
+                        <Label htmlFor="username" className="block text-white text-sm font-semibold mb-2">Username</Label>
+                        <Input id="username" type="text" placeholder="your-username" required className="w-full p-3 border border-gray-300 rounded-xl text-black focus:outline-none focus:ring-2 focus:ring-gray-800" />
+                    </div>
+                    <div>
+                        <Label htmlFor="password" className="block text-white text-sm font-semibold mb-2">Password</Label>
+                        <Input id="password" type="password" required className="w-full p-3 border border-gray-300 rounded-xl text-black focus:outline-none focus:ring-2 focus:ring-gray-800" />
+                    </div>
+                    <Button asChild type="submit" className="w-full bg-white text-gray-800 font-bold py-3 rounded-xl hover:bg-gray-200 transition-transform transform hover:scale-105 duration-200 ease-in-out shadow-md">
+                        <Link href="/">
+                            Đăng nhập
+                        </Link>
+                    </Button>
+                </form>
+                <div className="text-center mt-6">
+                    <Link href="#" className="text-sm font-semibold text-gray-300 hover:underline">
+                        Quên mật khẩu?
                     </Link>
-                </Button>
-            </div>
-        </div>
+                </div>
+            </CardContent>
+        </Card>
     </div>
   );
 }

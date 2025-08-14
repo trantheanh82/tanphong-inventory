@@ -4,7 +4,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, ArrowUp, ArrowDown, User, List } from 'lucide-react';
-import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 const BottomNavItem = ({ href, icon: Icon, label }: { href: string; icon: React.ElementType; label: string }) => {
@@ -13,27 +12,25 @@ const BottomNavItem = ({ href, icon: Icon, label }: { href: string; icon: React.
 
   return (
     <Link href={href} className={cn(
-      "flex flex-col items-center justify-center gap-1 flex-1 p-2 rounded-lg transition-colors duration-200", 
-      isActive ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary"
+      "flex flex-col items-center flex-grow p-2 transition-colors duration-200", 
+      isActive ? "text-gray-800 font-semibold" : "text-gray-600"
     )}>
-      <Icon className="h-6 w-6" />
-      <span className="text-xs font-medium">{label}</span>
+      <Icon className="w-5 h-5" strokeWidth={3} />
+      <span className="text-xs mt-1">{label}</span>
     </Link>
   );
 };
 
 export function BottomNav() {
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 p-2 bg-transparent">
-      <Card className="rounded-2xl shadow-lg bg-card/80 backdrop-blur-sm border-t">
-          <div className="flex justify-around items-center h-16 p-1 gap-1">
-              <BottomNavItem href="/" icon={Home} label="Trang chủ" />
-              <BottomNavItem href="/export" icon={ArrowUp} label="Xuất" />
-              <BottomNavItem href="/import" icon={ArrowDown} label="Nhập" />
-              <BottomNavItem href="/inventory" icon={List} label="Tồn kho" />
-              <BottomNavItem href="/profile" icon={User} label="Cá nhân" />
-          </div>
-      </Card>
-    </div>
+    <nav className="w-full bg-white/50 backdrop-blur-md border-t border-white/50 shadow-xl">
+        <div className="flex justify-around items-center h-16">
+            <BottomNavItem href="/" icon={Home} label="Trang chủ" />
+            <BottomNavItem href="/export" icon={ArrowUp} label="Xuất" />
+            <BottomNavItem href="/import" icon={ArrowDown} label="Nhập" />
+            <BottomNavItem href="/inventory" icon={List} label="Tồn kho" />
+            <BottomNavItem href="/profile" icon={User} label="Cá nhân" />
+        </div>
+    </nav>
   );
 }

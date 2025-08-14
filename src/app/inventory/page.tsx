@@ -1,56 +1,92 @@
+"use client";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useState, useMemo } from "react";
 
-const inventoryItems = [
-    { id: "IMP-0128", type: "Import", name: "Lốp Michelin 205/55R16", quantity: 50, date: "2023-10-26" },
-    { id: "EXP-0075", type: "Export", name: "Lốp Bridgestone 185/65R15", quantity: -20, date: "2023-10-25" },
-    { id: "IMP-0127", type: "Import", name: "Lốp Goodyear 225/45R17", quantity: 30, date: "2023-10-24" },
-    { id: "EXP-0074", type: "Export", name: "Lốp Michelin 205/55R16", quantity: -15, date: "2023-10-23" },
-    { id: "IMP-0126", type: "Import", name: "Lốp Pirelli 245/40R18", quantity: 40, date: "2023-10-22" },
-    { id: "IMP-0125", type: "Import", name: "Lốp Continental 215/60R16", quantity: 60, date: "2023-10-21" },
-    { id: "EXP-0073", type: "Export", name: "Lốp Goodyear 225/45R17", quantity: -10, date: "2023-10-20" },
-];
+const inventoryItems = Array.from({ length: 40 }, (_, i) => {
+    const isImport = Math.random() > 0.5;
+    const date = new Date(2023, 9, 26 - i).toISOString().split('T')[0];
+    return { 
+        id: isImport ? `IMP-0${128 - i}`: `EXP-00${75 - Math.floor(i/2)}`,
+        type: isImport ? "Import" : "Export", 
+        name: isImport ? `Lốp Michelin 205/55R16` : `Lốp Bridgestone 185/65R15`,
+        quantity: isImport ? 50 : -20,
+        date: date
+    }
+});
+
 
 export default function InventoryPage() {
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+    const totalPages = Math.ceil(inventoryItems.length / itemsPerPage);
+
+    const paginatedData = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return inventoryItems.slice(startIndex, startIndex + itemsPerPage);
+    }, [currentPage, itemsPerPage]);
+
+    const handlePrevPage = () => {
+        setCurrentPage((prev) => Math.max(prev - 1, 1));
+    };
+
+    const handleNextPage = () => {
+        setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+    };
+
   return (
-    <div className="flex flex-col gap-6 md:gap-8 animate-in fade-in-0 duration-500">
-      <div className="space-y-1.5">
-          <h1 className="text-3xl font-bold tracking-tight">Inventory</h1>
-          <p className="text-muted-foreground">A comprehensive list of all tire movements.</p>
-      </div>
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/30">
-                <TableHead className="w-[120px] text-muted-foreground">ID</TableHead>
-                <TableHead className="text-muted-foreground">Type</TableHead>
-                <TableHead className="text-muted-foreground">Tên phiếu (Tire Name)</TableHead>
-                <TableHead className="text-right text-muted-foreground">Số lượng (Quantity)</TableHead>
-                <TableHead className="w-[150px] text-muted-foreground">Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {inventoryItems.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.id}</TableCell>
-                  <TableCell>
+    <div className="p-4 animate-fade-in">
+      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white">
+        <Table>
+            <thead className="bg-gray-800">
+                <TableRow className="hover:bg-gray-800">
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">ID</TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Type</TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Tên phiếu</TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Số lượng</TableHead>
+                </TableRow>
+            </thead>
+            <tbody className="bg-white/50 divide-y divide-gray-200">
+              {paginatedData.map((item) => (
+                <TableRow key={item.id} className="hover:bg-gray-200 cursor-pointer transition duration-200">
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.id}</TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <Badge variant={item.type === "Import" ? "default" : "secondary"}>
                       {item.type}
                     </Badge>
                   </TableCell>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell className="text-right font-semibold">
-                    {item.quantity > 0 ? `+${item.quantity}` : item.quantity}
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.name}</TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold">
+                     {item.quantity > 0 ? `+${item.quantity}` : item.quantity}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{item.date}</TableCell>
                 </TableRow>
               ))}
-            </TableBody>
+            </tbody>
           </Table>
-        </CardContent>
       </Card>
+      
+      <div className="flex justify-center items-center mt-4 space-x-2">
+        <Button
+          onClick={handlePrevPage}
+          disabled={currentPage === 1}
+          className="px-4 py-2 text-sm font-medium text-white bg-gray-800 rounded-xl hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-md"
+        >
+          Trước
+        </Button>
+        <span className="text-sm font-medium text-white">
+          Trang {currentPage} của {totalPages}
+        </span>
+        <Button
+          onClick={handleNextPage}
+          disabled={currentPage === totalPages}
+          className="px-4 py-2 text-sm font-medium text-white bg-gray-800 rounded-xl hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-md"
+        >
+          Sau
+        </Button>
+      </div>
     </div>
   );
 }
