@@ -1,8 +1,9 @@
+
 "use client";
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ArrowUpSquare, ArrowDownSquare, User } from 'lucide-react';
+import { Home, List, ArrowUpSquare, ArrowDownSquare, User } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +28,7 @@ export function BottomNav() {
       <Card className="rounded-xl shadow-lg">
           <div className="flex justify-around items-center h-16 p-1 gap-1">
               <BottomNavItem href="/" icon={Home} label="Home" />
+              <BottomNavItem href="/inventory" icon={List} label="Inventory" />
               <BottomNavItem href="/import" icon={ArrowUpSquare} label="Import" />
               <BottomNavItem href="/export" icon={ArrowDownSquare} label="Export" />
               <BottomNavItem href="/profile" icon={User} label="Profile" />
