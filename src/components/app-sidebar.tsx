@@ -11,15 +11,16 @@ const SidebarNavItem = ({ href, icon: Icon, label }: { href: string; icon: React
     const isActive = (href === "/" && pathname === href) || (href !== "/" && pathname.startsWith(href));
 
     return (
-        <Link href={href} legacyBehavior passHref>
-            <Button
-                variant={isActive ? "secondary" : "ghost"}
-                className={cn("w-full justify-start gap-3 px-3", isActive && "font-bold text-primary")}
-            >
+        <Button
+            asChild
+            variant={isActive ? "secondary" : "ghost"}
+            className={cn("w-full justify-start gap-3 px-3", isActive && "font-bold text-primary")}
+        >
+            <Link href={href}>
                 <Icon className="h-5 w-5" />
                 <span>{label}</span>
-            </Button>
-        </Link>
+            </Link>
+        </Button>
     );
 };
 
@@ -39,12 +40,12 @@ export function AppSidebar() {
                 <SidebarNavItem href="/export" icon={ArrowDownSquare} label="Export Tires" />
             </nav>
             <div className="p-4 border-t mt-auto">
-                 <Link href="/login" legacyBehavior passHref>
-                    <Button variant="ghost" className="w-full justify-start gap-3 px-3">
+                 <Button asChild variant="ghost" className="w-full justify-start gap-3 px-3">
+                    <Link href="/login">
                         <LogOut className="h-5 w-5" />
                         <span>Logout</span>
-                    </Button>
-                </Link>
+                    </Link>
+                </Button>
             </div>
         </aside>
     );

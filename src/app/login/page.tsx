@@ -25,11 +25,11 @@ export default function LoginPage() {
             <Label htmlFor="password">Password</Label>
             <Input id="password" type="password" required />
           </div>
-          <Link href="/" legacyBehavior passHref>
-            <Button type="submit" className="w-full">
+          <Button asChild type="submit" className="w-full">
+            <Link href="/">
                 Login
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </CardContent>
     </Card>
