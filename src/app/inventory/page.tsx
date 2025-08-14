@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ export default function InventoryPage() {
     const paginatedData = useMemo(() => {
         const startIndex = (currentPage - 1) * itemsPerPage;
         return inventoryItems.slice(startIndex, startIndex + itemsPerPage);
-    }, [currentPage, itemsPerPage]);
+    }, [currentPage, itemsPerPage, inventoryItems]);
 
     const handlePrevPage = () => {
         setCurrentPage((prev) => Math.max(prev - 1, 1));
@@ -39,11 +39,10 @@ export default function InventoryPage() {
 
   return (
     <div className="p-4 animate-fade-in">
-      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white">
+      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/50">
         <Table>
             <thead className="bg-gray-800">
                 <TableRow className="hover:bg-gray-800">
-                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">ID</TableHead>
                     <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Type</TableHead>
                     <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Tên phiếu</TableHead>
                     <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Số lượng</TableHead>
@@ -52,13 +51,12 @@ export default function InventoryPage() {
             <tbody className="bg-white/50 divide-y divide-gray-200">
               {paginatedData.map((item) => (
                 <TableRow key={item.id} className="hover:bg-gray-200 cursor-pointer transition duration-200">
-                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.id}</TableCell>
                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <Badge variant={item.type === "Import" ? "default" : "secondary"}>
+                    <Badge variant={item.type === "Import" ? "default" : "secondary"} className={item.type === 'Import' ? 'bg-blue-500 text-white' : 'bg-red-500 text-white'}>
                       {item.type}
                     </Badge>
                   </TableCell>
-                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.name}</TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.name}</TableCell>
                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold">
                      {item.quantity > 0 ? `+${item.quantity}` : item.quantity}
                   </TableCell>

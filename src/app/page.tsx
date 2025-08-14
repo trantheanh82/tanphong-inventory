@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 const importItems = [
@@ -40,8 +40,8 @@ export default function DashboardPage() {
             </div>
         </div>
 
-      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
-        <CardHeader>
+      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
+        <CardHeader className="p-0 mb-4">
             <CardTitle className="flex items-center gap-2 text-2xl font-bold text-[#333]">
                 <TireIconSVG className="w-6 h-6" />
                 <span>Nhập Kho</span>
@@ -69,8 +69,8 @@ export default function DashboardPage() {
                 </Table>
             </div>
         </CardContent>
-        <CardFooter className="pt-4 p-4">
-            <Button asChild className="w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl transition-transform transform hover:scale-105 duration-200 flex items-center justify-center space-x-2 shadow-md">
+        <CardFooter className="pt-4 p-0">
+            <Button asChild className="mt-4 w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl transition-transform transform hover:scale-105 duration-200 flex items-center justify-center space-x-2 shadow-md">
                 <Link href="/import">
                     Xem thêm
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -79,8 +79,8 @@ export default function DashboardPage() {
         </CardFooter>
       </Card>
 
-      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
-        <CardHeader>
+      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
+        <CardHeader className="p-0 mb-4">
             <CardTitle className="flex items-center gap-2 text-2xl font-bold text-[#333]">
                 <TireIconSVG className="w-6 h-6" />
                 <span>Xuất Kho</span>
@@ -108,8 +108,8 @@ export default function DashboardPage() {
                 </Table>
             </div>
         </CardContent>
-        <CardFooter className="pt-4 p-4">
-            <Button asChild className="w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl transition-transform transform hover:scale-105 duration-200 flex items-center justify-center space-x-2 shadow-md">
+        <CardFooter className="pt-4 p-0">
+            <Button asChild className="mt-4 w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl transition-transform transform hover:scale-105 duration-200 flex items-center justify-center space-x-2 shadow-md">
                 <Link href="/export">
                     Xem thêm
                     <ArrowRight className="ml-2 h-4 w-4" />

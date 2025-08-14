@@ -3,33 +3,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Home,
-  List,
-  ArrowUpSquare,
-  ArrowDownSquare,
-  Warehouse,
-  Menu,
-  User,
-  LogOut,
-  Power,
-  ArrowLeft
-} from "lucide-react";
+import { LogOut, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-  SheetClose,
-} from "@/components/ui/sheet";
-
-const navItems = [
-  { href: "/", icon: Home, label: "Dashboard" },
-  { href: "/inventory", icon: List, label: "Inventory" },
-  { href: "/import", icon: ArrowDownSquare, label: "Import Tires" },
-  { href: "/export", icon: ArrowUpSquare, label: "Export Tires" },
-  { href: "/profile", icon: User, label: "Profile" },
-];
 
 const pageTitles: { [key: string]: string } = {
   "/": "Kho lốp Tân Phong",

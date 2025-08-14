@@ -48,30 +48,26 @@ export default function ExportPage() {
     }
 
     return (
-        <div className="flex flex-col gap-6 md:gap-8 animate-in fade-in-0 duration-500">
-            <div className="space-y-1.5">
-                <h1 className="text-3xl font-bold tracking-tight">Export Tires</h1>
-                <p className="text-muted-foreground">Record an outgoing shipment of tires from the inventory.</p>
-            </div>
-            <Card className="max-w-2xl">
+        <div className="p-4 animate-in fade-in-0 duration-500">
+            <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50">
                 <CardHeader>
-                    <CardTitle>New Export Form</CardTitle>
-                    <CardDescription>Fill in the details for the new tire export.</CardDescription>
+                    <CardTitle className="text-[#333]">New Export Form</CardTitle>
+                    <CardDescription className="text-gray-600">Fill in the details for the new tire export.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                             <div className="space-y-2">
-                                <Label htmlFor="exportId">Export #</Label>
+                                <Label htmlFor="exportId" className="text-gray-800">Export #</Label>
                                 <Input id="exportId" placeholder="EXP-0076" disabled />
-                                <p className="text-sm text-muted-foreground">The export ID is generated automatically.</p>
+                                <p className="text-sm text-gray-600">The export ID is generated automatically.</p>
                             </div>
                             <FormField
                                 control={form.control}
                                 name="name"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Tên phiếu (Tire Name)</FormLabel>
+                                        <FormLabel className="text-gray-800">Tên phiếu (Tire Name)</FormLabel>
                                         <FormControl>
                                             <Input placeholder="e.g., Lốp Michelin 205/55R16" {...field} />
                                         </FormControl>
@@ -84,7 +80,7 @@ export default function ExportPage() {
                                 name="quantity"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Số lượng (Quantity)</FormLabel>
+                                        <FormLabel className="text-gray-800">Số lượng (Quantity)</FormLabel>
                                         <FormControl>
                                             <Input type="number" min="1" {...field} />
                                         </FormControl>
@@ -92,7 +88,9 @@ export default function ExportPage() {
                                     </FormItem>
                                 )}
                             />
-                            <Button type="submit">Submit Export</Button>
+                            <Button type="submit" className="w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl transition-transform transform hover:scale-105 duration-200 flex items-center justify-center space-x-2 shadow-md">
+                                Submit Export
+                            </Button>
                         </form>
                     </Form>
                 </CardContent>
