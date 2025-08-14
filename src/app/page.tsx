@@ -2,7 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, PackageOpen } from "lucide-react";
+import { ArrowRight, PackageOpen, ArrowUp, ArrowDown } from "lucide-react";
+import Link from "next/link";
 
 const importItems = [
     { id: "PNK001", dot: "1234567890", quantity: 100 },
@@ -22,7 +23,7 @@ export default function DashboardPage() {
         <CardHeader>
             <CardTitle className="flex items-center gap-3">
                 <div className="bg-primary/10 p-2 rounded-full">
-                    <PackageOpen className="h-5 w-5 text-primary" />
+                    <ArrowDown className="h-5 w-5 text-primary" />
                 </div>
                 <span className="font-bold text-lg">Nhập Kho</span>
             </CardTitle>
@@ -30,10 +31,10 @@ export default function DashboardPage() {
         <CardContent className="p-0">
             <Table>
                 <TableHeader>
-                    <TableRow className="bg-primary/10">
-                        <TableHead className="text-primary font-semibold">TÊN PHIẾU</TableHead>
-                        <TableHead className="text-primary font-semibold">DOT</TableHead>
-                        <TableHead className="text-right text-primary font-semibold">SỐ LƯỢNG</TableHead>
+                    <TableRow className="bg-muted/30">
+                        <TableHead className="text-muted-foreground font-semibold">TÊN PHIẾU</TableHead>
+                        <TableHead className="text-muted-foreground font-semibold">DOT</TableHead>
+                        <TableHead className="text-right text-muted-foreground font-semibold">SỐ LƯỢNG</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -48,9 +49,11 @@ export default function DashboardPage() {
             </Table>
         </CardContent>
         <CardFooter className="pt-6">
-            <Button variant="secondary" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                Xem thêm
-                <ArrowRight className="ml-2 h-4 w-4" />
+            <Button asChild variant="outline" className="w-full">
+                <Link href="/import">
+                    Xem thêm
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
             </Button>
         </CardFooter>
       </Card>
@@ -59,7 +62,7 @@ export default function DashboardPage() {
         <CardHeader>
             <CardTitle className="flex items-center gap-3">
                  <div className="bg-primary/10 p-2 rounded-full">
-                    <PackageOpen className="h-5 w-5 text-primary" />
+                    <ArrowUp className="h-5 w-5 text-primary" />
                 </div>
                 <span className="font-bold text-lg">Xuất Kho</span>
             </CardTitle>
@@ -67,10 +70,10 @@ export default function DashboardPage() {
         <CardContent className="p-0">
             <Table>
                 <TableHeader>
-                    <TableRow className="bg-primary/10">
-                        <TableHead className="text-primary font-semibold">TÊN PHIẾU</TableHead>
-                        <TableHead className="text-primary font-semibold">DOT</TableHead>
-                        <TableHead className="text-right text-primary font-semibold">SỐ LƯỢNG</TableHead>
+                    <TableRow className="bg-muted/30">
+                        <TableHead className="text-muted-foreground font-semibold">TÊN PHIẾU</TableHead>
+                        <TableHead className="text-muted-foreground font-semibold">DOT</TableHead>
+                        <TableHead className="text-right text-muted-foreground font-semibold">SỐ LƯỢNG</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -85,9 +88,11 @@ export default function DashboardPage() {
             </Table>
         </CardContent>
         <CardFooter className="pt-6">
-            <Button variant="secondary" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                Xem thêm
-                <ArrowRight className="ml-2 h-4 w-4" />
+            <Button asChild variant="outline" className="w-full">
+                <Link href="/export">
+                    Xem thêm
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
             </Button>
         </CardFooter>
       </Card>

@@ -10,9 +10,9 @@ export default function ProfilePage() {
         <h1 className="text-3xl font-bold tracking-tight">User Profile</h1>
         <p className="text-muted-foreground">Manage your account settings and preferences.</p>
       </div>
-      <Card className="max-w-2xl">
+      <Card className="max-w-2xl mx-auto w-full">
         <CardHeader className="flex flex-col items-center text-center space-y-4">
-          <Avatar className="h-24 w-24">
+          <Avatar className="h-24 w-24 border-2 border-primary">
             <AvatarImage src="https://placehold.co/100x100.png" alt="User Avatar" data-ai-hint="person" />
             <AvatarFallback>TP</AvatarFallback>
           </Avatar>
@@ -38,8 +38,8 @@ export default function ProfilePage() {
             </div>
           </div>
           <Separator />
-          <div className="mt-6 flex gap-2">
-            <Button className="flex-1">Edit Profile</Button>
+          <div className="mt-6 flex gap-4">
+            <Button className="flex-1" variant="outline">Edit Profile</Button>
             <Button variant="outline" className="flex-1">Change Password</Button>
           </div>
         </CardContent>

@@ -8,31 +8,35 @@ import { Warehouse } from 'lucide-react';
 
 export default function LoginPage() {
   return (
-    <Card className="w-full max-w-sm mx-auto animate-in fade-in-0 zoom-in-95 duration-500">
-      <CardHeader className="text-center">
-        <div className="flex justify-center items-center mb-4">
-            <Warehouse className="h-10 w-10 text-primary" />
-        </div>
-        <CardTitle className="text-2xl font-bold">Welcome to Tân Phong</CardTitle>
-        <CardDescription>Enter your credentials to access your inventory.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
-            <Input id="username" type="text" placeholder="your-username" required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required />
-          </div>
-          <Button asChild type="submit" className="w-full">
-            <Link href="/">
-                Login
+    <div className="w-full max-w-sm mx-auto animate-in fade-in-0 zoom-in-95 duration-500 p-4">
+        <div className="text-center mb-8">
+            <Link href="/" className="flex items-center justify-center gap-2 text-2xl font-bold text-primary">
+                <Warehouse className="h-8 w-8" />
+                <span>Tân Phong</span>
             </Link>
-          </Button>
         </div>
-      </CardContent>
-    </Card>
+        
+        <div className="space-y-4">
+            <div className="space-y-2 text-center">
+                <h1 className="text-3xl font-bold">Welcome Back</h1>
+                <p className="text-muted-foreground">Enter your credentials to access your inventory.</p>
+            </div>
+            <div className="space-y-4 pt-4">
+                <div className="space-y-2">
+                    <Label htmlFor="username">Username</Label>
+                    <Input id="username" type="text" placeholder="your-username" required />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input id="password" type="password" required />
+                </div>
+                <Button asChild type="submit" className="w-full !mt-6">
+                    <Link href="/">
+                        Login
+                    </Link>
+                </Button>
+            </div>
+        </div>
+    </div>
   );
 }

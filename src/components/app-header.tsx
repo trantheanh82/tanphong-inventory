@@ -35,8 +35,8 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/", icon: Home, label: "Dashboard" },
   { href: "/inventory", icon: List, label: "Inventory" },
-  { href: "/import", icon: ArrowUpSquare, label: "Import Tires" },
-  { href: "/export", icon: ArrowDownSquare, label: "Export Tires" },
+  { href: "/import", icon: ArrowDownSquare, label: "Import Tires" },
+  { href: "/export", icon: ArrowUpSquare, label: "Export Tires" },
   { href: "/profile", icon: User, label: "Profile" },
 ];
 
@@ -62,7 +62,7 @@ function MobileSidebar() {
       <SheetContent side="left" className="flex flex-col">
         <nav className="grid gap-4 text-lg font-medium">
           <Link
-            href="#"
+            href="/"
             className="flex items-center gap-2 text-lg font-semibold mb-4"
           >
             <Warehouse className="h-6 w-6 text-primary" />
@@ -102,14 +102,42 @@ function MobileSidebar() {
 }
 
 function UserMenu() {
-  return (
-    <Button asChild variant="ghost" size="icon" className="rounded-full">
-        <Link href="/login">
-            <Power className="h-6 w-6" />
-            <span className="sr-only">Logout</span>
-        </Link>
-    </Button>
-  );
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <Avatar className="h-10 w-10">
+                        <AvatarImage src="https://placehold.co/40x40.png" alt="User" data-ai-hint="person" />
+                        <AvatarFallback>TP</AvatarFallback>
+                    </Avatar>
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">Tân Phong Admin</p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                            admin@tanphong.co
+                        </p>
+                    </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                        <User className="mr-2" />
+                        <span>Profile</span>
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                     <Link href="/login">
+                        <LogOut className="mr-2" />
+                        <span>Log out</span>
+                    </Link>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
 }
 
 export function AppHeader() {
@@ -117,10 +145,16 @@ export function AppHeader() {
   const title = pageTitles[pathname] || "Dashboard";
 
   return (
-    <header className="flex h-20 items-center justify-between gap-4 bg-accent text-accent-foreground px-4 md:px-6 sticky top-0 z-30 rounded-t-2xl">
+    <header className="flex h-20 items-center justify-between gap-4 bg-background border-b px-4 md:px-6 sticky top-0 z-30">
         <div className="flex items-center gap-4">
             <MobileSidebar />
-            <h1 className="text-xl font-bold">{title}</h1>
+            <h1 className="text-xl font-bold hidden md:block">{title}</h1>
+        </div>
+        <div className="flex items-center md:hidden">
+             <Link href="/" className="flex items-center gap-2 text-xl font-bold text-primary">
+                <Warehouse className="h-7 w-7" />
+                <span>Tân Phong</span>
+            </Link>
         </div>
         <UserMenu />
     </header>

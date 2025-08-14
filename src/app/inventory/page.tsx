@@ -23,12 +23,12 @@ export default function InventoryPage() {
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead className="w-[120px]">ID</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Tên phiếu (Tire Name)</TableHead>
-                <TableHead className="text-right">Số lượng (Quantity)</TableHead>
-                <TableHead className="w-[150px]">Date</TableHead>
+              <TableRow className="bg-muted/30">
+                <TableHead className="w-[120px] text-muted-foreground">ID</TableHead>
+                <TableHead className="text-muted-foreground">Type</TableHead>
+                <TableHead className="text-muted-foreground">Tên phiếu (Tire Name)</TableHead>
+                <TableHead className="text-right text-muted-foreground">Số lượng (Quantity)</TableHead>
+                <TableHead className="w-[150px] text-muted-foreground">Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
