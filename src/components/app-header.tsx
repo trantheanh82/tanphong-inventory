@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, ArrowLeft } from "lucide-react";
+import { Power, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const pageTitles: { [key: string]: string } = {
@@ -38,7 +38,7 @@ export function AppHeader() {
         <div className="w-8 flex justify-end">
           <Button asChild variant="ghost" size="icon" className="text-white hover:text-gray-400 transition-colors duration-200 transform hover:scale-110">
               <Link href="/login">
-                  <LogOut className="w-6 h-6" strokeWidth={3} />
+                  <Power className="w-6 h-6" strokeWidth={3} />
               </Link>
           </Button>
         </div>
