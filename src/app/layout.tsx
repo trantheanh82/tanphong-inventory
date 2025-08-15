@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster"
 export const metadata: Metadata = {
   title: 'Tân Phong Inventory',
   description: 'Inventory management system for Tân Phong',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
@@ -19,6 +20,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;700&display=swap" rel="stylesheet" />
+        <meta name="theme-color" content="#111827" />
       </head>
       <body className="font-body antialiased">
         <div className="absolute inset-0 z-0 animated-gradient-bg"></div>
