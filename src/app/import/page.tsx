@@ -20,10 +20,10 @@ import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   name: z.string().min(2, {
-    message: "Tên phiếu must be at least 2 characters.",
+    message: "Tên lốp xe phải có ít nhất 2 ký tự.",
   }),
   quantity: z.coerce.number().int().positive({
-    message: "Số lượng must be a positive number.",
+    message: "Số lượng phải là một số dương.",
   }),
 });
 
@@ -41,8 +41,8 @@ export default function ImportPage() {
     function onSubmit(values: z.infer<typeof formSchema>) {
         console.log(values);
         toast({
-            title: "Import Successful",
-            description: `Imported ${values.quantity} of ${values.name}.`,
+            title: "Nhập kho thành công",
+            description: `Đã nhập ${values.quantity} lốp ${values.name}.`,
         });
         form.reset();
     }
@@ -51,25 +51,25 @@ export default function ImportPage() {
         <div className="p-4 animate-in fade-in-0 duration-500">
             <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50">
                 <CardHeader>
-                    <CardTitle className="text-[#333]">New Import Form</CardTitle>
-                    <CardDescription className="text-gray-600">Fill in the details for the new tire import.</CardDescription>
+                    <CardTitle className="text-[#333]">Phiếu Nhập Kho Mới</CardTitle>
+                    <CardDescription className="text-gray-600">Điền thông tin chi tiết cho phiếu nhập kho lốp xe mới.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                             <div className="space-y-2">
-                                <Label htmlFor="importId" className="text-gray-800">Import #</Label>
+                                <Label htmlFor="importId" className="text-gray-800">Mã phiếu nhập</Label>
                                 <Input id="importId" placeholder="IMP-0129" disabled />
-                                <p className="text-sm text-gray-600">The import ID is generated automatically.</p>
+                                <p className="text-sm text-gray-600">Mã phiếu nhập được tạo tự động.</p>
                             </div>
                             <FormField
                                 control={form.control}
                                 name="name"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-gray-800">Tên phiếu (Tire Name)</FormLabel>
+                                        <FormLabel className="text-gray-800">Tên lốp xe</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="e.g., Lốp Michelin 205/55R16" {...field} />
+                                            <Input placeholder="Ví dụ: Lốp Michelin 205/55R16" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -80,7 +80,7 @@ export default function ImportPage() {
                                 name="quantity"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-gray-800">Số lượng (Quantity)</FormLabel>
+                                        <FormLabel className="text-gray-800">Số lượng</FormLabel>
                                         <FormControl>
                                             <Input type="number" min="1" {...field} />
                                         </FormControl>
@@ -89,7 +89,7 @@ export default function ImportPage() {
                                 )}
                             />
                             <Button type="submit" className="w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl transition-transform transform hover:scale-105 duration-200 flex items-center justify-center space-x-2 shadow-md">
-                                Submit Import
+                                Xác nhận nhập kho
                             </Button>
                         </form>
                     </Form>
