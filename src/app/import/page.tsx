@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { updateInventory } from "@/ai/flows/inventory-flow";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -29,6 +31,7 @@ const formSchema = z.object({
 
 export default function ImportPage() {
     const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -38,13 +41,32 @@ export default function ImportPage() {
         },
     });
 
-    function onSubmit(values: z.infer<typeof formSchema>) {
-        console.log(values);
-        toast({
-            title: "Nhập kho thành công",
-            description: `Đã nhập ${values.quantity} lốp ${values.name}.`,
-        });
-        form.reset();
+    async function onSubmit(values: z.infer<typeof formSchema>) {
+        setIsSubmitting(true);
+        try {
+            const result = await updateInventory({ ...values, type: 'import' });
+            if (result.success) {
+                toast({
+                    title: "Nhập kho thành công",
+                    description: result.message,
+                });
+                form.reset();
+            } else {
+                 toast({
+                    title: "Lỗi",
+                    description: result.message,
+                    variant: "destructive",
+                });
+            }
+        } catch (error) {
+            toast({
+                title: "Lỗi",
+                description: "Đã có lỗi xảy ra khi gửi yêu cầu.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     return (
@@ -88,8 +110,8 @@ export default function ImportPage() {
                                     </FormItem>
                                 )}
                             />
-                            <Button type="submit" className="w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl transition-transform transform hover:scale-105 duration-200 flex items-center justify-center space-x-2 shadow-md">
-                                Xác nhận nhập kho
+                            <Button type="submit" disabled={isSubmitting} className="w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl transition-transform transform hover:scale-105 duration-200 flex items-center justify-center space-x-2 shadow-md">
+                                {isSubmitting ? 'Đang xử lý...' : 'Xác nhận nhập kho'}
                             </Button>
                         </form>
                     </Form>
