@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { ArrowRight, ArrowDownCircle, ArrowUpCircle, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 const importItems = [
@@ -30,14 +30,18 @@ const TireIconSVG = (props: React.SVGProps<SVGSVGElement>) => (
 export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-8 animate-in fade-in-0 duration-500 p-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
             <Link href="/import" className="flex flex-col items-center justify-center p-6 bg-white/50 backdrop-blur-md rounded-xl shadow-lg cursor-pointer hover:scale-105 transition-transform duration-200 border border-white/50">
-                <ArrowDownCircle className="w-20 h-20 mb-2 text-[#333]" />
-                <span className="text-base font-semibold text-[#333]">Nhập Kho</span>
+                <ArrowDownCircle className="w-16 h-16 mb-2 text-[#333]" />
+                <span className="text-sm font-semibold text-center text-[#333]">Nhập Kho</span>
             </Link>
             <Link href="/export" className="flex flex-col items-center justify-center p-6 bg-white/50 backdrop-blur-md rounded-xl shadow-lg cursor-pointer hover:scale-105 transition-transform duration-200 border border-white/50">
-                <ArrowUpCircle className="w-20 h-20 mb-2 text-[#333]" />
-                <span className="text-base font-semibold text-[#333]">Xuất Kho</span>
+                <ArrowUpCircle className="w-16 h-16 mb-2 text-[#333]" />
+                <span className="text-sm font-semibold text-center text-[#333]">Xuất Kho</span>
+            </Link>
+            <Link href="/warranty" className="flex flex-col items-center justify-center p-6 bg-white/50 backdrop-blur-md rounded-xl shadow-lg cursor-pointer hover:scale-105 transition-transform duration-200 border border-white/50">
+                <ShieldCheck className="w-16 h-16 mb-2 text-[#333]" />
+                <span className="text-sm font-semibold text-center text-[#333]">Bảo Hành</span>
             </Link>
         </div>
 
