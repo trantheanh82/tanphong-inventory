@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ArrowDownCircle, ArrowUpCircle, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 const importItems = [
     { id: "PNK001", dot: "1234567890", quantity: 100 },
@@ -45,6 +46,11 @@ export default function DashboardPage() {
                     <span className="text-sm font-semibold text-center text-[#333]">Bảo Hành</span>
                 </Link>
             </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Image src="https://placehold.co/600x400.png" alt="Tire" width={600} height={400} className="rounded-xl shadow-lg w-full h-auto" data-ai-hint="tire" />
+          <Image src="https://placehold.co/600x400.png" alt="Tires stacked" width={600} height={400} className="rounded-xl shadow-lg w-full h-auto hidden md:block" data-ai-hint="tires stacked" />
         </div>
 
       <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
