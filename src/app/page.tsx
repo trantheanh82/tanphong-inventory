@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 import Link from "next/link";
 
 const importItems = [
@@ -31,14 +31,14 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-8 animate-in fade-in-0 duration-500 p-4">
         <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col items-center justify-center p-6 bg-white/50 backdrop-blur-md rounded-xl shadow-lg cursor-pointer hover:scale-105 transition-transform duration-200 border border-white/50">
-                <img src="https://placehold.co/100x100/fff/333?text=Nhập+Kho" alt="Scan QR code to import" className="w-20 h-20 mb-2 rounded-lg object-cover" data-ai-hint="warehouse import" />
+            <Link href="/import" className="flex flex-col items-center justify-center p-6 bg-white/50 backdrop-blur-md rounded-xl shadow-lg cursor-pointer hover:scale-105 transition-transform duration-200 border border-white/50">
+                <ArrowDownCircle className="w-20 h-20 mb-2 text-[#333]" />
                 <span className="text-base font-semibold text-[#333]">Nhập Kho</span>
-            </div>
-            <div className="flex flex-col items-center justify-center p-6 bg-white/50 backdrop-blur-md rounded-xl shadow-lg cursor-pointer hover:scale-105 transition-transform duration-200 border border-white/50">
-                <img src="https://placehold.co/100x100/fff/333?text=Xuất+Kho" alt="Empty warehouse shelf for export" className="w-20 h-20 mb-2 rounded-lg object-cover" data-ai-hint="warehouse export" />
+            </Link>
+            <Link href="/export" className="flex flex-col items-center justify-center p-6 bg-white/50 backdrop-blur-md rounded-xl shadow-lg cursor-pointer hover:scale-105 transition-transform duration-200 border border-white/50">
+                <ArrowUpCircle className="w-20 h-20 mb-2 text-[#333]" />
                 <span className="text-base font-semibold text-[#333]">Xuất Kho</span>
-            </div>
+            </Link>
         </div>
 
       <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
