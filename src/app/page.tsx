@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -16,13 +17,13 @@ const exportItems = [
 ];
 
 const TireIconSVG = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 12c0-4.97-4.03-9-9-9s-9 4.03-9 9 4.03 9 9 9" />
-        <path d="M12 21c4.97 0 9-4.03 9-9" />
-        <path d="M3 12c0 4.97 4.03 9 9 9" />
-        <path d="M12 3c-4.97 0-9 4.03-9 9" />
-        <path d="M18.36 5.64c-1.56-1.56-3.61-2.49-5.86-2.49" />
-        <path d="M5.64 18.36c1.56 1.56 3.61 2.49 5.86 2.49" />
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 2a4 4 0 0 0-4 4 4 4 0 0 0 8 0 4 4 0 0 0-4-4z" />
+        <path d="M12 2v20" />
+        <path d="M4.93 4.93l14.14 14.14" />
+        <path d="M4.93 19.07L19.07 4.93" />
+        <path d="M2 12h20" />
     </svg>
 );
 
