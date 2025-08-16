@@ -32,20 +32,22 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-8 animate-in fade-in-0 duration-500 p-4">
         <div className="grid grid-cols-1 gap-4">
-          <Image src="/images/tire3.jpg" alt="Tire" width={600} height={400} className="rounded-xl shadow-lg w-full h-auto" data-ai-hint="tire" />
+          <Image src="https://placehold.co/600x400.png" alt="Tire" width={600} height={400} className="rounded-xl shadow-lg w-full h-auto" data-ai-hint="tire" />
         </div>
         
         <div className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50 p-4">
             <div className="flex justify-around items-center">
-                <Link href="/import" className="flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors duration-200">
+                <Link href="/import" className="flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors duration-200 flex-1">
                     <ArrowDownCircle className="w-12 h-12 mb-2 text-[#333]" />
                     <span className="text-sm font-semibold text-center text-[#333]">Nhập Kho</span>
                 </Link>
-                <Link href="/export" className="flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors duration-200">
+                <div className="w-px h-16 bg-gray-300" />
+                <Link href="/export" className="flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors duration-200 flex-1">
                     <ArrowUpCircle className="w-12 h-12 mb-2 text-[#333]" />
                     <span className="text-sm font-semibold text-center text-[#333]">Xuất Kho</span>
                 </Link>
-                <Link href="/warranty" className="flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors duration-200">
+                <div className="w-px h-16 bg-gray-300" />
+                <Link href="/warranty" className="flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors duration-200 flex-1">
                     <ShieldCheck className="w-12 h-12 mb-2 text-[#333]" />
                     <span className="text-sm font-semibold text-center text-[#333]">Bảo Hành</span>
                 </Link>
