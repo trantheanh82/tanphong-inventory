@@ -31,6 +31,10 @@ const TireIconSVG = (props: React.SVGProps<SVGSVGElement>) => (
 export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-8 animate-in fade-in-0 duration-500 p-4">
+        <div className="grid grid-cols-1 gap-4">
+          <Image src="/images/tire3.jpg" alt="Tire" width={600} height={400} className="rounded-xl shadow-lg w-full h-auto" data-ai-hint="tire" />
+        </div>
+        
         <div className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50 p-4">
             <div className="flex justify-around items-center">
                 <Link href="/import" className="flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors duration-200">
@@ -48,9 +52,7 @@ export default function DashboardPage() {
             </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Image src="/images/tire2.jpg" alt="Tire" width={600} height={400} className="rounded-xl shadow-lg w-full h-auto" data-ai-hint="tire" />
-        </div>
+        
 
       <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
         <CardHeader className="p-0 mb-4">
