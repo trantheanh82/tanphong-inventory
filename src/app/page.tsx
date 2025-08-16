@@ -49,7 +49,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Image src="https://placehold.co/600x400.png" alt="Tire" width={600} height={400} className="rounded-xl shadow-lg w-full h-auto" data-ai-hint="tire" />
+          <Image src="/images/tire2.jpg" alt="Tire" width={600} height={400} className="rounded-xl shadow-lg w-full h-auto" data-ai-hint="tire" />
           <Image src="https://placehold.co/600x400.png" alt="Tires stacked" width={600} height={400} className="rounded-xl shadow-lg w-full h-auto hidden md:block" data-ai-hint="tires stacked" />
         </div>
 
