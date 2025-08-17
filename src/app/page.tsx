@@ -36,6 +36,7 @@ export default function DashboardPage() {
         </div>
         
         <div className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50 p-4">
+            <div className="text-xl font-bold text-center mb-4 text-[#333]">Thao tác nhanh</div>
             <div className="flex justify-around items-center">
                 <Link href="/import" className="flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors duration-200 flex-1">
                     <ArrowDownCircle className="w-12 h-12 mb-2 text-[#333]" />
