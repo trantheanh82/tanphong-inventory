@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowDownCircle, ArrowUpCircle, ShieldCheck } from "lucide-react";
+import { ArrowRight, ArrowDownCircle, ArrowUpCircle, ShieldCheck, QrCode } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -50,6 +50,11 @@ export default function DashboardPage() {
                 <Link href="/warranty" className="flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors duration-200 flex-1">
                     <ShieldCheck className="w-12 h-12 mb-2 text-[#333]" />
                     <span className="text-sm font-semibold text-center text-[#333]">Bảo Hành</span>
+                </Link>
+                <div className="w-px h-16 bg-gray-300" />
+                <Link href="/scan" className="flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors duration-200 flex-1">
+                    <QrCode className="w-12 h-12 mb-2 text-[#333]" />
+                    <span className="text-sm font-semibold text-center text-[#333]">Quét mã</span>
                 </Link>
             </div>
         </div>
