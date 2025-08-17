@@ -32,7 +32,7 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-8 animate-in fade-in-0 duration-500 p-4">
         <div className="grid grid-cols-1 gap-4">
-          <Image src="https://placehold.co/600x400.png" alt="Tire" width={600} height={400} className="rounded-xl shadow-lg w-full h-auto" data-ai-hint="tire" />
+          <Image src="/images/tire3.jpg" alt="Tire" width={600} height={400} className="rounded-xl shadow-lg w-full h-auto" data-ai-hint="tire" />
         </div>
         
         <div className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50 p-4">
