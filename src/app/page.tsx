@@ -32,7 +32,7 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-8 animate-in fade-in-0 duration-500 p-4">
         <div className="grid grid-cols-1 gap-4">
-          <Image src="/images/tire3.jpg" alt="Tire" width={600} height={400} className="rounded-xl shadow-lg w-full h-auto" data-ai-hint="tire" />
+          <Image src="https://placehold.co/600x400.png" alt="Tire" width={600} height={400} className="rounded-xl shadow-lg w-full h-auto" data-ai-hint="tire" />
         </div>
         
         <div className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50 p-4">
@@ -69,15 +69,15 @@ export default function DashboardPage() {
             <div className="overflow-hidden">
                 <Table>
                     <TableHeader>
-                        <TableRow className="bg-gray-50 hover:bg-gray-50">
-                            <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên phiếu</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DOT</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số lượng</TableHead>
+                        <TableRow className="bg-gray-200 hover:bg-gray-200/60">
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">DOT</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody className="bg-white/50 divide-y divide-gray-200">
                         {importItems.map((item) => (
-                            <TableRow key={item.id} className="hover:bg-gray-200 cursor-pointer transition duration-200">
+                            <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.id}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.dot}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</TableCell>
@@ -108,15 +108,15 @@ export default function DashboardPage() {
             <div className="overflow-hidden">
                 <Table>
                     <TableHeader>
-                        <TableRow className="bg-gray-50 hover:bg-gray-50">
-                            <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên phiếu</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DOT</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số lượng</TableHead>
+                        <TableRow className="bg-gray-200 hover:bg-gray-200/60">
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">DOT</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody className="bg-white/50 divide-y divide-gray-200">
                         {exportItems.map((item) => (
-                             <TableRow key={item.id} className="hover:bg-gray-200 cursor-pointer transition duration-200">
+                             <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.id}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.dot}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</TableCell>
