@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowDownCircle, ArrowUpCircle, ShieldCheck, QrCode } from "lucide-react";
+import { ArrowRight, ArrowDownCircle, ArrowUpCircle, ShieldCheck, QrCode, ScanLine } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -36,7 +36,10 @@ export default function DashboardPage() {
         </div>
         
         <div className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50 p-4">
-            <div className="text-xl font-bold text-center mb-4 text-[#333]">Thao tác nhanh</div>
+            <div className="flex items-center text-xl font-bold mb-4 text-[#333]">
+                <ScanLine className="w-6 h-6 mr-2" />
+                <span>Quét mã</span>
+            </div>
             <div className="flex justify-around items-center">
                 <Link href="/import" className="flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors duration-200 flex-1">
                     <ArrowDownCircle className="w-12 h-12 mb-2 text-[#333]" />
@@ -52,15 +55,8 @@ export default function DashboardPage() {
                     <ShieldCheck className="w-12 h-12 mb-2 text-[#333]" />
                     <span className="text-sm font-semibold text-center text-[#333]">Bảo Hành</span>
                 </Link>
-                <div className="w-px h-16 bg-gray-300" />
-                <Link href="/scan" className="flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors duration-200 flex-1">
-                    <QrCode className="w-12 h-12 mb-2 text-[#333]" />
-                    <span className="text-sm font-semibold text-center text-[#333]">Quét mã</span>
-                </Link>
             </div>
         </div>
-
-        
 
       <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
         <CardHeader className="p-0 mb-4">
