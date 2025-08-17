@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { User, Lock } from 'lucide-react';
+import { Mail, Lock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
@@ -30,11 +30,11 @@ export default function LoginPage() {
             <CardContent>
                 <form className="space-y-6" onSubmit={handleLogin}>
                     <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
                         <Input 
-                            id="username" 
-                            type="text" 
-                            placeholder="Tên đăng nhập" 
+                            id="email" 
+                            type="email" 
+                            placeholder="Email" 
                             required 
                             className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl text-black focus:outline-none focus:ring-2 focus:ring-gray-800 bg-white/80" 
                         />
