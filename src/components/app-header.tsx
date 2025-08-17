@@ -13,6 +13,7 @@ const pageTitles: { [key: string]: string } = {
   "/export": "Xuất Kho",
   "/profile": "Thông tin Cá nhân",
   "/warranty": "Bảo hành",
+  "/scanning": "Quét Mã",
 };
 
 export function AppHeader() {

@@ -35,6 +35,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
 
   const isLoginPage = pathname === '/login';
+  const isScanningPage = pathname === '/scanning';
 
   useEffect(() => {
     if (!loading && !isAuthenticated && !isLoginPage) {
@@ -43,7 +44,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [loading, isAuthenticated, isLoginPage, router]);
 
 
-  if (isLoginPage) {
+  if (isLoginPage || isScanningPage) {
     return (
         <div className="relative min-h-screen font-sans overflow-hidden">
             <div className="relative bg-white/30 backdrop-blur-md w-full h-screen overflow-hidden flex flex-col shadow-2xl z-10 justify-center">
