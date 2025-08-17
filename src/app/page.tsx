@@ -36,7 +36,7 @@ export default function DashboardPage() {
         </div>
         
         <div className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50 p-4">
-            <div className="flex items-center text-xl font-bold mb-4 text-[#333]">
+            <div className="flex items-center text-2xl font-bold mb-4 text-[#333]">
                 <ScanLine className="w-6 h-6 mr-2" />
                 <span>Quét mã</span>
             </div>
