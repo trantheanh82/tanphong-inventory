@@ -110,7 +110,7 @@ export default function ExportPage() {
                                     <FormItem>
                                         <FormLabel className="text-slate-800 font-semibold">Tên phiếu</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Nhập mã phiếu xuất" {...field} className="bg-white rounded-xl border-0 text-slate-800 focus-visible:ring-2 focus-visible:ring-blue-500" />
+                                            <Input placeholder="Nhập mã phiếu xuất" {...field} className="bg-white rounded-xl border-slate-300 text-slate-800 focus-visible:ring-1 focus-visible:ring-blue-500 font-normal" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -126,9 +126,9 @@ export default function ExportPage() {
                                             name={`items.${index}.dot`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="text-slate-800">DOT</FormLabel>
+                                                    <FormLabel className="text-slate-800 font-normal">DOT</FormLabel>
                                                     <FormControl>
-                                                        <Input type="number" {...field} className="bg-white rounded-xl border-0 text-slate-800 focus-visible:ring-2 focus-visible:ring-blue-500"/>
+                                                        <Input type="number" {...field} className="bg-white rounded-xl border-slate-300 text-slate-800 focus-visible:ring-1 focus-visible:ring-blue-500 font-normal"/>
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -139,9 +139,9 @@ export default function ExportPage() {
                                             name={`items.${index}.quantity`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="text-slate-800">Số lượng</FormLabel>
+                                                    <FormLabel className="text-slate-800 font-normal">Số lượng</FormLabel>
                                                     <FormControl>
-                                                        <Input type="number" min="1" {...field} className="bg-white rounded-xl border-0 text-slate-800 focus-visible:ring-2 focus-visible:ring-blue-500"/>
+                                                        <Input type="number" min="1" {...field} className="bg-white rounded-xl border-slate-300 text-slate-800 focus-visible:ring-1 focus-visible:ring-blue-500 font-normal"/>
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -167,7 +167,7 @@ export default function ExportPage() {
                                     type="button" 
                                     variant="ghost"
                                     onClick={() => append({ dot: "", quantity: 1 })}
-                                    className="bg-white/80 hover:bg-white text-slate-800 font-semibold py-3 px-6 rounded-xl flex items-center justify-center space-x-2"
+                                    className="bg-transparent hover:bg-transparent text-slate-800 font-semibold py-3 px-6 rounded-xl flex items-center justify-center space-x-2"
                                 >
                                     <PlusCircle className="w-5 h-5" />
                                     <span>Thêm</span>
