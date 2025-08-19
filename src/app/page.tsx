@@ -41,7 +41,7 @@ export default function DashboardPage() {
                 <span>Quét mã</span>
             </div>
             <div className="flex justify-around items-center">
-                <Link href="/scanning" className="flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors duration-200 flex-1">
+                <Link href="/import" className="flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors duration-200 flex-1">
                     <ArrowDownCircle className="w-12 h-12 mb-2 text-[#333]" />
                     <span className="text-sm font-semibold text-center text-[#333]">Nhập Kho</span>
                 </Link>
