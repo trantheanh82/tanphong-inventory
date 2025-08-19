@@ -126,7 +126,7 @@ export default function ImportPage() {
                                             name={`items.${index}.dot`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="text-slate-800 font-semibold">DOT</FormLabel>
+                                                    <FormLabel className="text-slate-800">DOT</FormLabel>
                                                     <FormControl>
                                                         <Input type="number" {...field} className="bg-white rounded-xl border-0 text-slate-800 focus-visible:ring-2 focus-visible:ring-blue-500" />
                                                     </FormControl>
@@ -139,7 +139,7 @@ export default function ImportPage() {
                                             name={`items.${index}.quantity`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="text-slate-800 font-semibold">Số lượng</FormLabel>
+                                                    <FormLabel className="text-slate-800">Số lượng</FormLabel>
                                                     <FormControl>
                                                         <Input type="number" min="1" {...field} className="bg-white rounded-xl border-0 text-slate-800 focus-visible:ring-2 focus-visible:ring-blue-500"/>
                                                     </FormControl>
@@ -191,5 +191,3 @@ export default function ImportPage() {
         </div>
     );
 }
-
-    
