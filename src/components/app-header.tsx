@@ -29,11 +29,11 @@ export function AppHeader() {
 
   return (
     <header className="bg-gray-800/80 backdrop-blur-md text-white p-4 flex items-center justify-between shadow-lg sticky top-0 z-30">
-        <div className="w-8">
+        <div className="w-10">
             {!isHomePage && (
                 <Button asChild variant="ghost" size="icon" className="text-white hover:text-gray-400 transition-colors duration-200 transform hover:scale-110">
                     <Link href="/">
-                        <ArrowLeft className="w-6 h-6" strokeWidth={3} />
+                        <ArrowLeft className="w-8 h-8" strokeWidth={2.5} />
                     </Link>
                 </Button>
             )}
@@ -43,9 +43,9 @@ export function AppHeader() {
           {title}
         </h1>
 
-        <div className="w-8 flex justify-end">
+        <div className="w-10 flex justify-end">
           <Button onClick={handleLogout} variant="ghost" size="icon" className="text-white hover:text-gray-400 transition-colors duration-200 transform hover:scale-110">
-              <Power className="w-6 h-6" strokeWidth={3} />
+              <Power className="w-8 h-8" strokeWidth={2.5} />
           </Button>
         </div>
     </header>
