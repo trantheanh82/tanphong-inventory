@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { updateInventory } from "@/ai/flows/inventory-flow";
 
 const itemSchema = z.object({
-  dot: z.string().regex(/^\d{4}$/, {
+  dot: z.string().length(4, { message: "DOT phải là 4 chữ số." }).regex(/^\d{4}$/, {
     message: "DOT phải là 4 chữ số.",
   }),
   quantity: z.coerce.number().int().positive({
