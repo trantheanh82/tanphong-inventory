@@ -1,9 +1,10 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import * as z from "zod";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { PlusCircle, ScanLine } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,14 +20,19 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { updateInventory } from "@/ai/flows/inventory-flow";
+import { Separator } from "@/components/ui/separator";
 
-const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "Tên lốp xe phải có ít nhất 2 ký tự.",
+const itemSchema = z.object({
+  dot: z.string().min(2, {
+    message: "DOT phải có ít nhất 2 ký tự.",
   }),
   quantity: z.coerce.number().int().positive({
     message: "Số lượng phải là một số dương.",
   }),
+});
+
+const formSchema = z.object({
+  items: z.array(itemSchema),
 });
 
 export default function ImportPage() {
@@ -36,28 +42,46 @@ export default function ImportPage() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            name: "",
-            quantity: 1,
+            items: [{ dot: "", quantity: 1 }],
         },
     });
+
+    const { fields, append } = useFieldArray({
+        control: form.control,
+        name: "items",
+    });
+
+    const watchedItems = useWatch({
+        control: form.control,
+        name: "items",
+    });
+
+    const isScanButtonVisible = useMemo(() => {
+        if (!watchedItems || watchedItems.length === 0) return false;
+        return watchedItems.every(item => item.dot && item.dot.length > 0 && item.quantity && item.quantity > 0);
+    }, [watchedItems]);
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true);
         try {
-            const result = await updateInventory({ ...values, type: 'import' });
-            if (result.success) {
-                toast({
-                    title: "Nhập kho thành công",
-                    description: result.message,
-                });
-                form.reset();
-            } else {
-                 toast({
-                    title: "Lỗi",
-                    description: result.message,
-                    variant: "destructive",
-                });
+            // Here you would likely navigate to the scanning page or process the items.
+            // For now, we'll just toast a success message for each item.
+            for (const item of values.items) {
+                const result = await updateInventory({ name: item.dot, quantity: item.quantity, type: 'import' });
+                if (result.success) {
+                    toast({
+                        title: "Nhập kho thành công",
+                        description: `Đã nhập ${item.quantity} lốp với DOT ${item.dot}.`,
+                    });
+                } else {
+                    toast({
+                        title: "Lỗi",
+                        description: `Lỗi khi nhập lốp với DOT ${item.dot}: ${result.message}`,
+                        variant: "destructive",
+                    });
+                }
             }
+            form.reset({ items: [{ dot: "", quantity: 1 }] });
         } catch (error) {
             toast({
                 title: "Lỗi",
@@ -84,35 +108,65 @@ export default function ImportPage() {
                                 <Input id="importId" placeholder="IMP-0129" disabled />
                                 <p className="text-sm text-gray-600">Mã phiếu nhập được tạo tự động.</p>
                             </div>
-                            <FormField
-                                control={form.control}
-                                name="name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-gray-800">Tên lốp xe</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Ví dụ: Lốp Michelin 205/55R16" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
+                            
+                            {fields.map((field, index) => (
+                                <div key={field.id} className="space-y-4">
+                                    <div className="flex items-center gap-4">
+                                        <span className="text-gray-800 font-bold">{index + 1}.</span>
+                                        <div className="grid grid-cols-2 gap-4 flex-1">
+                                            <FormField
+                                                control={form.control}
+                                                name={`items.${index}.dot`}
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-gray-800">DOT</FormLabel>
+                                                        <FormControl>
+                                                            <Input placeholder="Nhập DOT" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name={`items.${index}.quantity`}
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-gray-800">Số lượng</FormLabel>
+                                                        <FormControl>
+                                                            <Input type="number" min="1" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                    </div>
+                                    <Separator className="bg-gray-300" />
+                                </div>
+                            ))}
+
+                            <div className="flex items-center justify-between gap-4">
+                                <Button 
+                                    type="button" 
+                                    onClick={() => append({ dot: "", quantity: 1 })}
+                                    className="bg-gray-200 text-gray-800 hover:bg-gray-300 font-semibold py-2 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-sm"
+                                >
+                                    <PlusCircle className="w-5 h-5" />
+                                    <span>Thêm</span>
+                                </Button>
+
+                                {isScanButtonVisible && (
+                                    <Button 
+                                        type="submit" 
+                                        disabled={isSubmitting}
+                                        className="bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md"
+                                    >
+                                        <ScanLine className="w-5 h-5" />
+                                        <span>{isSubmitting ? 'Đang xử lý...' : 'Quét'}</span>
+                                    </Button>
                                 )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="quantity"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-gray-800">Số lượng</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" min="1" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <Button type="submit" disabled={isSubmitting} className="w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl transition-transform transform hover:scale-105 duration-200 flex items-center justify-center space-x-2 shadow-md">
-                                {isSubmitting ? 'Đang xử lý...' : 'Xác nhận nhập kho'}
-                            </Button>
+                            </div>
                         </form>
                     </Form>
                 </CardContent>
