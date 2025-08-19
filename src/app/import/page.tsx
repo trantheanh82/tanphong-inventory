@@ -23,8 +23,8 @@ import { useToast } from "@/hooks/use-toast";
 import { updateInventory } from "@/ai/flows/inventory-flow";
 
 const itemSchema = z.object({
-  dot: z.string().regex(/^\d{1,4}$/, {
-    message: "DOT phải là số và có tối đa 4 ký tự.",
+  dot: z.string().regex(/^\d{4}$/, {
+    message: "DOT phải là 4 chữ số.",
   }),
   quantity: z.coerce.number().int().positive({
     message: "Số lượng phải là một số dương.",
@@ -60,7 +60,7 @@ export default function ImportPage() {
 
     const isScanButtonVisible = useMemo(() => {
         if (!watchedItems || watchedItems.length === 0) return false;
-        return watchedItems.every(item => item.dot && /^\d{1,4}$/.test(item.dot) && item.quantity && item.quantity > 0);
+        return watchedItems.every(item => item.dot && /^\d{4}$/.test(item.dot) && item.quantity && item.quantity > 0);
     }, [watchedItems]);
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
