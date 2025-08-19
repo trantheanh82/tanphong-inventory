@@ -118,7 +118,7 @@ export default function ExportPage() {
                             />
 
                             {fields.map((field, index) => (
-                                <div key={field.id} className="p-4 rounded-xl bg-transparent relative space-y-4">
+                                <div key={field.id} className="p-4 rounded-xl bg-transparent relative space-y-4 border-b border-slate-300 last:border-b-0">
                                     <Label className="font-bold text-slate-800 block">Lốp {index + 1}</Label>
                                     <div className="grid grid-cols-2 gap-4">
                                         <FormField
@@ -191,3 +191,5 @@ export default function ExportPage() {
         </div>
     );
 }
+
+    
