@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,8 +24,8 @@ import { updateInventory } from "@/ai/flows/inventory-flow";
 import { Separator } from "@/components/ui/separator";
 
 const itemSchema = z.object({
-  dot: z.string().min(2, {
-    message: "DOT phải có ít nhất 2 ký tự.",
+  dot: z.string().regex(/^\d{1,4}$/, {
+    message: "DOT phải là số và có tối đa 4 ký tự.",
   }),
   quantity: z.coerce.number().int().positive({
     message: "Số lượng phải là một số dương.",
@@ -33,6 +34,7 @@ const itemSchema = z.object({
 
 const formSchema = z.object({
   items: z.array(itemSchema),
+  exportId: z.string().min(1, { message: "Mã phiếu xuất là bắt buộc." }),
 });
 
 export default function ExportPage() {
@@ -42,6 +44,7 @@ export default function ExportPage() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
+            exportId: "",
             items: [{ dot: "", quantity: 1 }],
         },
     });
@@ -58,20 +61,18 @@ export default function ExportPage() {
 
     const isScanButtonVisible = useMemo(() => {
         if (!watchedItems || watchedItems.length === 0) return false;
-        return watchedItems.every(item => item.dot && item.dot.length > 0 && item.quantity && item.quantity > 0);
+        return watchedItems.every(item => item.dot && /^\d{1,4}$/.test(item.dot) && item.quantity && item.quantity > 0);
     }, [watchedItems]);
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true);
         try {
-            // Here you would likely navigate to the scanning page or process the items.
-            // For now, we'll just toast a success message for each item.
             for (const item of values.items) {
                 const result = await updateInventory({ name: item.dot, quantity: item.quantity, type: 'export' });
                 if (result.success) {
                     toast({
                         title: "Xuất kho thành công",
-                        description: `Đã xuất ${item.quantity} lốp với DOT ${item.dot}.`,
+                        description: `Đã xuất ${item.quantity} lốp với DOT ${item.dot} cho phiếu ${values.exportId}.`,
                     });
                 } else {
                     toast({
@@ -81,7 +82,7 @@ export default function ExportPage() {
                     });
                 }
             }
-            form.reset({ items: [{ dot: "", quantity: 1 }] });
+            form.reset({ exportId: "", items: [{ dot: "", quantity: 1 }] });
         } catch (error) {
             toast({
                 title: "Lỗi",
@@ -97,65 +98,77 @@ export default function ExportPage() {
         <div className="p-4 animate-in fade-in-0 duration-500">
             <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50">
                 <CardHeader>
-                    <CardTitle className="text-[#333]">Phiếu Xuất Kho Mới</CardTitle>
+                    <CardTitle className="text-[#333]">Tạo Phiếu Xuất Kho</CardTitle>
                     <CardDescription className="text-gray-600">Điền thông tin chi tiết cho phiếu xuất kho lốp xe mới.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                            <div className="space-y-2">
-                                <Label htmlFor="exportId" className="text-gray-800">Mã phiếu xuất</Label>
-                                <Input id="exportId" placeholder="EXP-0076" disabled />
-                                <p className="text-sm text-gray-600">Mã phiếu xuất được tạo tự động.</p>
-                            </div>
+                            <FormField
+                                control={form.control}
+                                name="exportId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-gray-800">Mã phiếu xuất</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Nhập mã phiếu xuất" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
 
                             {fields.map((field, index) => (
-                                <div key={field.id} className="space-y-4">
-                                    <div className="flex items-center gap-4">
-                                        <span className="text-gray-800 font-bold">{index + 1}.</span>
-                                        <div className="grid grid-cols-2 gap-4 flex-1">
-                                            <FormField
-                                                control={form.control}
-                                                name={`items.${index}.dot`}
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel className="text-gray-800">DOT</FormLabel>
-                                                        <FormControl>
-                                                            <Input placeholder="Nhập DOT" {...field} />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <FormField
-                                                control={form.control}
-                                                name={`items.${index}.quantity`}
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel className="text-gray-800">Số lượng</FormLabel>
-                                                        <FormControl>
-                                                            <Input type="number" min="1" {...field} />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </div>
-                                        {index > 0 && (
-                                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-red-500 hover:text-red-700">
-                                                <XCircle className="w-6 h-6" />
-                                            </Button>
-                                        )}
+                                <div key={field.id} className="p-4 rounded-lg bg-gray-100/50 relative">
+                                    <Label className="font-bold text-gray-800 mb-2 block">Lốp {index + 1}</Label>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name={`items.${index}.dot`}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-gray-800">DOT</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="number" placeholder="VD: 1234" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name={`items.${index}.quantity`}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-gray-800">Số lượng</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="number" min="1" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
                                     </div>
-                                    <Separator className="bg-gray-300" />
+                                    {index > 0 && (
+                                        <Button 
+                                            type="button" 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            onClick={() => remove(index)} 
+                                            className="absolute top-2 right-2 text-red-500 hover:text-red-700 hover:bg-transparent"
+                                        >
+                                            <XCircle className="w-6 h-6" />
+                                        </Button>
+                                    )}
                                 </div>
                             ))}
 
-                            <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center justify-between gap-4 mt-6">
                                 <Button 
                                     type="button" 
+                                    variant="ghost"
                                     onClick={() => append({ dot: "", quantity: 1 })}
-                                    className="bg-gray-200 text-gray-800 hover:bg-gray-300 font-semibold py-2 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-sm"
+                                    className="text-gray-800 hover:bg-gray-200/50 font-semibold py-2 px-4 rounded-xl flex items-center justify-center space-x-2"
                                 >
                                     <PlusCircle className="w-5 h-5" />
                                     <span>Thêm</span>
@@ -164,8 +177,8 @@ export default function ExportPage() {
                                 {isScanButtonVisible && (
                                     <Button 
                                         type="submit" 
-                                        disabled={isSubmitting}
-                                        className="bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md"
+                                        disabled={isSubmitting || !form.formState.isValid}
+                                        className="bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md disabled:bg-gray-400"
                                     >
                                         <ScanLine className="w-5 h-5" />
                                         <span>{isSubmitting ? 'Đang xử lý...' : 'Quét'}</span>
