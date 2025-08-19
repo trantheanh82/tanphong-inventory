@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import * as z from "zod";
 import { useState, useMemo } from "react";
-import { PlusCircle, ScanLine } from "lucide-react";
+import { PlusCircle, ScanLine, XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -46,7 +46,7 @@ export default function ExportPage() {
         },
     });
 
-    const { fields, append } = useFieldArray({
+    const { fields, append, remove } = useFieldArray({
         control: form.control,
         name: "items",
     });
@@ -141,6 +141,11 @@ export default function ExportPage() {
                                                 )}
                                             />
                                         </div>
+                                        {index > 0 && (
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-red-500 hover:text-red-700">
+                                                <XCircle className="w-6 h-6" />
+                                            </Button>
+                                        )}
                                     </div>
                                     <Separator className="bg-gray-300" />
                                 </div>
