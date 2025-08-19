@@ -21,7 +21,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { updateInventory } from "@/ai/flows/inventory-flow";
-import { Separator } from "@/components/ui/separator";
 
 const itemSchema = z.object({
   dot: z.string().regex(/^\d{1,4}$/, {
@@ -96,10 +95,10 @@ export default function ImportPage() {
 
     return (
         <div className="p-4 animate-in fade-in-0 duration-500">
-            <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50">
+            <Card className="bg-[#E0F2FE] rounded-2xl shadow-lg border-0">
                 <CardHeader>
-                    <CardTitle className="text-[#333]">Tạo Phiếu Nhập Kho</CardTitle>
-                    <CardDescription className="text-gray-600">Điền thông tin chi tiết cho phiếu nhập kho lốp xe mới.</CardDescription>
+                    <CardTitle className="text-slate-800">Tạo Phiếu Nhập Kho</CardTitle>
+                    <CardDescription className="text-slate-600">Điền thông tin chi tiết cho phiếu nhập kho lốp xe mới.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
@@ -109,9 +108,9 @@ export default function ImportPage() {
                                 name="importId"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-gray-800">Mã phiếu nhập</FormLabel>
+                                        <FormLabel className="text-slate-800 font-semibold">Tên phiếu</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Nhập mã phiếu nhập" {...field} />
+                                            <Input placeholder="Nhập mã phiếu nhập" {...field} className="bg-white rounded-xl border-0 text-slate-800 focus-visible:ring-2 focus-visible:ring-blue-500" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -119,17 +118,17 @@ export default function ImportPage() {
                             />
                             
                             {fields.map((field, index) => (
-                                <div key={field.id} className="p-4 rounded-lg bg-gray-100/50 relative">
-                                    <Label className="font-bold text-gray-800 mb-2 block">Lốp {index + 1}</Label>
+                                <div key={field.id} className="p-4 rounded-xl bg-transparent relative space-y-4">
+                                    <Label className="font-bold text-slate-800 block">Lốp {index + 1}</Label>
                                     <div className="grid grid-cols-2 gap-4">
                                         <FormField
                                             control={form.control}
                                             name={`items.${index}.dot`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="text-gray-800">DOT</FormLabel>
+                                                    <FormLabel className="text-slate-800 font-semibold">DOT</FormLabel>
                                                     <FormControl>
-                                                        <Input type="number" placeholder="VD: 1234" {...field} />
+                                                        <Input type="number" {...field} className="bg-white rounded-xl border-0 text-slate-800 focus-visible:ring-2 focus-visible:ring-blue-500" />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -140,9 +139,9 @@ export default function ImportPage() {
                                             name={`items.${index}.quantity`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="text-gray-800">Số lượng</FormLabel>
+                                                    <FormLabel className="text-slate-800 font-semibold">Số lượng</FormLabel>
                                                     <FormControl>
-                                                        <Input type="number" min="1" {...field} />
+                                                        <Input type="number" min="1" {...field} className="bg-white rounded-xl border-0 text-slate-800 focus-visible:ring-2 focus-visible:ring-blue-500"/>
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -168,7 +167,7 @@ export default function ImportPage() {
                                     type="button" 
                                     variant="ghost"
                                     onClick={() => append({ dot: "", quantity: 1 })}
-                                    className="text-gray-800 hover:bg-gray-200/50 font-semibold py-2 px-4 rounded-xl flex items-center justify-center space-x-2"
+                                    className="bg-white/80 hover:bg-white text-slate-800 font-semibold py-3 px-6 rounded-xl flex items-center justify-center space-x-2"
                                 >
                                     <PlusCircle className="w-5 h-5" />
                                     <span>Thêm</span>
@@ -178,10 +177,10 @@ export default function ImportPage() {
                                     <Button 
                                         type="submit" 
                                         disabled={isSubmitting || !form.formState.isValid}
-                                        className="bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md disabled:bg-gray-400"
+                                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center space-x-2 shadow-md disabled:bg-blue-400"
                                     >
                                         <ScanLine className="w-5 h-5" />
-                                        <span>{isSubmitting ? 'Đang xử lý...' : 'Quét'}</span>
+                                        <span>{isSubmitting ? 'Đang xử lý...' : 'Quét Mã'}</span>
                                     </Button>
                                 )}
                             </div>
