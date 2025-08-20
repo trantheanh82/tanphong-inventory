@@ -122,8 +122,11 @@ export default function ExportPage() {
                             />
 
                             {fields.map((field, index) => (
-                                <div key={field.id} className="rounded-xl bg-transparent relative space-y-4 border-b border-slate-300 last:border-b-0">
-                                    <Label className="font-bold text-slate-800 block">Lốp {index + 1}</Label>
+                                <div key={field.id} className="rounded-xl bg-transparent relative space-y-4 border-b border-slate-300 pb-4 last:border-b-0">
+                                    <div className="flex justify-between items-center">
+                                        <Label className="font-bold text-slate-800">Lốp {index + 1}</Label>
+                                        <span className="text-sm font-medium text-slate-600">Đã scan 0/{watchedItems?.[index]?.quantity || 0}</span>
+                                    </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <FormField
                                             control={form.control}
@@ -158,7 +161,7 @@ export default function ExportPage() {
                                             variant="ghost" 
                                             size="icon" 
                                             onClick={() => remove(index)} 
-                                            className="absolute top-2 right-2 text-red-500 hover:text-red-700 hover:bg-transparent"
+                                            className="absolute top-0 right-0 text-red-500 hover:text-red-700 hover:bg-transparent"
                                         >
                                             <XCircle className="w-6 h-6" />
                                         </Button>
