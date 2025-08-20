@@ -122,7 +122,7 @@ export default function ExportPage() {
                             />
 
                             {fields.map((field, index) => (
-                                <div key={field.id} className="rounded-xl bg-transparent relative space-y-4 border-b border-slate-300 pb-4 last:border-b-0">
+                                <div key={field.id} className="rounded-xl bg-transparent relative space-y-4 pt-4 border-t border-slate-300 first:border-t-0 first:pt-0">
                                     <div className="flex items-center gap-2">
                                         <Label className="font-bold text-slate-800">Lốp {index + 1}</Label>
                                         <span className="text-sm font-medium text-slate-600">(Đã scan 0/{watchedItems?.[index]?.quantity || 0})</span>
