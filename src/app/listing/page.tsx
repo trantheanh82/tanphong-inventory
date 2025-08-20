@@ -189,17 +189,17 @@ export default function ListingPage() {
                            <Table>
                                 <TableHeader>
                                     <TableRow>
+                                        {selectedItem.type === 'Export' && <TableHead className="text-gray-800">Series</TableHead>}
                                         <TableHead className="text-gray-800">DOT</TableHead>
                                         <TableHead className="text-gray-800">Số lượng</TableHead>
-                                        {selectedItem.type === 'Export' && <TableHead className="text-gray-800">Series</TableHead>}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {selectedItem.details.map((detail, index) => (
                                         <TableRow key={index}>
+                                            {selectedItem.type === 'Export' && <TableCell>{detail.series}</TableCell>}
                                             <TableCell>{detail.dot}</TableCell>
                                             <TableCell>{detail.quantity}</TableCell>
-                                            {selectedItem.type === 'Export' && <TableCell>{detail.series}</TableCell>}
                                         </TableRow>
                                     ))}
                                 </TableBody>
