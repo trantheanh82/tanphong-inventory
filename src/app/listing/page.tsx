@@ -82,8 +82,8 @@ export default function ListingPage() {
     const fabLink = filterType === 'import' ? '/import' : '/export';
 
   return (
-    <div className="p-4 animate-in fade-in-0 duration-500 flex flex-col">
-      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/50">
+    <div className="p-4 animate-in fade-in-0 duration-500 flex flex-col h-full">
+      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/50 flex-grow">
         <Table>
             <thead className="bg-gray-800">
                 <TableRow className="hover:bg-gray-800">
@@ -110,24 +110,29 @@ export default function ListingPage() {
           </Table>
       </Card>
       
-      <div className="flex justify-center items-center mt-4 space-x-2">
-        <Button
-          onClick={handlePrevPage}
-          disabled={currentPage === 1}
-          className="px-4 py-2 text-sm font-medium text-white bg-gray-800 rounded-xl hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-md"
-        >
-          Trước
-        </Button>
+      <div className="flex justify-between items-center mt-4">
         <span className="text-sm font-medium text-white">
-          Trang {currentPage} của {totalPages}
+            Tổng cộng: {filteredData.length}
         </span>
-        <Button
-          onClick={handleNextPage}
-          disabled={currentPage === totalPages}
-          className="px-4 py-2 text-sm font-medium text-white bg-gray-800 rounded-xl hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-md"
-        >
-          Sau
-        </Button>
+        <div className="flex justify-center items-center space-x-2">
+            <Button
+              onClick={handlePrevPage}
+              disabled={currentPage === 1}
+              className="px-4 py-2 text-sm font-medium text-white bg-gray-800 rounded-xl hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-md"
+            >
+              Trước
+            </Button>
+            <span className="text-sm font-medium text-white">
+              Trang {currentPage} của {totalPages}
+            </span>
+            <Button
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 text-sm font-medium text-white bg-gray-800 rounded-xl hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-md"
+            >
+              Sau
+            </Button>
+        </div>
       </div>
 
       {filterType && (
