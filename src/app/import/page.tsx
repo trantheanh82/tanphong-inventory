@@ -123,9 +123,9 @@ export default function ImportPage() {
                             
                             {fields.map((field, index) => (
                                 <div key={field.id} className="rounded-xl bg-transparent relative space-y-4 border-b border-slate-300 pb-4 last:border-b-0">
-                                    <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-2">
                                         <Label className="font-bold text-slate-800">Lốp {index + 1}</Label>
-                                        <span className="text-sm font-medium text-slate-600">Đã scan 0/{watchedItems?.[index]?.quantity || 0}</span>
+                                        <span className="text-sm font-medium text-slate-600">(Đã scan 0/{watchedItems?.[index]?.quantity || 0})</span>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <FormField
