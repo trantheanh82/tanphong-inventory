@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Power, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
@@ -20,13 +20,23 @@ const pageTitles: { [key: string]: string } = {
 export function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  const title = pageTitles[pathname] || "Kho lốp Tân Phong";
+  const getTitle = () => {
+    if (pathname === '/inventory') {
+      const type = searchParams.get('type');
+      if (type === 'import') return 'Nhập Kho';
+      if (type === 'export') return 'Xuất Kho';
+    }
+    return pageTitles[pathname] || "Kho lốp Tân Phong";
+  }
+
+  const title = getTitle();
   const isHomePage = pathname === '/';
 
   const handleLogout = () => {

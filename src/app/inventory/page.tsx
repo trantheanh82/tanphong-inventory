@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Card } from "@/components/ui/card";
@@ -5,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState, useMemo } from "react";
+import { useSearchParams } from 'next/navigation';
 
 const inventoryItems = Array.from({ length: 40 }, (_, i) => {
     const isImport = Math.random() > 0.5;
@@ -20,14 +22,23 @@ const inventoryItems = Array.from({ length: 40 }, (_, i) => {
 
 
 export default function InventoryPage() {
+    const searchParams = useSearchParams();
+    const filterType = searchParams.get('type');
+    
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
-    const totalPages = Math.ceil(inventoryItems.length / itemsPerPage);
+    
+    const filteredData = useMemo(() => {
+        if (!filterType) return inventoryItems;
+        return inventoryItems.filter(item => item.type.toLowerCase() === filterType.toLowerCase());
+    }, [filterType]);
+    
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
     const paginatedData = useMemo(() => {
         const startIndex = (currentPage - 1) * itemsPerPage;
-        return inventoryItems.slice(startIndex, startIndex + itemsPerPage);
-    }, [currentPage, itemsPerPage, inventoryItems]);
+        return filteredData.slice(startIndex, startIndex + itemsPerPage);
+    }, [currentPage, itemsPerPage, filteredData]);
 
     const handlePrevPage = () => {
         setCurrentPage((prev) => Math.max(prev - 1, 1));
