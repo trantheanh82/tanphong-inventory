@@ -94,8 +94,8 @@ export default function ListingPage() {
     const fabLink = filterType === 'import' ? '/import' : '/export';
 
   return (
-    <div className="p-4 animate-in fade-in-0 duration-500 flex flex-col h-full">
-      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/50 flex-grow">
+    <div className="p-4 animate-in fade-in-0 duration-500">
+      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/50">
         <Table>
             <thead className="bg-gray-800">
                 <TableRow className="hover:bg-gray-800">
