@@ -94,23 +94,23 @@ export default function ListingPage() {
     const fabLink = filterType === 'import' ? '/import' : '/export';
 
   return (
-    <div className="p-4 animate-in fade-in-0 duration-500">
-      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/50">
+    <div className="p-4 animate-in fade-in-0 duration-500 h-full flex flex-col">
+      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/50 flex-grow">
         <Table>
-            <thead className="bg-gray-800">
-                <TableRow className="hover:bg-gray-800">
+            <TableHeader>
+                <TableRow className="bg-gray-800 hover:bg-gray-800/90 border-b-2 border-gray-700">
                     <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">#</TableHead>
                     <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Tên phiếu</TableHead>
                     <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Số lượng</TableHead>
                 </TableRow>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
+            </TableHeader>
+            <TableBody className="bg-white/80">
               {paginatedData.map((item, index) => (
-                <TableRow key={item.id} onClick={() => handleRowClick(item)} className="hover:bg-gray-100/50 cursor-pointer transition duration-200">
-                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <TableRow key={item.id} onClick={() => handleRowClick(item)} className="hover:bg-gray-200/50 cursor-pointer transition duration-200 border-b border-gray-200/80">
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
                     {(currentPage - 1) * itemsPerPage + index + 1}
                   </TableCell>
-                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.name}</TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{item.name}</TableCell>
                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold">
                     <Badge variant={item.type === "Import" ? "default" : "secondary"} className={`${item.type === 'Import' ? 'bg-blue-500' : 'bg-red-500'} text-white`}>
                         {item.quantity > 0 ? `+${item.quantity}` : item.quantity}
@@ -118,12 +118,12 @@ export default function ListingPage() {
                   </TableCell>
                 </TableRow>
               ))}
-            </tbody>
+            </TableBody>
           </Table>
       </Card>
       
       <div className="flex justify-between items-center mt-4">
-        <div className="flex justify-center items-center space-x-2">
+        <div className="flex justify-start items-center space-x-2">
             <Button
               onClick={handlePrevPage}
               disabled={currentPage === 1}
@@ -185,10 +185,10 @@ export default function ListingPage() {
                     </div>
                     <div className="space-y-2 pt-2">
                         <h4 className="font-semibold text-gray-800">Chi tiết lốp:</h4>
-                        <div className="overflow-y-auto rounded-lg border p-2 bg-gray-50/50">
+                        <div className="overflow-y-auto rounded-lg border p-2 bg-gray-50/50 max-h-60">
                            <Table>
                                 <TableHeader>
-                                    <TableRow>
+                                    <TableRow className="border-b-gray-300">
                                         {selectedItem.type === 'Export' && <TableHead className="text-gray-800">Series</TableHead>}
                                         <TableHead className="text-gray-800">DOT</TableHead>
                                         <TableHead className="text-gray-800">Số lượng</TableHead>
@@ -196,7 +196,7 @@ export default function ListingPage() {
                                 </TableHeader>
                                 <TableBody>
                                     {selectedItem.details.map((detail, index) => (
-                                        <TableRow key={index}>
+                                        <TableRow key={index} className="border-none">
                                             {selectedItem.type === 'Export' && <TableCell>{detail.series}</TableCell>}
                                             <TableCell>{detail.dot}</TableCell>
                                             <TableCell>{detail.quantity}</TableCell>
