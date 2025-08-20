@@ -11,16 +11,19 @@ import { ScanLine } from "lucide-react";
 import Link from "next/link";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
+type InventoryItemDetail = {
+    dot: string;
+    quantity: number;
+    series?: string;
+};
+
 type InventoryItem = {
     id: string;
     type: "Import" | "Export";
     name: string;
     quantity: number;
     date: string;
-    details: {
-        dot: string;
-        series?: string;
-    }[];
+    details: InventoryItemDetail[];
 };
 
 
@@ -28,16 +31,25 @@ const inventoryItems: InventoryItem[] = Array.from({ length: 40 }, (_, i) => {
     const isImport = Math.random() > 0.5;
     const date = new Date(2023, 9, 26 - i).toISOString().split('T')[0];
     const id = `${isImport ? 'PNK' : 'PXK'}-${String(i + 1).padStart(4, '0')}`;
+    const detailsCount = Math.floor(Math.random() * 3) + 1;
+    let totalQuantity = 0;
+    const details: InventoryItemDetail[] = Array.from({ length: detailsCount }, (__, j) => {
+        const quantity = Math.floor(Math.random() * 20) + 1;
+        totalQuantity += quantity;
+        return {
+            dot: String(Math.floor(Math.random() * 9000) + 1000),
+            quantity: quantity,
+            series: isImport ? undefined : `SER-${String(Math.floor(Math.random() * 900000) + 100000)}`
+        }
+    });
+
     return {
         id,
         type: isImport ? "Import" : "Export",
         name: isImport ? `Phiếu Nhập ${id}` : `Phiếu Xuất ${id}`,
-        quantity: isImport ? 50 : -20,
+        quantity: isImport ? totalQuantity : -totalQuantity,
         date: date,
-        details: Array.from({ length: Math.floor(Math.random() * 3) + 1 }, (__, j) => ({
-            dot: String(Math.floor(Math.random() * 9000) + 1000),
-            series: isImport ? undefined : `SER-${String(Math.floor(Math.random() * 900000) + 100000)}`
-        }))
+        details: details
     }
 });
 
@@ -178,6 +190,7 @@ export default function ListingPage() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="text-gray-800">DOT</TableHead>
+                                        <TableHead className="text-gray-800">Số lượng</TableHead>
                                         {selectedItem.type === 'Export' && <TableHead className="text-gray-800">Series</TableHead>}
                                     </TableRow>
                                 </TableHeader>
@@ -185,6 +198,7 @@ export default function ListingPage() {
                                     {selectedItem.details.map((detail, index) => (
                                         <TableRow key={index}>
                                             <TableCell>{detail.dot}</TableCell>
+                                            <TableCell>{detail.quantity}</TableCell>
                                             {selectedItem.type === 'Export' && <TableCell>{detail.series}</TableCell>}
                                         </TableRow>
                                     ))}
