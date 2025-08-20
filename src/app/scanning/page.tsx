@@ -117,10 +117,8 @@ export default function ScanningPage() {
             </div>
         )}
 
-        {/* Bottom buttons */}
+        {/* Bottom buttons removed */}
         <div className="flex justify-center gap-4 mb-8">
-            <Button className="bg-white/80 text-black hover:bg-white backdrop-blur-sm font-semibold text-lg px-8 py-6 rounded-xl">Nội địa</Button>
-            <Button className="bg-white/80 text-black hover:bg-white backdrop-blur-sm font-semibold text-lg px-8 py-6 rounded-xl">Nước ngoài</Button>
         </div>
       </div>
     </div>
