@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { updateInventory } from "@/ai/flows/inventory-flow";
+import { Separator } from "@/components/ui/separator";
 
 const itemSchema = z.object({
   dot: z.string().length(4, { message: "DOT phải là 4 chữ số." }).regex(/^\d{4}$/, {
@@ -67,42 +67,15 @@ export default function ExportPage() {
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true);
-        // The original logic is commented out, but can be restored if needed.
-        // try {
-        //     for (const item of values.items) {
-        //         const result = await updateInventory({ name: item.dot, quantity: item.quantity, type: 'export' });
-        //         if (result.success) {
-        //             toast({
-        //                 title: "Xuất kho thành công",
-        //                 description: `Đã xuất ${item.quantity} lốp với DOT ${item.dot} cho phiếu ${values.exportId}.`,
-        //             });
-        //         } else {
-        //             toast({
-        //                 title: "Lỗi",
-        //                 description: `Lỗi khi xuất lốp với DOT ${item.dot}: ${result.message}`,
-        //                 variant: "destructive",
-        //             });
-        //         }
-        //     }
-        //     form.reset({ exportId: "", items: [{ dot: "", quantity: 1 }] });
-        // } catch (error) {
-        //     toast({
-        //         title: "Lỗi",
-        //         description: "Đã có lỗi xảy ra khi gửi yêu cầu.",
-        //         variant: "destructive",
-        //     });
-        // } finally {
-        //     setIsSubmitting(false);
-        // }
         router.push('/scanning');
     }
 
     return (
         <div className="p-4 animate-in fade-in-0 duration-500">
-            <Card className="bg-[#E0F2FE] rounded-2xl shadow-lg border-0">
+            <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50">
                 <CardHeader>
-                    <CardTitle className="text-slate-800">Tạo Phiếu Xuất Kho</CardTitle>
-                    <CardDescription className="text-slate-600">Điền thông tin chi tiết cho phiếu xuất kho lốp xe mới.</CardDescription>
+                    <CardTitle className="text-[#333]">Tạo Phiếu Xuất Kho</CardTitle>
+                    <CardDescription className="text-gray-600">Điền thông tin chi tiết cho phiếu xuất kho lốp xe mới.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
@@ -112,9 +85,9 @@ export default function ExportPage() {
                                 name="exportId"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-slate-800 font-semibold">Tên phiếu</FormLabel>
+                                        <FormLabel className="text-gray-800 font-semibold">Tên phiếu</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Nhập mã phiếu xuất" {...field} className="bg-white rounded-xl border-slate-300 text-slate-800 focus-visible:ring-1 focus-visible:ring-blue-500 font-normal" />
+                                            <Input placeholder="Nhập mã phiếu xuất" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -122,10 +95,11 @@ export default function ExportPage() {
                             />
 
                             {fields.map((field, index) => (
-                                <div key={field.id} className="rounded-xl bg-transparent relative space-y-4 pt-4 border-t border-slate-300 first:border-t-0 first:pt-0">
+                                <div key={field.id} className="relative space-y-4">
+                                     {index > 0 && <Separator className="bg-gray-300" />}
                                     <div className="flex items-center gap-2">
-                                        <Label className="font-bold text-slate-800">Lốp {index + 1}</Label>
-                                        <span className="text-sm font-medium text-slate-600">(Đã scan 0/{watchedItems?.[index]?.quantity || 0})</span>
+                                        <Label className="font-bold text-gray-800">Lốp {index + 1}</Label>
+                                        <span className="text-sm font-medium text-gray-600">(Đã scan 0/{watchedItems?.[index]?.quantity || 0})</span>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <FormField
@@ -133,9 +107,9 @@ export default function ExportPage() {
                                             name={`items.${index}.dot`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="text-slate-800 font-normal">DOT</FormLabel>
+                                                    <FormLabel className="text-gray-800 font-normal">DOT</FormLabel>
                                                     <FormControl>
-                                                        <Input type="number" {...field} className="bg-white rounded-xl border-slate-300 text-slate-800 focus-visible:ring-1 focus-visible:ring-blue-500 font-normal"/>
+                                                        <Input type="number" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800"/>
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -146,9 +120,9 @@ export default function ExportPage() {
                                             name={`items.${index}.quantity`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="text-slate-800 font-normal">Số lượng</FormLabel>
+                                                    <FormLabel className="text-gray-800 font-normal">Số lượng</FormLabel>
                                                     <FormControl>
-                                                        <Input type="number" min="1" {...field} className="bg-white rounded-xl border-slate-300 text-slate-800 focus-visible:ring-1 focus-visible:ring-blue-500 font-normal"/>
+                                                        <Input type="number" min="1" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800"/>
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -174,7 +148,7 @@ export default function ExportPage() {
                                     type="button" 
                                     variant="ghost"
                                     onClick={() => append({ dot: "", quantity: 1 })}
-                                    className="bg-transparent hover:bg-transparent text-slate-800 font-semibold py-3 px-6 rounded-xl flex items-center justify-center space-x-2"
+                                    className="text-gray-800 font-semibold py-3 px-6 rounded-xl flex items-center justify-center space-x-2"
                                 >
                                     <PlusCircle className="w-5 h-5" />
                                     <span>Thêm</span>
@@ -184,7 +158,7 @@ export default function ExportPage() {
                                     <Button 
                                         type="submit" 
                                         disabled={isSubmitting || !form.formState.isValid}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center space-x-2 shadow-md disabled:bg-blue-400"
+                                        className="bg-gray-800 hover:bg-gray-900 text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center space-x-2 shadow-md disabled:bg-gray-600"
                                     >
                                         <ScanLine className="w-5 h-5" />
                                         <span>{isSubmitting ? 'Đang xử lý...' : 'Quét Mã'}</span>
