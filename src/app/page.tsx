@@ -38,7 +38,7 @@ export default function DashboardPage() {
         <div className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50 p-4">
             <div className="flex items-center text-2xl font-bold mb-4 text-[#333]">
                 <ScanLine className="w-6 h-6 mr-2" />
-                <span>Quét mã</span>
+                <span>Tạo phiếu</span>
             </div>
             <div className="flex justify-around items-center">
                 <Link href="/import" className="flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors duration-200 flex-1">
