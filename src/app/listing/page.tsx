@@ -12,7 +12,7 @@ const inventoryItems = Array.from({ length: 40 }, (_, i) => {
     const isImport = Math.random() > 0.5;
     const date = new Date(2023, 9, 26 - i).toISOString().split('T')[0];
     return { 
-        id: isImport ? `IMP-0${128 - i}`: `EXP-00${75 - Math.floor(i/2)}`,
+        id: `${isImport ? 'IMP' : 'EXP'}-${i}`,
         type: isImport ? "Import" : "Export", 
         name: isImport ? `Lốp Michelin 205/55R16` : `Lốp Bridgestone 185/65R15`,
         quantity: isImport ? 50 : -20,
