@@ -64,9 +64,9 @@ export default function ListingPage() {
                     <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Số lượng</TableHead>
                 </TableRow>
             </thead>
-            <tbody className="bg-white/50 divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-200">
               {paginatedData.map((item, index) => (
-                <TableRow key={item.id} className="hover:bg-gray-200 cursor-pointer transition duration-200">
+                <TableRow key={item.id} className="hover:bg-gray-200/50 cursor-pointer transition duration-200">
                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {(currentPage - 1) * itemsPerPage + index + 1}
                   </TableCell>
@@ -112,4 +112,3 @@ export default function ListingPage() {
     </div>
   );
 }
-
