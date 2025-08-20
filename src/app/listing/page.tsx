@@ -6,13 +6,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState, useMemo } from "react";
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { ScanLine } from "lucide-react";
+import Link from "next/link";
 
 const inventoryItems = Array.from({ length: 40 }, (_, i) => {
     const isImport = Math.random() > 0.5;
     const date = new Date(2023, 9, 26 - i).toISOString().split('T')[0];
     return { 
-        id: `${isImport ? 'IMP' : 'EXP'}-${i}`,
+        id: `${isImport ? 'PNK' : 'PXK'}-${String(i + 1).padStart(3, '0')}`,
         type: isImport ? "Import" : "Export", 
         name: isImport ? `Lốp Michelin 205/55R16` : `Lốp Bridgestone 185/65R15`,
         quantity: isImport ? 50 : -20,
@@ -23,6 +25,7 @@ const inventoryItems = Array.from({ length: 40 }, (_, i) => {
 
 export default function ListingPage() {
     const searchParams = useSearchParams();
+    const router = useRouter();
     const filterType = searchParams.get('type');
     
     const [currentPage, setCurrentPage] = useState(1);
@@ -47,29 +50,31 @@ export default function ListingPage() {
     const handleNextPage = () => {
         setCurrentPage((prev) => Math.min(prev + 1, totalPages));
     };
+    
+    const fabLink = filterType === 'import' ? '/import' : '/export';
 
   return (
-    <div className="p-4 animate-fade-in">
-      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/50">
+    <div className="p-4 animate-fade-in h-full flex flex-col">
+      <Card className="flex-grow bg-white/50 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/50">
         <Table>
             <thead className="bg-gray-800">
                 <TableRow className="hover:bg-gray-800">
-                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Type</TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">#</TableHead>
                     <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Tên phiếu</TableHead>
                     <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Số lượng</TableHead>
                 </TableRow>
             </thead>
             <tbody className="bg-white/50 divide-y divide-gray-200">
-              {paginatedData.map((item) => (
+              {paginatedData.map((item, index) => (
                 <TableRow key={item.id} className="hover:bg-gray-200 cursor-pointer transition duration-200">
-                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <Badge variant={item.type === "Import" ? "default" : "secondary"} className={item.type === 'Import' ? 'bg-blue-500 text-white' : 'bg-red-500 text-white'}>
-                      {item.type}
-                    </Badge>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {(currentPage - 1) * itemsPerPage + index + 1}
                   </TableCell>
                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.name}</TableCell>
                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold">
-                     {item.quantity > 0 ? `+${item.quantity}` : item.quantity}
+                    <Badge variant={item.type === "Import" ? "default" : "secondary"} className={`${item.type === 'Import' ? 'bg-blue-500' : 'bg-red-500'} text-white`}>
+                        {item.quantity > 0 ? `+${item.quantity}` : item.quantity}
+                    </Badge>
                   </TableCell>
                 </TableRow>
               ))}
@@ -96,6 +101,15 @@ export default function ListingPage() {
           Sau
         </Button>
       </div>
+
+      {filterType && (
+        <Button asChild className="fixed bottom-20 right-4 h-16 w-16 rounded-full bg-gray-800 hover:bg-gray-900 text-white shadow-lg z-20">
+          <Link href={fabLink}>
+            <ScanLine className="h-8 w-8" />
+          </Link>
+        </Button>
+      )}
     </div>
   );
 }
+
