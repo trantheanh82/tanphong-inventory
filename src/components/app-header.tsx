@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Power, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 
 const pageTitles: { [key: string]: string } = {
   "/": "Kho lốp Tân Phong",
@@ -19,6 +20,12 @@ const pageTitles: { [key: string]: string } = {
 export function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const title = pageTitles[pathname] || "Kho lốp Tân Phong";
   const isHomePage = pathname === '/';
 
@@ -44,9 +51,11 @@ export function AppHeader() {
         </h1>
 
         <div className="w-10 flex justify-end">
-          <Button onClick={handleLogout} variant="ghost" size="icon" className="text-white hover:text-gray-400 transition-colors duration-200 transform hover:scale-110">
-              <Power className="w-10 h-10" strokeWidth={2.5} />
-          </Button>
+          {isMounted && (
+            <Button onClick={handleLogout} variant="ghost" size="icon" className="text-white hover:text-gray-400 transition-colors duration-200 transform hover:scale-110">
+                <Power className="w-8 h-8" strokeWidth={2.5} />
+            </Button>
+          )}
         </div>
     </header>
   );
