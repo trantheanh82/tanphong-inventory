@@ -123,9 +123,6 @@ export default function ListingPage() {
       </Card>
       
       <div className="flex justify-between items-center mt-4">
-        <span className="text-sm font-medium text-white">
-            Tổng cộng: {filteredData.length}
-        </span>
         <div className="flex justify-center items-center space-x-2">
             <Button
               onClick={handlePrevPage}
@@ -145,6 +142,9 @@ export default function ListingPage() {
               Sau
             </Button>
         </div>
+        <span className="text-sm font-medium text-white">
+            Tổng cộng: {filteredData.length}
+        </span>
       </div>
 
       {filterType && (
