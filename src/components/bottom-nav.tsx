@@ -2,13 +2,24 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { LayoutGrid, ArrowUpCircle, ArrowDownCircle, CircleUser, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const BottomNavItem = ({ href, icon: Icon, label }: { href: string; icon: React.ElementType; label: string }) => {
   const pathname = usePathname();
-  const isActive = (href === "/" && pathname === href) || (href !== "/" && pathname.startsWith(href));
+  const searchParams = useSearchParams();
+  
+  const getIsActive = () => {
+    if (href.startsWith('/listing')) {
+      const type = searchParams.get('type');
+      const hrefType = new URLSearchParams(href.split('?')[1]).get('type');
+      return pathname === '/listing' && type === hrefType;
+    }
+    return (href === "/" && pathname === href) || (href !== "/" && pathname.startsWith(href));
+  }
+
+  const isActive = getIsActive();
 
   return (
     <Link href={href} className={cn(
@@ -26,8 +37,8 @@ export function BottomNav() {
     <nav className="w-full bg-white/50 backdrop-blur-md border-t border-white/50 shadow-xl">
         <div className="flex justify-around items-center h-16">
             <BottomNavItem href="/" icon={LayoutGrid} label="Trang chủ" />
-            <BottomNavItem href="/export" icon={ArrowUpCircle} label="Xuất" />
-            <BottomNavItem href="/import" icon={ArrowDownCircle} label="Nhập" />
+            <BottomNavItem href="/listing?type=export" icon={ArrowUpCircle} label="Xuất" />
+            <BottomNavItem href="/listing?type=import" icon={ArrowDownCircle} label="Nhập" />
             <BottomNavItem href="/warranty" icon={ShieldCheck} label="Bảo hành" />
             <BottomNavItem href="/profile" icon={CircleUser} label="Cá nhân" />
         </div>
