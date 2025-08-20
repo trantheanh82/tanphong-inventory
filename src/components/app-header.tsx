@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 
 const pageTitles: { [key: string]: string } = {
   "/": "Kho lốp Tân Phong",
-  "/inventory": "Tồn Kho",
+  "/listing": "Tồn Kho",
   "/import": "Nhập Kho",
   "/export": "Xuất Kho",
   "/profile": "Thông tin Cá nhân",
@@ -28,7 +28,7 @@ export function AppHeader() {
   }, []);
 
   const getTitle = () => {
-    if (pathname === '/inventory') {
+    if (pathname === '/listing') {
       const type = searchParams.get('type');
       if (type === 'import') return 'Nhập Kho';
       if (type === 'export') return 'Xuất Kho';

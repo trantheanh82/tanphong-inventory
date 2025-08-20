@@ -89,7 +89,7 @@ export default function DashboardPage() {
         </CardContent>
         <CardFooter className="pt-4 p-0">
             <Button asChild className="mt-4 w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl transition-transform transform hover:scale-105 duration-200 flex items-center justify-center space-x-2 shadow-md">
-                <Link href="/inventory?type=import">
+                <Link href="/listing?type=import">
                     Xem thêm
                     <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
@@ -128,7 +128,7 @@ export default function DashboardPage() {
         </CardContent>
         <CardFooter className="pt-4 p-0">
             <Button asChild className="mt-4 w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl transition-transform transform hover:scale-105 duration-200 flex items-center justify-center space-x-2 shadow-md">
-                <Link href="/inventory?type=export">
+                <Link href="/listing?type=export">
                     Xem thêm
                     <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>

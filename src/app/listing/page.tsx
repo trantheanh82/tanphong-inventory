@@ -21,7 +21,7 @@ const inventoryItems = Array.from({ length: 40 }, (_, i) => {
 });
 
 
-export default function InventoryPage() {
+export default function ListingPage() {
     const searchParams = useSearchParams();
     const filterType = searchParams.get('type');
     
