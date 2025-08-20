@@ -24,7 +24,16 @@ import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const itemSchema = z.object({
+const domesticItemSchema = z.object({
+  dot: z.string().length(4, { message: "DOT phải là 4 chữ số." }).regex(/^\d{4}$/, {
+    message: "DOT phải là 4 chữ số.",
+  }),
+  quantity: z.coerce.number().int().positive({
+    message: "Số lượng phải là một số dương.",
+  }),
+});
+
+const internationalItemSchema = z.object({
   dot: z.string().length(4, { message: "DOT phải là 4 chữ số." }).regex(/^\d{4}$/, {
     message: "DOT phải là 4 chữ số.",
   }),
@@ -35,9 +44,10 @@ const itemSchema = z.object({
 });
 
 const formSchema = z.object({
-  items: z.array(itemSchema),
   exportId: z.string().min(1, { message: "Mã phiếu xuất là bắt buộc." }),
   type: z.enum(['domestic', 'international']),
+  domesticItems: z.array(domesticItemSchema),
+  internationalItems: z.array(internationalItemSchema),
 });
 
 export default function ExportPage() {
@@ -50,40 +60,60 @@ export default function ExportPage() {
         resolver: zodResolver(formSchema),
         defaultValues: {
             exportId: "",
-            items: [{ dot: "", quantity: 1 }],
             type: 'domestic',
+            domesticItems: [{ dot: "", quantity: 1 }],
+            internationalItems: [],
         },
     });
 
-    const { fields, append, remove } = useFieldArray({
+    const { fields: domesticFields, append: appendDomestic, remove: removeDomestic } = useFieldArray({
         control: form.control,
-        name: "items",
+        name: "domesticItems",
+    });
+    
+    const { fields: internationalFields, append: appendInternational, remove: removeInternational } = useFieldArray({
+        control: form.control,
+        name: "internationalItems",
     });
 
-    const watchedItems = useWatch({
-        control: form.control,
-        name: "items",
-    });
+    const watchedDomesticItems = useWatch({ control: form.control, name: "domesticItems" });
+    const watchedInternationalItems = useWatch({ control: form.control, name: "internationalItems" });
 
     const isScanButtonVisible = useMemo(() => {
-        if (!watchedItems || watchedItems.length === 0) return false;
-        return watchedItems.every(item => item.dot && /^\d{4}$/.test(item.dot) && item.quantity && item.quantity > 0);
-    }, [watchedItems]);
+        if (activeTab === 'domestic') {
+            if (!watchedDomesticItems || watchedDomesticItems.length === 0) return false;
+            return watchedDomesticItems.every(item => item.dot && /^\d{4}$/.test(item.dot) && item.quantity && item.quantity > 0);
+        } else {
+            if (!watchedInternationalItems || watchedInternationalItems.length === 0) return false;
+            return watchedInternationalItems.every(item => item.dot && /^\d{4}$/.test(item.dot) && item.quantity && item.quantity > 0);
+        }
+    }, [activeTab, watchedDomesticItems, watchedInternationalItems]);
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true);
+        // Logic for what to do with the data on submission
+        console.log(values);
         router.push('/scanning');
     }
 
     const handleTabChange = (value: string) => {
       setActiveTab(value);
       form.setValue('type', value as 'domestic' | 'international');
-      // Reset items when switching tabs to ensure clean state
-      form.reset({
-        exportId: form.getValues('exportId'),
-        items: [{ dot: "", quantity: 1, series: "" }],
-        type: value as 'domestic' | 'international',
-      });
+      if (value === 'domestic' && form.getValues('domesticItems').length === 0) {
+        form.setValue('internationalItems', []);
+        appendDomestic({ dot: "", quantity: 1 });
+      } else if (value === 'international' && form.getValues('internationalItems').length === 0) {
+        form.setValue('domesticItems', []);
+        appendInternational({ dot: "", quantity: 1, series: "" });
+      }
+    }
+
+    const handleAddItem = () => {
+        if (activeTab === 'domestic') {
+            appendDomestic({ dot: "", quantity: 1 });
+        } else {
+            appendInternational({ dot: "", quantity: 1, series: "" });
+        }
     }
 
     return (
@@ -111,22 +141,34 @@ export default function ExportPage() {
                             />
 
                             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                                <TabsList className="grid w-full grid-cols-2 bg-gray-200 rounded-xl">
-                                    <TabsTrigger value="domestic" className="data-[state=active]:bg-gray-800 data-[state=active]:text-white rounded-lg data-[state=inactive]:bg-white data-[state=inactive]:text-black">Nội địa</TabsTrigger>
-                                    <TabsTrigger value="international" className="data-[state=active]:bg-gray-800 data-[state=active]:text-white rounded-lg data-[state=inactive]:bg-white data-[state=inactive]:text-black">Nước ngoài</TabsTrigger>
+                                <TabsList className="grid w-full grid-cols-2 bg-gray-200 rounded-xl p-1">
+                                    <TabsTrigger value="domestic" className="data-[state=active]:bg-gray-800 data-[state=active]:text-white rounded-lg data-[state=inactive]:bg-transparent data-[state=inactive]:text-black transition-all duration-300">Nội địa</TabsTrigger>
+                                    <TabsTrigger value="international" className="data-[state=active]:bg-gray-800 data-[state=active]:text-white rounded-lg data-[state=inactive]:bg-transparent data-[state=inactive]:text-black transition-all duration-300">Nước ngoài</TabsTrigger>
                                 </TabsList>
-                                <TabsContent value="domestic">
-                                  {fields.map((field, index) => (
-                                      <div key={field.id} className="relative space-y-4 pt-4">
-                                          {index > 0 && <Separator className="bg-gray-300" />}
-                                          <div className="flex items-center gap-2">
-                                              <Label className="font-bold text-gray-800">Lốp {index + 1}</Label>
-                                              <span className="text-sm font-medium text-gray-600">(Đã scan 0/{watchedItems?.[index]?.quantity || 0})</span>
+                                <TabsContent value="domestic" className="mt-4">
+                                  {domesticFields.map((field, index) => (
+                                      <div key={field.id} className="relative space-y-4 pt-4 border-t border-gray-200 first:border-t-0">
+                                          <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Label className="font-bold text-gray-800">Lốp {index + 1}</Label>
+                                                <span className="text-sm font-medium text-gray-600">(Đã scan 0/{watchedDomesticItems?.[index]?.quantity || 0})</span>
+                                            </div>
+                                            {domesticFields.length > 1 && (
+                                                <Button 
+                                                    type="button" 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    onClick={() => removeDomestic(index)} 
+                                                    className="text-red-500 hover:text-red-700 hover:bg-transparent"
+                                                >
+                                                    <XCircle className="w-5 h-5" />
+                                                </Button>
+                                            )}
                                           </div>
                                           <div className="grid grid-cols-2 gap-4">
                                               <FormField
                                                   control={form.control}
-                                                  name={`items.${index}.dot`}
+                                                  name={`domesticItems.${index}.dot`}
                                                   render={({ field }) => (
                                                       <FormItem>
                                                           <FormLabel className="text-gray-800 font-normal">DOT</FormLabel>
@@ -139,7 +181,7 @@ export default function ExportPage() {
                                               />
                                               <FormField
                                                   control={form.control}
-                                                  name={`items.${index}.quantity`}
+                                                  name={`domesticItems.${index}.quantity`}
                                                   render={({ field }) => (
                                                       <FormItem>
                                                           <FormLabel className="text-gray-800 font-normal">Số lượng</FormLabel>
@@ -151,32 +193,33 @@ export default function ExportPage() {
                                                   )}
                                               />
                                           </div>
-                                          {index > 0 && (
-                                              <Button 
-                                                  type="button" 
-                                                  variant="ghost" 
-                                                  size="icon" 
-                                                  onClick={() => remove(index)} 
-                                                  className="absolute top-0 right-0 text-red-500 hover:text-red-700 hover:bg-transparent"
-                                              >
-                                                  <XCircle className="w-6 h-6" />
-                                              </Button>
-                                          )}
                                       </div>
                                   ))}
                                 </TabsContent>
-                                <TabsContent value="international">
-                                  {fields.map((field, index) => (
-                                      <div key={field.id} className="relative space-y-4 pt-4">
-                                          {index > 0 && <Separator className="bg-gray-300" />}
-                                          <div className="flex items-center gap-2">
-                                              <Label className="font-bold text-gray-800">Lốp {index + 1}</Label>
-                                              <span className="text-sm font-medium text-gray-600">(Đã scan 0/{watchedItems?.[index]?.quantity || 0})</span>
+                                <TabsContent value="international" className="mt-4">
+                                  {internationalFields.map((field, index) => (
+                                      <div key={field.id} className="relative space-y-4 pt-4 border-t border-gray-200 first:border-t-0">
+                                           <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <Label className="font-bold text-gray-800">Lốp {index + 1}</Label>
+                                                    <span className="text-sm font-medium text-gray-600">(Đã scan 0/{watchedInternationalItems?.[index]?.quantity || 0})</span>
+                                                </div>
+                                                {internationalFields.length > 1 && (
+                                                    <Button 
+                                                        type="button" 
+                                                        variant="ghost" 
+                                                        size="icon" 
+                                                        onClick={() => removeInternational(index)} 
+                                                        className="text-red-500 hover:text-red-700 hover:bg-transparent"
+                                                    >
+                                                        <XCircle className="w-5 h-5" />
+                                                    </Button>
+                                                )}
                                           </div>
                                           <div className="grid grid-cols-2 gap-4">
                                               <FormField
                                                   control={form.control}
-                                                  name={`items.${index}.dot`}
+                                                  name={`internationalItems.${index}.dot`}
                                                   render={({ field }) => (
                                                       <FormItem>
                                                           <FormLabel className="text-gray-800 font-normal">DOT</FormLabel>
@@ -189,7 +232,7 @@ export default function ExportPage() {
                                               />
                                               <FormField
                                                   control={form.control}
-                                                  name={`items.${index}.quantity`}
+                                                  name={`internationalItems.${index}.quantity`}
                                                   render={({ field }) => (
                                                       <FormItem>
                                                           <FormLabel className="text-gray-800 font-normal">Số lượng</FormLabel>
@@ -203,7 +246,7 @@ export default function ExportPage() {
                                           </div>
                                           <FormField
                                                 control={form.control}
-                                                name={`items.${index}.series`}
+                                                name={`internationalItems.${index}.series`}
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel className="text-gray-800 font-normal">Series Number</FormLabel>
@@ -214,17 +257,6 @@ export default function ExportPage() {
                                                     </FormItem>
                                                 )}
                                             />
-                                          {index > 0 && (
-                                              <Button 
-                                                  type="button" 
-                                                  variant="ghost" 
-                                                  size="icon" 
-                                                  onClick={() => remove(index)} 
-                                                  className="absolute top-0 right-0 text-red-500 hover:text-red-700 hover:bg-transparent"
-                                              >
-                                                  <XCircle className="w-6 h-6" />
-                                              </Button>
-                                          )}
                                       </div>
                                   ))}
                                 </TabsContent>
@@ -234,7 +266,7 @@ export default function ExportPage() {
                                 <Button 
                                     type="button" 
                                     variant="ghost"
-                                    onClick={() => append({ dot: "", quantity: 1, series: "" })}
+                                    onClick={handleAddItem}
                                     className="text-gray-800 font-semibold py-3 px-6 rounded-xl flex items-center justify-center space-x-2"
                                 >
                                     <PlusCircle className="w-5 h-5" />
@@ -258,4 +290,5 @@ export default function ExportPage() {
             </Card>
         </div>
     );
-}
+
+    
