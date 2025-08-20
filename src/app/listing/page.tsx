@@ -185,7 +185,7 @@ export default function ListingPage() {
                     </div>
                     <div className="space-y-2 pt-2">
                         <h4 className="font-semibold text-gray-800">Chi tiết lốp:</h4>
-                        <div className="max-h-40 overflow-y-auto rounded-lg border p-2 bg-gray-50/50">
+                        <div className="overflow-y-auto rounded-lg border p-2 bg-gray-50/50">
                            <Table>
                                 <TableHeader>
                                     <TableRow>
