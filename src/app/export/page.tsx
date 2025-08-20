@@ -111,9 +111,9 @@ export default function ExportPage() {
                             />
 
                             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                                <TabsList className="grid w-full grid-cols-2">
-                                    <TabsTrigger value="domestic">Nội địa</TabsTrigger>
-                                    <TabsTrigger value="international">Nước ngoài</TabsTrigger>
+                                <TabsList className="grid w-full grid-cols-2 bg-gray-200 rounded-xl">
+                                    <TabsTrigger value="domestic" className="data-[state=active]:bg-gray-800 data-[state=active]:text-white rounded-lg data-[state=inactive]:bg-white data-[state=inactive]:text-black">Nội địa</TabsTrigger>
+                                    <TabsTrigger value="international" className="data-[state=active]:bg-gray-800 data-[state=active]:text-white rounded-lg data-[state=inactive]:bg-white data-[state=inactive]:text-black">Nước ngoài</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="domestic">
                                   {fields.map((field, index) => (
@@ -259,5 +259,3 @@ export default function ExportPage() {
         </div>
     );
 }
-
-    
