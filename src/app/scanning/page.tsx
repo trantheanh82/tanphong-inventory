@@ -116,10 +116,6 @@ export default function ScanningPage() {
                 </Alert>
             </div>
         )}
-
-        {/* Bottom buttons removed */}
-        <div className="flex justify-center gap-4 mb-8">
-        </div>
       </div>
     </div>
   );
