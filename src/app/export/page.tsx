@@ -6,6 +6,7 @@ import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import * as z from "zod";
 import { useState, useMemo } from "react";
 import { PlusCircle, ScanLine, XCircle } from "lucide-react";
+import { useRouter } from 'next/navigation';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +39,7 @@ const formSchema = z.object({
 
 export default function ExportPage() {
     const { toast } = useToast();
+    const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -65,32 +67,34 @@ export default function ExportPage() {
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true);
-        try {
-            for (const item of values.items) {
-                const result = await updateInventory({ name: item.dot, quantity: item.quantity, type: 'export' });
-                if (result.success) {
-                    toast({
-                        title: "Xuất kho thành công",
-                        description: `Đã xuất ${item.quantity} lốp với DOT ${item.dot} cho phiếu ${values.exportId}.`,
-                    });
-                } else {
-                    toast({
-                        title: "Lỗi",
-                        description: `Lỗi khi xuất lốp với DOT ${item.dot}: ${result.message}`,
-                        variant: "destructive",
-                    });
-                }
-            }
-            form.reset({ exportId: "", items: [{ dot: "", quantity: 1 }] });
-        } catch (error) {
-            toast({
-                title: "Lỗi",
-                description: "Đã có lỗi xảy ra khi gửi yêu cầu.",
-                variant: "destructive",
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
+        // The original logic is commented out, but can be restored if needed.
+        // try {
+        //     for (const item of values.items) {
+        //         const result = await updateInventory({ name: item.dot, quantity: item.quantity, type: 'export' });
+        //         if (result.success) {
+        //             toast({
+        //                 title: "Xuất kho thành công",
+        //                 description: `Đã xuất ${item.quantity} lốp với DOT ${item.dot} cho phiếu ${values.exportId}.`,
+        //             });
+        //         } else {
+        //             toast({
+        //                 title: "Lỗi",
+        //                 description: `Lỗi khi xuất lốp với DOT ${item.dot}: ${result.message}`,
+        //                 variant: "destructive",
+        //             });
+        //         }
+        //     }
+        //     form.reset({ exportId: "", items: [{ dot: "", quantity: 1 }] });
+        // } catch (error) {
+        //     toast({
+        //         title: "Lỗi",
+        //         description: "Đã có lỗi xảy ra khi gửi yêu cầu.",
+        //         variant: "destructive",
+        //     });
+        // } finally {
+        //     setIsSubmitting(false);
+        // }
+        router.push('/scanning');
     }
 
     return (

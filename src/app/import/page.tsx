@@ -6,6 +6,7 @@ import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import * as z from "zod";
 import { useState, useMemo } from "react";
 import { PlusCircle, ScanLine, XCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +39,7 @@ const formSchema = z.object({
 
 export default function ImportPage() {
     const { toast } = useToast();
+    const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -65,32 +67,34 @@ export default function ImportPage() {
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true);
-        try {
-            for (const item of values.items) {
-                const result = await updateInventory({ name: item.dot, quantity: item.quantity, type: 'import' });
-                if (result.success) {
-                    toast({
-                        title: "Nhập kho thành công",
-                        description: `Đã nhập ${item.quantity} lốp với DOT ${item.dot} cho phiếu ${values.importId}.`,
-                    });
-                } else {
-                    toast({
-                        title: "Lỗi",
-                        description: `Lỗi khi nhập lốp với DOT ${item.dot}: ${result.message}`,
-                        variant: "destructive",
-                    });
-                }
-            }
-            form.reset({ importId: "", items: [{ dot: "", quantity: 1 }] });
-        } catch (error) {
-            toast({
-                title: "Lỗi",
-                description: "Đã có lỗi xảy ra khi gửi yêu cầu.",
-                variant: "destructive",
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
+        // The original logic is commented out, but can be restored if needed.
+        // try {
+        //     for (const item of values.items) {
+        //         const result = await updateInventory({ name: item.dot, quantity: item.quantity, type: 'import' });
+        //         if (result.success) {
+        //             toast({
+        //                 title: "Nhập kho thành công",
+        //                 description: `Đã nhập ${item.quantity} lốp với DOT ${item.dot} cho phiếu ${values.importId}.`,
+        //             });
+        //         } else {
+        //             toast({
+        //                 title: "Lỗi",
+        //                 description: `Lỗi khi nhập lốp với DOT ${item.dot}: ${result.message}`,
+        //                 variant: "destructive",
+        //             });
+        //         }
+        //     }
+        //     form.reset({ importId: "", items: [{ dot: "", quantity: 1 }] });
+        // } catch (error) {
+        //     toast({
+        //         title: "Lỗi",
+        //         description: "Đã có lỗi xảy ra khi gửi yêu cầu.",
+        //         variant: "destructive",
+        //     });
+        // } finally {
+        //     setIsSubmitting(false);
+        // }
+        router.push('/scanning');
     }
 
     return (
@@ -118,7 +122,7 @@ export default function ImportPage() {
                             />
                             
                             {fields.map((field, index) => (
-                                <div key={field.id} className="rounded-xl bg-transparent relative space-y-4 border-b border-slate-300 last:border-b-0">
+                                <div key={field.id} className="p-4 rounded-xl bg-transparent relative space-y-4 border-b border-slate-300 last:border-b-0">
                                     <Label className="font-bold text-slate-800 block">Lốp {index + 1}</Label>
                                     <div className="grid grid-cols-2 gap-4">
                                         <FormField
