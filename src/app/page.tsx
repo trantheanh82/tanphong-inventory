@@ -76,16 +76,16 @@ export default function DashboardPage() {
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-gray-200 hover:bg-gray-200/60 border-b-2 border-gray-300">
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">#</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">DOT</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody className="bg-white/50">
-                        {importItems.map((item) => (
+                        {importItems.map((item, index) => (
                             <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.id}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.dot}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</TableCell>
                             </TableRow>
                         ))}
@@ -115,16 +115,16 @@ export default function DashboardPage() {
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-gray-200 hover:bg-gray-200/60 border-b-2 border-gray-300">
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">#</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">DOT</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody className="bg-white/50">
-                        {exportItems.map((item) => (
+                        {exportItems.map((item, index) => (
                              <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.id}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.dot}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</TableCell>
                             </TableRow>
                         ))}
@@ -154,14 +154,16 @@ export default function DashboardPage() {
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-gray-200 hover:bg-gray-200/60 border-b-2 border-gray-300">
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">#</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Series</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Lý do</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody className="bg-white/50">
-                        {warrantyItems.map((item) => (
+                        {warrantyItems.map((item, index) => (
                              <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.id}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.series}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.reason}</TableCell>
@@ -183,3 +185,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
