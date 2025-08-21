@@ -17,6 +17,12 @@ const exportItems = [
     { id: "PXK002", dot: "5566778899", quantity: 30 },
 ];
 
+const warrantyItems = [
+    { id: "PBH001", series: "SER-123456", reason: "Lỗi sản xuất" },
+    { id: "PBH002", series: "SER-654321", reason: "Hỏng vách" },
+];
+
+
 const TireIconSVG = (props: React.SVGProps<SVGSVGElement>) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" />
@@ -129,6 +135,45 @@ export default function DashboardPage() {
         <CardFooter className="pt-4 p-0">
             <Button asChild className="mt-4 w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl transition-transform transform hover:scale-105 duration-200 flex items-center justify-center space-x-2 shadow-md">
                 <Link href="/listing?type=export">
+                    Xem thêm
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+            </Button>
+        </CardFooter>
+      </Card>
+
+      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
+        <CardHeader className="p-0 mb-4">
+            <CardTitle className="flex items-center gap-2 text-2xl font-bold text-[#333]">
+                <ShieldCheck className="w-6 h-6" />
+                <span>Bảo Hành</span>
+            </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+            <div className="overflow-hidden">
+                <Table>
+                    <TableHeader>
+                        <TableRow className="bg-gray-200 hover:bg-gray-200/60 border-b-2 border-gray-300">
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Series</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Lý do</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody className="bg-white/50">
+                        {warrantyItems.map((item) => (
+                             <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.id}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.series}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.reason}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        </CardContent>
+        <CardFooter className="pt-4 p-0">
+            <Button asChild className="mt-4 w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl transition-transform transform hover:scale-105 duration-200 flex items-center justify-center space-x-2 shadow-md">
+                <Link href="/listing?type=warranty">
                     Xem thêm
                     <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>

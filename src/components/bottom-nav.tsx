@@ -16,7 +16,10 @@ const BottomNavItem = ({ href, icon: Icon, label }: { href: string; icon: React.
       const hrefType = new URLSearchParams(href.split('?')[1]).get('type');
       return pathname === '/listing' && type === hrefType;
     }
-    return (href === "/" && pathname === href) || (href !== "/" && pathname.startsWith(href));
+     if (href.startsWith('/warranty') && pathname.startsWith('/warranty')) {
+      return true;
+    }
+    return (href === "/" && pathname === href) || (href !== "/" && pathname.startsWith(href) && !pathname.startsWith('/listing') && !pathname.startsWith('/warranty') );
   }
 
   const isActive = getIsActive();
@@ -39,7 +42,7 @@ export function BottomNav() {
             <BottomNavItem href="/" icon={LayoutGrid} label="Trang chủ" />
             <BottomNavItem href="/listing?type=export" icon={ArrowUpCircle} label="Xuất" />
             <BottomNavItem href="/listing?type=import" icon={ArrowDownCircle} label="Nhập" />
-            <BottomNavItem href="/warranty" icon={ShieldCheck} label="Bảo hành" />
+            <BottomNavItem href="/listing?type=warranty" icon={ShieldCheck} label="Bảo hành" />
             <BottomNavItem href="/profile" icon={CircleUser} label="Cá nhân" />
         </div>
     </nav>

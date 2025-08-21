@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState, useMemo } from "react";
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ScanLine } from "lucide-react";
+import { ScanLine, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
@@ -15,11 +15,12 @@ type InventoryItemDetail = {
     dot: string;
     quantity: number;
     series?: string;
+    reason?: string;
 };
 
 type InventoryItem = {
     id: string;
-    type: "Import" | "Export";
+    type: "Import" | "Export" | "Warranty";
     name: string;
     quantity: number;
     date: string;
@@ -28,29 +29,55 @@ type InventoryItem = {
 
 
 const inventoryItems: InventoryItem[] = Array.from({ length: 40 }, (_, i) => {
-    const isImport = Math.random() > 0.5;
+    const rand = Math.random();
+    const type = rand < 0.45 ? "Import" : rand < 0.9 ? "Export" : "Warranty";
     const date = new Date(2023, 9, 26 - i).toISOString().split('T')[0];
-    const id = `${isImport ? 'PNK' : 'PXK'}-${String(i + 1).padStart(4, '0')}`;
-    const detailsCount = Math.floor(Math.random() * 3) + 1;
-    let totalQuantity = 0;
-    const details: InventoryItemDetail[] = Array.from({ length: detailsCount }, (__, j) => {
-        const quantity = Math.floor(Math.random() * 20) + 1;
-        totalQuantity += quantity;
-        return {
-            dot: String(Math.floor(Math.random() * 9000) + 1000),
-            quantity: quantity,
-            series: isImport ? undefined : `SER-${String(Math.floor(Math.random() * 900000) + 100000)}`
-        }
-    });
+    
+    let id, name, details: InventoryItemDetail[], quantity = 0;
 
-    return {
-        id,
-        type: isImport ? "Import" : "Export",
-        name: isImport ? `Phiếu Nhập ${id}` : `Phiếu Xuất ${id}`,
-        quantity: isImport ? totalQuantity : -totalQuantity,
-        date: date,
-        details: details
+    switch(type) {
+        case "Import":
+            id = `PNK-${String(i + 1).padStart(4, '0')}`;
+            name = `Phiếu Nhập ${id}`;
+            const importDetailsCount = Math.floor(Math.random() * 3) + 1;
+            details = Array.from({ length: importDetailsCount }, (__, j) => {
+                const q = Math.floor(Math.random() * 20) + 1;
+                quantity += q;
+                return {
+                    dot: String(Math.floor(Math.random() * 9000) + 1000),
+                    quantity: q,
+                }
+            });
+            break;
+        case "Export":
+            id = `PXK-${String(i + 1).padStart(4, '0')}`;
+            name = `Phiếu Xuất ${id}`;
+            const exportDetailsCount = Math.floor(Math.random() * 3) + 1;
+            details = Array.from({ length: exportDetailsCount }, (__, j) => {
+                const q = Math.floor(Math.random() * 20) + 1;
+                quantity -= q;
+                return {
+                    dot: String(Math.floor(Math.random() * 9000) + 1000),
+                    quantity: q,
+                    series: `SER-${String(Math.floor(Math.random() * 900000) + 100000)}`
+                }
+            });
+            quantity = -details.reduce((acc, item) => acc + item.quantity, 0);
+            break;
+        case "Warranty":
+            id = `PBH-${String(i + 1).padStart(4, '0')}`;
+            name = `Phiếu Bảo Hành ${id}`;
+            quantity = -1;
+            details = [{
+                dot: String(Math.floor(Math.random() * 9000) + 1000),
+                quantity: 1,
+                series: `SER-${String(Math.floor(Math.random() * 900000) + 100000)}`,
+                reason: Math.random() > 0.5 ? "Lỗi sản xuất" : "Hỏng vách"
+            }];
+            break;
     }
+
+    return { id, type, name, quantity, date, details };
 });
 
 
@@ -91,7 +118,30 @@ export default function ListingPage() {
         setSelectedItem(null);
     };
 
-    const fabLink = filterType === 'import' ? '/import' : '/export';
+    const getFabLink = () => {
+        switch(filterType) {
+            case 'import': return '/import';
+            case 'export': return '/export';
+            case 'warranty': return '/warranty';
+            default: return '/';
+        }
+    }
+    
+    const getBadgeStyling = (type: "Import" | "Export" | "Warranty") => {
+        switch(type) {
+            case "Import": return "bg-blue-500";
+            case "Export": return "bg-red-500";
+            case "Warranty": return "bg-yellow-500";
+        }
+    }
+    
+    const getDialogTypeLabel = (type: "Import" | "Export" | "Warranty") => {
+        switch(type) {
+            case "Import": return "Nhập Kho";
+            case "Export": return "Xuất Kho";
+            case "Warranty": return "Bảo Hành";
+        }
+    }
 
   return (
     <div className="p-4 animate-in fade-in-0 duration-500 h-full flex flex-col">
@@ -112,7 +162,7 @@ export default function ListingPage() {
                   </TableCell>
                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{item.name}</TableCell>
                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold">
-                    <Badge variant={item.type === "Import" ? "default" : "secondary"} className={`${item.type === 'Import' ? 'bg-blue-500' : 'bg-red-500'} text-white`}>
+                    <Badge variant={item.type === "Import" ? "default" : "secondary"} className={`${getBadgeStyling(item.type)} text-white`}>
                         {item.quantity > 0 ? `+${item.quantity}` : item.quantity}
                     </Badge>
                   </TableCell>
@@ -149,8 +199,8 @@ export default function ListingPage() {
 
       {filterType && (
         <Button asChild className="fixed bottom-20 right-4 h-16 w-16 rounded-full bg-gray-800 hover:bg-gray-900 text-white shadow-lg z-20">
-          <Link href={fabLink}>
-            <ScanLine className="h-8 w-8" />
+          <Link href={getFabLink()}>
+            { filterType === 'warranty' ? <ShieldCheck className="h-8 w-8" /> : <ScanLine className="h-8 w-8" /> }
           </Link>
         </Button>
       )}
@@ -171,8 +221,8 @@ export default function ListingPage() {
                     </div>
                     <div className="flex justify-between">
                         <span className="font-semibold">Loại:</span>
-                        <Badge variant={selectedItem.type === "Import" ? "default" : "secondary"} className={`${selectedItem.type === 'Import' ? 'bg-blue-500' : 'bg-red-500'} text-white`}>
-                            {selectedItem.type === "Import" ? "Nhập Kho" : "Xuất Kho"}
+                        <Badge variant={selectedItem.type === "Import" ? "default" : "secondary"} className={`${getBadgeStyling(selectedItem.type)} text-white`}>
+                           {getDialogTypeLabel(selectedItem.type)}
                         </Badge>
                     </div>
                     <div className="flex justify-between">
@@ -190,16 +240,19 @@ export default function ListingPage() {
                                 <TableHeader>
                                     <TableRow className="border-b-gray-300">
                                         {selectedItem.type === 'Export' && <TableHead className="text-gray-800">Series</TableHead>}
+                                        {selectedItem.type === 'Warranty' && <TableHead className="text-gray-800">Series</TableHead>}
                                         <TableHead className="text-gray-800">DOT</TableHead>
                                         <TableHead className="text-gray-800">Số lượng</TableHead>
+                                        {selectedItem.type === 'Warranty' && <TableHead className="text-gray-800">Lý do</TableHead>}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {selectedItem.details.map((detail, index) => (
                                         <TableRow key={index} className="border-none">
-                                            {selectedItem.type === 'Export' && <TableCell>{detail.series}</TableCell>}
+                                            {(selectedItem.type === 'Export' || selectedItem.type === 'Warranty') && <TableCell>{detail.series}</TableCell>}
                                             <TableCell>{detail.dot}</TableCell>
                                             <TableCell>{detail.quantity}</TableCell>
+                                            {selectedItem.type === 'Warranty' && <TableCell>{detail.reason}</TableCell>}
                                         </TableRow>
                                     ))}
                                 </TableBody>
