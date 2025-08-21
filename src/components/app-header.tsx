@@ -32,6 +32,7 @@ export function AppHeader() {
       const type = searchParams.get('type');
       if (type === 'import') return 'Nhập Kho';
       if (type === 'export') return 'Xuất Kho';
+      if (type === 'warranty') return 'Bảo Hành';
     }
     return pageTitles[pathname] || "Kho lốp Tân Phong";
   }
