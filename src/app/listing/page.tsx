@@ -55,19 +55,18 @@ const inventoryItems: InventoryItem[] = Array.from({ length: 40 }, (_, i) => {
             const exportDetailsCount = Math.floor(Math.random() * 3) + 1;
             details = Array.from({ length: exportDetailsCount }, (__, j) => {
                 const q = Math.floor(Math.random() * 20) + 1;
-                quantity -= q;
                 return {
                     dot: String(Math.floor(Math.random() * 9000) + 1000),
                     quantity: q,
                     series: `SER-${String(Math.floor(Math.random() * 900000) + 100000)}`
                 }
             });
-            quantity = -details.reduce((acc, item) => acc + item.quantity, 0);
+            quantity = details.reduce((acc, item) => acc + item.quantity, 0);
             break;
         case "Warranty":
             id = `PBH-${String(i + 1).padStart(4, '0')}`;
             name = `Phiếu Bảo Hành ${id}`;
-            quantity = -1;
+            quantity = 1;
             details = [{
                 dot: String(Math.floor(Math.random() * 9000) + 1000),
                 quantity: 1,
@@ -163,7 +162,7 @@ export default function ListingPage() {
                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{item.name}</TableCell>
                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold">
                     <Badge variant={item.type === "Import" ? "default" : "secondary"} className={`${getBadgeStyling(item.type)} text-white`}>
-                        {item.quantity > 0 ? `+${item.quantity}` : item.quantity}
+                        {item.type === "Import" ? `+${item.quantity}` : item.quantity}
                     </Badge>
                   </TableCell>
                 </TableRow>
@@ -173,7 +172,7 @@ export default function ListingPage() {
       </Card>
       
       <div className="flex justify-between items-center mt-4">
-        {totalPages > 1 ? (
+        {filteredData.length > itemsPerPage ? (
             <div className="flex justify-start items-center space-x-2">
                 <Button
                 onClick={handlePrevPage}
