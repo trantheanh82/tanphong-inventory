@@ -173,25 +173,29 @@ export default function ListingPage() {
       </Card>
       
       <div className="flex justify-between items-center mt-4">
-        <div className="flex justify-start items-center space-x-2">
-            <Button
-              onClick={handlePrevPage}
-              disabled={currentPage === 1}
-              className="px-4 py-2 text-sm font-medium text-white bg-gray-800 rounded-xl hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-md"
-            >
-              Trước
-            </Button>
-            <span className="text-sm font-medium text-white">
-              Trang {currentPage} của {totalPages}
-            </span>
-            <Button
-              onClick={handleNextPage}
-              disabled={currentPage === totalPages}
-              className="px-4 py-2 text-sm font-medium text-white bg-gray-800 rounded-xl hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-md"
-            >
-              Sau
-            </Button>
-        </div>
+        {totalPages > 1 ? (
+            <div className="flex justify-start items-center space-x-2">
+                <Button
+                onClick={handlePrevPage}
+                disabled={currentPage === 1}
+                className="px-4 py-2 text-sm font-medium text-white bg-gray-800 rounded-xl hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-md"
+                >
+                Trước
+                </Button>
+                <span className="text-sm font-medium text-white">
+                Trang {currentPage} của {totalPages}
+                </span>
+                <Button
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 text-sm font-medium text-white bg-gray-800 rounded-xl hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-md"
+                >
+                Sau
+                </Button>
+            </div>
+        ) : (
+            <div />
+        )}
         <span className="text-sm font-medium text-white">
             Tổng cộng: {filteredData.length}
         </span>
