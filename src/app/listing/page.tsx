@@ -157,6 +157,15 @@ export default function ListingPage() {
         }
     }
 
+    const getFabStyling = () => {
+        switch(filterType) {
+            case 'import': return 'bg-blue-600 hover:bg-blue-700';
+            case 'export': return 'bg-red-600 hover:bg-red-700';
+            case 'warranty': return 'bg-yellow-500 hover:bg-yellow-600';
+            default: return 'bg-gray-800 hover:bg-gray-900';
+        }
+    }
+
   return (
     <div className="p-4 pb-20 animate-in fade-in-0 duration-500 flex flex-col">
       <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/50 flex-grow flex flex-col">
@@ -231,7 +240,7 @@ export default function ListingPage() {
       </div>
 
       {filterType && (
-        <Button asChild className="fixed bottom-20 right-4 h-16 w-16 rounded-full bg-gray-800 hover:bg-gray-900 text-white shadow-lg z-20">
+        <Button asChild className={`fixed bottom-20 right-4 h-16 w-16 rounded-full text-white shadow-lg z-20 ${getFabStyling()}`}>
           <Link href={getFabLink()}>
             { filterType === 'warranty' ? <ShieldCheck className="h-8 w-8" /> : <ScanLine className="h-8 w-8" /> }
           </Link>
