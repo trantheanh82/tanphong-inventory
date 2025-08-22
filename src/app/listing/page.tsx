@@ -158,7 +158,7 @@ export default function ListingPage() {
     }
 
   return (
-    <div className="p-4 animate-in fade-in-0 duration-500 h-full flex flex-col">
+    <div className="p-4 pb-8 animate-in fade-in-0 duration-500 flex flex-col">
       <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/50 flex-grow flex flex-col">
         <div className="p-4 border-b border-white/50">
             <div className="relative">
@@ -171,7 +171,7 @@ export default function ListingPage() {
                 />
             </div>
         </div>
-        <div className="overflow-y-auto">
+        <div>
             <Table>
                 <TableHeader>
                     <TableRow className="bg-gray-800 hover:bg-gray-800/90 border-b-2 border-gray-700">
@@ -189,7 +189,7 @@ export default function ListingPage() {
                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{item.name}</TableCell>
                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold">
                         <Badge variant={item.type === "Import" ? "default" : "secondary"} className={`${getBadgeStyling(item.type)} text-white`}>
-                            {item.type === "Import" ? `+${item.quantity}` : item.quantity}
+                            {item.type === "Import" ? `+${item.quantity}` : Math.abs(item.quantity)}
                         </Badge>
                     </TableCell>
                     </TableRow>
@@ -203,9 +203,10 @@ export default function ListingPage() {
         {filteredData.length > itemsPerPage ? (
             <div className="flex justify-start items-center space-x-2">
                 <Button
-                onClick={handlePrevPage}
-                disabled={currentPage === 1}
-                className="px-4 py-2 text-sm font-medium text-white bg-gray-800 rounded-xl hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-md"
+                    onClick={handlePrevPage}
+                    disabled={currentPage === 1}
+                    size="sm"
+                    className="px-3 py-1 text-sm font-medium text-white bg-gray-800 rounded-lg hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-md"
                 >
                 Trước
                 </Button>
@@ -213,9 +214,10 @@ export default function ListingPage() {
                 Trang {currentPage} của {totalPages}
                 </span>
                 <Button
-                onClick={handleNextPage}
-                disabled={currentPage === totalPages}
-                className="px-4 py-2 text-sm font-medium text-white bg-gray-800 rounded-xl hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-md"
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                    size="sm"
+                    className="px-3 py-1 text-sm font-medium text-white bg-gray-800 rounded-lg hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-md"
                 >
                 Sau
                 </Button>
@@ -297,3 +299,5 @@ export default function ListingPage() {
     </div>
   );
 }
+
+    
