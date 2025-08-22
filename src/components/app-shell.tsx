@@ -17,10 +17,10 @@ const useAuth = () => {
         // We'll simulate this with a timeout.
         const timer = setTimeout(() => {
             // To test the logged-in state, you can change this to `true`
-            const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
-            setIsAuthenticated(loggedIn);
+            // const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
+            setIsAuthenticated(true); // Always authenticated
             setLoading(false);
-        }, 500); // Simulate network latency
+        }, 0); // No delay
 
         return () => clearTimeout(timer);
     }, []);
