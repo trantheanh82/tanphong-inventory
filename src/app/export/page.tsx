@@ -2,7 +2,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useFieldArray, useWatch } from "react-hook-form";
+import { useForm, useFieldArray, useWatch, Controller } from "react-hook-form";
 import * as z from "zod";
 import { useState, useMemo } from "react";
 import { PlusCircle, ScanLine, XCircle } from "lucide-react";
@@ -21,19 +21,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-const domesticItemSchema = z.object({
-  dot: z.string().length(4, { message: "DOT phải là 4 chữ số." }).regex(/^\d{4}$/, {
-    message: "DOT phải là 4 chữ số.",
-  }),
-  quantity: z.coerce.number().int().positive({
-    message: "Số lượng phải là một số dương.",
-  }),
-});
-
-const internationalItemSchema = z.object({
+const itemSchema = z.object({
+  type: z.enum(['domestic', 'international'], { required_error: "Vui lòng chọn loại."}),
   dot: z.string().length(4, { message: "DOT phải là 4 chữ số." }).regex(/^\d{4}$/, {
     message: "DOT phải là 4 chữ số.",
   }),
@@ -41,79 +32,59 @@ const internationalItemSchema = z.object({
     message: "Số lượng phải là một số dương.",
   }),
   series: z.string().optional(),
+}).refine(data => {
+    if (data.type === 'international') {
+        return !!data.series;
+    }
+    return true;
+}, {
+    message: "Số series là bắt buộc cho lốp nước ngoài.",
+    path: ["series"],
 });
 
 const formSchema = z.object({
   exportId: z.string().min(1, { message: "Mã phiếu xuất là bắt buộc." }),
-  type: z.enum(['domestic', 'international']),
-  domesticItems: z.array(domesticItemSchema),
-  internationalItems: z.array(internationalItemSchema),
+  items: z.array(itemSchema).min(1),
 });
 
 export default function ExportPage() {
     const { toast } = useToast();
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [activeTab, setActiveTab] = useState('domestic');
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             exportId: "",
-            type: 'domestic',
-            domesticItems: [{ dot: "", quantity: 1 }],
-            internationalItems: [],
+            items: [{ type: "domestic", dot: "", quantity: 1, series: "" }],
         },
     });
 
-    const { fields: domesticFields, append: appendDomestic, remove: removeDomestic } = useFieldArray({
+    const { fields, append, remove } = useFieldArray({
         control: form.control,
-        name: "domesticItems",
-    });
-    
-    const { fields: internationalFields, append: appendInternational, remove: removeInternational } = useFieldArray({
-        control: form.control,
-        name: "internationalItems",
+        name: "items",
     });
 
-    const watchedDomesticItems = useWatch({ control: form.control, name: "domesticItems" });
-    const watchedInternationalItems = useWatch({ control: form.control, name: "internationalItems" });
+    const watchedItems = useWatch({ control: form.control, name: "items" });
 
     const isScanButtonVisible = useMemo(() => {
-        if (activeTab === 'domestic') {
-            if (!watchedDomesticItems || watchedDomesticItems.length === 0) return false;
-            return watchedDomesticItems.every(item => item.dot && /^\d{4}$/.test(item.dot) && item.quantity && item.quantity > 0);
-        } else {
-            if (!watchedInternationalItems || watchedInternationalItems.length === 0) return false;
-            return watchedInternationalItems.every(item => item.dot && /^\d{4}$/.test(item.dot) && item.quantity && item.quantity > 0);
-        }
-    }, [activeTab, watchedDomesticItems, watchedInternationalItems]);
+        if (!watchedItems || watchedItems.length === 0) return false;
+        return watchedItems.every(item => 
+            item.type &&
+            item.dot && /^\d{4}$/.test(item.dot) && 
+            item.quantity && item.quantity > 0 &&
+            (item.type === 'domestic' || (item.type === 'international' && item.series))
+        );
+    }, [watchedItems]);
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true);
-        // Logic for what to do with the data on submission
         console.log(values);
         router.push('/scanning');
     }
 
-    const handleTabChange = (value: string) => {
-      setActiveTab(value);
-      form.setValue('type', value as 'domestic' | 'international');
-      if (value === 'domestic' && form.getValues('domesticItems').length === 0) {
-        form.setValue('internationalItems', []);
-        appendDomestic({ dot: "", quantity: 1 });
-      } else if (value === 'international' && form.getValues('internationalItems').length === 0) {
-        form.setValue('domesticItems', []);
-        appendInternational({ dot: "", quantity: 1, series: "" });
-      }
-    }
-
     const handleAddItem = () => {
-        if (activeTab === 'domestic') {
-            appendDomestic({ dot: "", quantity: 1 });
-        } else {
-            appendInternational({ dot: "", quantity: 1, series: "" });
-        }
+        append({ type: "domestic", dot: "", quantity: 1, series: "" });
     }
 
     return (
@@ -140,127 +111,103 @@ export default function ExportPage() {
                                 )}
                             />
 
-                            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                                <TabsList className="grid w-full grid-cols-2 bg-gray-200 rounded-xl p-1">
-                                    <TabsTrigger value="domestic" className="data-[state=active]:bg-gray-800 data-[state=active]:text-white rounded-lg data-[state=inactive]:bg-transparent data-[state=inactive]:text-black transition-all duration-300">Nội địa</TabsTrigger>
-                                    <TabsTrigger value="international" className="data-[state=active]:bg-gray-800 data-[state=active]:text-white rounded-lg data-[state=inactive]:bg-transparent data-[state=inactive]:text-black transition-all duration-300">Nước ngoài</TabsTrigger>
-                                </TabsList>
-                                <TabsContent value="domestic" className="mt-4">
-                                  {domesticFields.map((field, index) => (
-                                      <div key={field.id} className="relative space-y-4 pt-4 border-t border-gray-200 first:border-t-0">
-                                          <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <Label className="font-bold text-gray-800">Lốp {index + 1}</Label>
-                                                <span className="text-sm font-medium text-gray-600">(Đã scan 0/{watchedDomesticItems?.[index]?.quantity || 0})</span>
-                                            </div>
-                                            {domesticFields.length > 1 && (
-                                                <Button 
-                                                    type="button" 
-                                                    variant="ghost" 
-                                                    size="icon" 
-                                                    onClick={() => removeDomestic(index)} 
-                                                    className="text-red-500 hover:text-red-700 hover:bg-transparent"
-                                                >
-                                                    <XCircle className="w-5 h-5" />
-                                                </Button>
-                                            )}
-                                          </div>
-                                          <div className="grid grid-cols-2 gap-4">
-                                              <FormField
-                                                  control={form.control}
-                                                  name={`domesticItems.${index}.dot`}
-                                                  render={({ field }) => (
-                                                      <FormItem>
-                                                          <FormLabel className="text-gray-800 font-normal">DOT</FormLabel>
-                                                          <FormControl>
-                                                              <Input type="number" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800"/>
-                                                          </FormControl>
-                                                          <FormMessage />
-                                                      </FormItem>
-                                                  )}
-                                              />
-                                              <FormField
-                                                  control={form.control}
-                                                  name={`domesticItems.${index}.quantity`}
-                                                  render={({ field }) => (
-                                                      <FormItem>
-                                                          <FormLabel className="text-gray-800 font-normal">Số lượng</FormLabel>
-                                                          <FormControl>
-                                                              <Input type="number" min="1" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800"/>
-                                                          </FormControl>
-                                                          <FormMessage />
-                                                      </FormItem>
-                                                  )}
-                                              />
-                                          </div>
+                            {fields.map((field, index) => (
+                                <div key={field.id} className="relative space-y-4 pt-4 border-t border-gray-200 first:border-t-0">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                          <Label className="font-bold text-gray-800">Lốp {index + 1}</Label>
+                                          <span className="text-sm font-medium text-gray-600">(Đã scan 0/{watchedItems?.[index]?.quantity || 0})</span>
                                       </div>
-                                  ))}
-                                </TabsContent>
-                                <TabsContent value="international" className="mt-4">
-                                  {internationalFields.map((field, index) => (
-                                      <div key={field.id} className="relative space-y-4 pt-4 border-t border-gray-200 first:border-t-0">
-                                           <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <Label className="font-bold text-gray-800">Lốp {index + 1}</Label>
-                                                    <span className="text-sm font-medium text-gray-600">(Đã scan 0/{watchedInternationalItems?.[index]?.quantity || 0})</span>
-                                                </div>
-                                                {internationalFields.length > 1 && (
-                                                    <Button 
-                                                        type="button" 
-                                                        variant="ghost" 
-                                                        size="icon" 
-                                                        onClick={() => removeInternational(index)} 
-                                                        className="text-red-500 hover:text-red-700 hover:bg-transparent"
+                                      {fields.length > 1 && (
+                                          <Button 
+                                              type="button" 
+                                              variant="ghost" 
+                                              size="icon" 
+                                              onClick={() => remove(index)} 
+                                              className="text-red-500 hover:text-red-700 hover:bg-transparent"
+                                          >
+                                              <XCircle className="w-5 h-5" />
+                                          </Button>
+                                      )}
+                                    </div>
+                                    
+                                    <FormField
+                                        control={form.control}
+                                        name={`items.${index}.type`}
+                                        render={({ field }) => (
+                                            <FormItem className="space-y-3">
+                                                <FormLabel className="text-gray-800 font-normal">Loại Lốp</FormLabel>
+                                                <FormControl>
+                                                    <RadioGroup
+                                                        onValueChange={field.onChange}
+                                                        defaultValue={field.value}
+                                                        className="flex space-x-4"
                                                     >
-                                                        <XCircle className="w-5 h-5" />
-                                                    </Button>
-                                                )}
-                                          </div>
-                                          <div className="grid grid-cols-2 gap-4">
-                                              <FormField
-                                                  control={form.control}
-                                                  name={`internationalItems.${index}.dot`}
-                                                  render={({ field }) => (
-                                                      <FormItem>
-                                                          <FormLabel className="text-gray-800 font-normal">DOT</FormLabel>
-                                                          <FormControl>
-                                                              <Input type="number" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800"/>
-                                                          </FormControl>
-                                                          <FormMessage />
-                                                      </FormItem>
-                                                  )}
-                                              />
-                                              <FormField
-                                                  control={form.control}
-                                                  name={`internationalItems.${index}.quantity`}
-                                                  render={({ field }) => (
-                                                      <FormItem>
-                                                          <FormLabel className="text-gray-800 font-normal">Số lượng</FormLabel>
-                                                          <FormControl>
-                                                              <Input type="number" min="1" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800"/>
-                                                          </FormControl>
-                                                          <FormMessage />
-                                                      </FormItem>
-                                                  )}
-                                              />
-                                          </div>
-                                          <FormField
-                                                control={form.control}
-                                                name={`internationalItems.${index}.series`}
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel className="text-gray-800 font-normal">Series Number</FormLabel>
-                                                        <FormControl>
-                                                            <Input placeholder="Quét để nhập" {...field} disabled className="bg-gray-200/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800" />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                      </div>
-                                  ))}
-                                </TabsContent>
-                            </Tabs>
+                                                        <FormItem className="flex items-center space-x-2 space-y-0">
+                                                            <FormControl>
+                                                                <RadioGroupItem value="domestic" />
+                                                            </FormControl>
+                                                            <FormLabel className="font-normal text-gray-800">Nội địa</FormLabel>
+                                                        </FormItem>
+                                                        <FormItem className="flex items-center space-x-2 space-y-0">
+                                                            <FormControl>
+                                                                <RadioGroupItem value="international" />
+                                                            </FormControl>
+                                                            <FormLabel className="font-normal text-gray-800">Nước ngoài</FormLabel>
+                                                        </FormItem>
+                                                    </RadioGroup>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name={`items.${index}.dot`}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-gray-800 font-normal">DOT</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="number" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800"/>
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name={`items.${index}.quantity`}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-gray-800 font-normal">Số lượng</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="number" min="1" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800"/>
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    {watchedItems?.[index]?.type === 'international' && (
+                                        <FormField
+                                            control={form.control}
+                                            name={`items.${index}.series`}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-gray-800 font-normal">Series Number</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Quét để nhập" {...field} disabled className="bg-gray-200/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800" />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    )}
+                                </div>
+                            ))}
 
                             <div className="flex items-center justify-between gap-4 mt-6">
                                 <Button 
