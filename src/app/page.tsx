@@ -42,7 +42,7 @@ export default function DashboardPage() {
         </div>
         
         <div className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50 p-4">
-            <div className="flex items-center text-2xl font-bold mb-4 text-[#333]">
+            <div className="flex items-center text-xl font-bold mb-4 text-[#333]">
                 <ScanLine className="w-6 h-6 mr-2" strokeWidth={1.5} />
                 <span>Tạo phiếu</span>
             </div>
@@ -66,7 +66,7 @@ export default function DashboardPage() {
 
       <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
         <CardHeader className="p-0 mb-4">
-            <CardTitle className="flex items-center gap-2 text-2xl font-bold text-[#333]">
+            <CardTitle className="flex items-center gap-2 text-xl font-bold text-[#333]">
                 <TireIconSVG className="w-6 h-6" />
                 <span>Nhập Kho</span>
             </CardTitle>
@@ -105,7 +105,7 @@ export default function DashboardPage() {
 
       <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
         <CardHeader className="p-0 mb-4">
-            <CardTitle className="flex items-center gap-2 text-2xl font-bold text-[#333]">
+            <CardTitle className="flex items-center gap-2 text-xl font-bold text-[#333]">
                 <TireIconSVG className="w-6 h-6" />
                 <span>Xuất Kho</span>
             </CardTitle>
@@ -144,7 +144,7 @@ export default function DashboardPage() {
 
       <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
         <CardHeader className="p-0 mb-4">
-            <CardTitle className="flex items-center gap-2 text-2xl font-bold text-[#333]">
+            <CardTitle className="flex items-center gap-2 text-xl font-bold text-[#333]">
                 <ShieldCheck className="w-6 h-6" />
                 <span>Bảo Hành</span>
             </CardTitle>
@@ -185,5 +185,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
