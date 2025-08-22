@@ -43,22 +43,22 @@ export default function DashboardPage() {
         
         <div className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50 p-4">
             <div className="flex items-center text-2xl font-bold mb-4 text-[#333]">
-                <ScanLine className="w-6 h-6 mr-2" />
+                <ScanLine className="w-6 h-6 mr-2" strokeWidth={1.5} />
                 <span>Tạo phiếu</span>
             </div>
             <div className="flex justify-around items-center">
                 <Link href="/import" className="flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors duration-200 flex-1">
-                    <ArrowDownCircle className="w-12 h-12 mb-2 text-[#333]" />
+                    <ArrowDownCircle className="w-12 h-12 mb-2 text-[#333]" strokeWidth={1.5} />
                     <span className="text-sm font-semibold text-center text-[#333]">Nhập Kho</span>
                 </Link>
                 <div className="w-px h-16 bg-gray-300" />
                 <Link href="/export" className="flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors duration-200 flex-1">
-                    <ArrowUpCircle className="w-12 h-12 mb-2 text-[#333]" />
+                    <ArrowUpCircle className="w-12 h-12 mb-2 text-[#333]" strokeWidth={1.5} />
                     <span className="text-sm font-semibold text-center text-[#333]">Xuất Kho</span>
                 </Link>
                 <div className="w-px h-16 bg-gray-300" />
                 <Link href="/warranty" className="flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-white/50 transition-colors duration-200 flex-1">
-                    <ShieldCheck className="w-12 h-12 mb-2 text-[#333]" />
+                    <ShieldCheck className="w-12 h-12 mb-2 text-[#333]" strokeWidth={1.5} />
                     <span className="text-sm font-semibold text-center text-[#333]">Bảo Hành</span>
                 </Link>
             </div>
