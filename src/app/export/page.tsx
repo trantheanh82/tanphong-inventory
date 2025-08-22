@@ -135,25 +135,25 @@ export default function ExportPage() {
                                         control={form.control}
                                         name={`items.${index}.type`}
                                         render={({ field }) => (
-                                            <FormItem className="space-y-3">
-                                                <FormLabel className="text-gray-800 font-normal">Loại Lốp</FormLabel>
+                                            <FormItem className="space-y-3 bg-gray-100/60 p-4 rounded-xl border border-gray-200">
+                                                <FormLabel className="text-gray-800 font-semibold">Loại Lốp</FormLabel>
                                                 <FormControl>
                                                     <RadioGroup
                                                         onValueChange={field.onChange}
                                                         defaultValue={field.value}
-                                                        className="flex space-x-4"
+                                                        className="flex space-x-6 pt-2"
                                                     >
                                                         <FormItem className="flex items-center space-x-2 space-y-0">
                                                             <FormControl>
                                                                 <RadioGroupItem value="domestic" />
                                                             </FormControl>
-                                                            <FormLabel className="font-normal text-gray-800">Nội địa</FormLabel>
+                                                            <FormLabel className="font-normal text-gray-800 text-base">Nội địa</FormLabel>
                                                         </FormItem>
                                                         <FormItem className="flex items-center space-x-2 space-y-0">
                                                             <FormControl>
                                                                 <RadioGroupItem value="international" />
                                                             </FormControl>
-                                                            <FormLabel className="font-normal text-gray-800">Nước ngoài</FormLabel>
+                                                            <FormLabel className="font-normal text-gray-800 text-base">Nước ngoài</FormLabel>
                                                         </FormItem>
                                                     </RadioGroup>
                                                 </FormControl>
@@ -239,3 +239,4 @@ export default function ExportPage() {
     );
 
     
+}
