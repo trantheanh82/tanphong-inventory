@@ -136,7 +136,6 @@ export default function ExportPage() {
                                         name={`items.${index}.type`}
                                         render={({ field }) => (
                                             <FormItem className="space-y-3 bg-gray-100/60 p-4 rounded-xl border border-gray-200">
-                                                <FormLabel className="text-gray-800 font-semibold">Loại Lốp</FormLabel>
                                                 <FormControl>
                                                     <RadioGroup
                                                         onValueChange={field.onChange}
