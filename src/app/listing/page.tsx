@@ -5,11 +5,12 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ScanLine, ShieldCheck } from "lucide-react";
+import { ScanLine, ShieldCheck, Search } from "lucide-react";
 import Link from "next/link";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 type InventoryItemDetail = {
     dot: string;
@@ -87,12 +88,26 @@ export default function ListingPage() {
     
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+    const [searchQuery, setSearchQuery] = useState("");
     const itemsPerPage = 10;
     
     const filteredData = useMemo(() => {
-        if (!filterType) return inventoryItems;
-        return inventoryItems.filter(item => item.type.toLowerCase() === filterType.toLowerCase());
-    }, [filterType]);
+        let items = inventoryItems;
+        if (filterType) {
+            items = items.filter(item => item.type.toLowerCase() === filterType.toLowerCase());
+        }
+        if (searchQuery) {
+            items = items.filter(item => 
+                item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                item.id.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
+        return items;
+    }, [filterType, searchQuery]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, filterType]);
     
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
@@ -144,31 +159,44 @@ export default function ListingPage() {
 
   return (
     <div className="p-4 animate-in fade-in-0 duration-500 h-full flex flex-col">
-      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/50 flex-grow">
-        <Table>
-            <TableHeader>
-                <TableRow className="bg-gray-800 hover:bg-gray-800/90 border-b-2 border-gray-700">
-                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">#</TableHead>
-                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Tên phiếu</TableHead>
-                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Số lượng</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody className="bg-white/80">
-              {paginatedData.map((item, index) => (
-                <TableRow key={item.id} onClick={() => handleRowClick(item)} className="hover:bg-gray-200/50 cursor-pointer transition duration-200 border-b border-gray-200/80">
-                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
-                    {(currentPage - 1) * itemsPerPage + index + 1}
-                  </TableCell>
-                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{item.name}</TableCell>
-                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold">
-                    <Badge variant={item.type === "Import" ? "default" : "secondary"} className={`${getBadgeStyling(item.type)} text-white`}>
-                        {item.type === "Import" ? `+${item.quantity}` : item.quantity}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/50 flex-grow flex flex-col">
+        <div className="p-4 border-b border-white/50">
+            <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
+                <Input
+                    placeholder="Tìm kiếm phiếu..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-3 py-3 border-gray-300 rounded-xl text-black focus:outline-none focus:ring-2 focus:ring-gray-800 bg-white/80"
+                />
+            </div>
+        </div>
+        <div className="overflow-y-auto">
+            <Table>
+                <TableHeader>
+                    <TableRow className="bg-gray-800 hover:bg-gray-800/90 border-b-2 border-gray-700">
+                        <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">#</TableHead>
+                        <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Tên phiếu</TableHead>
+                        <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Số lượng</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody className="bg-white/80">
+                {paginatedData.map((item, index) => (
+                    <TableRow key={item.id} onClick={() => handleRowClick(item)} className="hover:bg-gray-200/50 cursor-pointer transition duration-200 border-b border-gray-200/80">
+                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
+                        {(currentPage - 1) * itemsPerPage + index + 1}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{item.name}</TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold">
+                        <Badge variant={item.type === "Import" ? "default" : "secondary"} className={`${getBadgeStyling(item.type)} text-white`}>
+                            {item.type === "Import" ? `+${item.quantity}` : item.quantity}
+                        </Badge>
+                    </TableCell>
+                    </TableRow>
+                ))}
+                </TableBody>
+            </Table>
+        </div>
       </Card>
       
       <div className="flex justify-between items-center mt-4">
@@ -238,7 +266,7 @@ export default function ListingPage() {
                     </div>
                     <div className="space-y-2 pt-2">
                         <h4 className="font-semibold text-gray-800">Chi tiết lốp:</h4>
-                        <div className="overflow-y-auto rounded-lg border p-2 bg-gray-50/50 max-h-60">
+                        <div className="overflow-y-auto rounded-lg border p-2 bg-gray-50/50">
                            <Table>
                                 <TableHeader>
                                     <TableRow className="border-b-gray-300">
