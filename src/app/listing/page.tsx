@@ -158,7 +158,7 @@ export default function ListingPage() {
     }
 
   return (
-    <div className="p-4 pb-10 animate-in fade-in-0 duration-500 flex flex-col">
+    <div className="p-4 pb-20 animate-in fade-in-0 duration-500 flex flex-col">
       <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/50 flex-grow flex flex-col">
         <div className="p-4 border-b border-white/50">
             <div className="relative">
