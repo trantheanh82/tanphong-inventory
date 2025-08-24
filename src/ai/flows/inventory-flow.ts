@@ -38,29 +38,38 @@ export async function updateInventory(
     async (input) => {
       console.log('Received inventory update:', input);
 
-      // In a real application, you would make a call to an external API here.
-      // For example:
-      // const externalApiResponse = await fetch('https://api.inventory.com/update', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(input),
-      // });
-      // if (!externalApiResponse.ok) {
-      //   return {
-      //     success: false,
-      //     message: 'Failed to update inventory.',
-      //   };
-      // }
-      
-      const message =
-        input.type === 'import'
-          ? `Đã nhập ${input.quantity} lốp ${input.name} thành công.`
-          : `Đã xuất ${input.quantity} lốp ${input.name} thành công.`;
+      try {
+        const response = await fetch(process.env.API_ENDPOINT!, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(input),
+        });
 
-      return {
-        success: true,
-        message,
-      };
+        if (!response.ok) {
+          console.error('API call failed:', await response.text());
+          return {
+            success: false,
+            message: 'Failed to update inventory via API.',
+          };
+        }
+        
+        const message =
+          input.type === 'import'
+            ? `Đã nhập ${input.quantity} lốp ${input.name} thành công.`
+            : `Đã xuất ${input.quantity} lốp ${input.name} thành công.`;
+  
+        return {
+          success: true,
+          message,
+        };
+
+      } catch (error) {
+        console.error('Error calling API:', error);
+        return {
+          success: false,
+          message: 'An error occurred while updating inventory.',
+        };
+      }
     }
   );
   return await updateInventoryFlow(input);
