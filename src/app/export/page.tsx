@@ -32,14 +32,6 @@ const itemSchema = z.object({
     message: "Số lượng phải là một số dương.",
   }),
   series: z.string().optional(),
-}).refine(data => {
-    if (data.type === 'international') {
-        return !!data.series;
-    }
-    return true;
-}, {
-    message: "Số series là bắt buộc cho lốp nước ngoài.",
-    path: ["series"],
 });
 
 const formSchema = z.object({
@@ -72,8 +64,7 @@ export default function ExportPage() {
         return watchedItems.every(item => 
             item.type &&
             item.dot && /^\d{4}$/.test(item.dot) && 
-            item.quantity && item.quantity > 0 &&
-            (item.type === 'domestic' || (item.type === 'international' && item.series))
+            item.quantity && item.quantity > 0
         );
     }, [watchedItems]);
 
