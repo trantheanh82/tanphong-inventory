@@ -33,7 +33,7 @@ export async function login(input: LoginInput): Promise<LoginOutput> {
     },
     async (input) => {
       try {
-        const response = await fetch(`${process.env.API_ENDPOINT}/auth/login`, {
+        const response = await fetch(`${process.env.API_ENDPOINT}/auth/signin`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(input),
