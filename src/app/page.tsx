@@ -9,18 +9,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-
-type RecordItem = {
-    id: string;
-    name: string;
-    fields: { [key: string]: any };
-};
-
-type DashboardData = {
-    imports: RecordItem[];
-    exports: RecordItem[];
-    warranties: RecordItem[];
-};
+import { DashboardData } from "@/models/inventory";
 
 
 const TireIconSVG = (props: React.SVGProps<SVGSVGElement>) => (

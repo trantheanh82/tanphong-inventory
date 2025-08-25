@@ -11,23 +11,7 @@ import { ScanLine, ShieldCheck, Search } from "lucide-react";
 import Link from "next/link";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-
-type InventoryItemDetail = {
-    dot: string;
-    quantity: number;
-    series?: string;
-    reason?: string;
-};
-
-type InventoryItem = {
-    id: string;
-    type: "Import" | "Export" | "Warranty";
-    name: string;
-    quantity: number;
-    date: string;
-    details: InventoryItemDetail[];
-};
-
+import { InventoryItem, InventoryItemDetail } from "@/models/inventory";
 
 const inventoryItems: InventoryItem[] = Array.from({ length: 40 }, (_, i) => {
     const rand = Math.random();
@@ -308,7 +292,3 @@ export default function ListingPage() {
     </div>
   );
 }
-
-    
-
-    
