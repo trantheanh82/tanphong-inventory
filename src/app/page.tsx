@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 type RecordItem = {
     id: string;
+    name: string;
     fields: { [key: string]: any };
 };
 
@@ -112,8 +113,8 @@ export default function DashboardPage() {
                         {data?.imports?.slice(0, 3).map((item, index) => (
                             <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields['Name']}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields['Total Quantity']}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.name}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields['Số lượng Tổng hợp (từ Phiếu nhập chi tiết)']}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -158,8 +159,8 @@ export default function DashboardPage() {
                         {data?.exports?.slice(0, 3).map((item, index) => (
                              <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields['Name']}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields['Total Quantity']}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.name}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields['Số lượng Tổng hợp (từ Phiếu xuất chi tiết)']}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -205,9 +206,9 @@ export default function DashboardPage() {
                         {data?.warranties?.slice(0, 3).map((item, index) => (
                              <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields['Name']}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields['Series']}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields['Reason']}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.name}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields['Series Number']}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields['Lý do']}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
