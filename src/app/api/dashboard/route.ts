@@ -1,8 +1,9 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-async function fetchTableData(tableId: string, cookieHeader: string | null) {
-    const url = `${process.env.API_ENDPOINT}/table/${tableId}/record`;
+async function fetchTableData(tableId: string, cookieHeader: string | null, take: number = 5) {
+    const url = `${process.env.API_ENDPOINT}/table/${tableId}/record?take=${take}`;
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
     };
@@ -36,9 +37,9 @@ export async function GET(request: NextRequest) {
 
     try {
         const [imports, exports, warranties] = await Promise.all([
-            fetchTableData(IMPORT_TBL_ID, cookieHeader),
-            fetchTableData(EXPORT_TBL_ID, cookieHeader),
-            fetchTableData(QUARANTINE_TBL_ID, cookieHeader)
+            fetchTableData(IMPORT_TBL_ID, cookieHeader, 5),
+            fetchTableData(EXPORT_TBL_ID, cookieHeader, 5),
+            fetchTableData(QUARANTINE_TBL_ID, cookieHeader, 5)
         ]);
         
         return NextResponse.json({ imports, exports, warranties });
