@@ -1,26 +1,25 @@
 
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowDownCircle, ArrowUpCircle, ShieldCheck, QrCode, ScanLine } from "lucide-react";
+import { ArrowRight, ArrowDownCircle, ArrowUpCircle, ShieldCheck, ScanLine } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const importItems = [
-    { id: "PNK001", dot: "1234567890", quantity: 100 },
-    { id: "PNK002", dot: "0987654321", quantity: 50 },
-    { id: "PNK003", dot: "1122334455", quantity: 200 },
-];
+type RecordItem = {
+    id: string;
+    fields: { [key: string]: any };
+};
 
-const exportItems = [
-    { id: "PXK001", dot: "0011223344", quantity: 75 },
-    { id: "PXK002", dot: "5566778899", quantity: 30 },
-];
-
-const warrantyItems = [
-    { id: "PBH001", series: "SER-123456", reason: "Lỗi sản xuất" },
-    { id: "PBH002", series: "SER-654321", reason: "Hỏng vách" },
-];
+type DashboardData = {
+    imports: RecordItem[];
+    exports: RecordItem[];
+    warranties: RecordItem[];
+};
 
 
 const TireIconSVG = (props: React.SVGProps<SVGSVGElement>) => (
@@ -35,6 +34,27 @@ const TireIconSVG = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 export default function DashboardPage() {
+    const [data, setData] = useState<DashboardData | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function fetchData() {
+            setLoading(true);
+            try {
+                const response = await fetch('/api/dashboard');
+                if (response.ok) {
+                    const jsonData = await response.json();
+                    setData(jsonData);
+                }
+            } catch (error) {
+                console.error("Failed to fetch dashboard data:", error);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchData();
+    }, []);
+
   return (
     <div className="flex flex-col gap-8 animate-in fade-in-0 duration-500 p-4">
         <div className="grid grid-cols-1 gap-4">
@@ -73,6 +93,13 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent className="p-0">
             <div className="overflow-hidden">
+                 {loading ? (
+                    <div className="space-y-2">
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                    </div>
+                ) : (
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-gray-200 hover:bg-gray-200/60 border-b-2 border-gray-300">
@@ -82,15 +109,16 @@ export default function DashboardPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody className="bg-white/50">
-                        {importItems.map((item, index) => (
+                        {data?.imports?.slice(0, 3).map((item, index) => (
                             <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.id}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields['Name']}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields['Total Quantity']}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
+                )}
             </div>
         </CardContent>
         <CardFooter className="pt-4 p-0">
@@ -112,6 +140,12 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent className="p-0">
             <div className="overflow-hidden">
+                {loading ? (
+                    <div className="space-y-2">
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                    </div>
+                ) : (
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-gray-200 hover:bg-gray-200/60 border-b-2 border-gray-300">
@@ -121,15 +155,16 @@ export default function DashboardPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody className="bg-white/50">
-                        {exportItems.map((item, index) => (
+                        {data?.exports?.slice(0, 3).map((item, index) => (
                              <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.id}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields['Name']}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields['Total Quantity']}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
+                )}
             </div>
         </CardContent>
         <CardFooter className="pt-4 p-0">
@@ -151,6 +186,12 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent className="p-0">
             <div className="overflow-hidden">
+                {loading ? (
+                    <div className="space-y-2">
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                    </div>
+                ) : (
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-gray-200 hover:bg-gray-200/60 border-b-2 border-gray-300">
@@ -161,16 +202,17 @@ export default function DashboardPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody className="bg-white/50">
-                        {warrantyItems.map((item, index) => (
+                        {data?.warranties?.slice(0, 3).map((item, index) => (
                              <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.id}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.series}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.reason}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields['Name']}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields['Series']}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields['Reason']}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
+                )}
             </div>
         </CardContent>
         <CardFooter className="pt-4 p-0">
