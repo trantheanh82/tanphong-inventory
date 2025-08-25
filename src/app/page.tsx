@@ -102,8 +102,8 @@ export default function DashboardPage() {
                         {data?.imports?.slice(0, 3).map((item, index) => (
                             <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.name}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields['Số lượng Tổng hợp (từ Phiếu nhập chi tiết)']}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.total_quantity}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -148,8 +148,8 @@ export default function DashboardPage() {
                         {data?.exports?.slice(0, 3).map((item, index) => (
                              <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.name}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields['Số lượng Tổng hợp (từ Phiếu xuất chi tiết)']}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.total_quantity}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -187,17 +187,15 @@ export default function DashboardPage() {
                         <TableRow className="bg-gray-200 hover:bg-gray-200/60 border-b-2 border-gray-300">
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">#</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Series</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Lý do</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody className="bg-white/50">
                         {data?.warranties?.slice(0, 3).map((item, index) => (
                              <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.name}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields['Series Number']}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields['Lý do']}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.total_quarantine_note}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -216,4 +214,5 @@ export default function DashboardPage() {
       </Card>
     </div>
   );
-}
+
+    
