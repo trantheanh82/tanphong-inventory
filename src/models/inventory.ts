@@ -64,3 +64,42 @@ export type ImportNoteDetail = {
   createdBy: string;
   lastModifiedBy: string;
 };
+
+export type ExportNote = {
+  fields: {
+    name: string;
+    export_note_detail: {
+      id: string;
+      title: string;
+    }[];
+    createdAt: string;
+    total_exporte_note: number;
+    total_quantity: number;
+  };
+  name: string;
+  id: string;
+  autoNumber: number;
+  createdTime: string;
+  createdBy: string;
+  lastModifiedTime?: string;
+  lastModifiedBy?: string;
+};
+
+export type ExportNoteDetail = {
+  fields: {
+    quantity: number;
+    DOT: number;
+    name: string;
+    phieu_xuat: {
+      id: string;
+      title: string;
+    };
+  };
+  name: string;
+  id: string;
+  autoNumber: number;
+  createdTime: string;
+  lastModifiedTime: string;
+  createdBy: string;
+  lastModifiedBy: string;
+};
