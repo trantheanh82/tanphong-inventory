@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Mail, Lock } from 'lucide-react';
-import { login } from '@/ai/flows/auth-flow';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
@@ -15,28 +15,45 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [apiResponse, setApiResponse] = useState<any>(null);
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setApiResponse(null);
 
-    const result = await login({ email, password });
+    try {
+        const response = await fetch('/api/auth/signin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        });
 
-    if (result.success) {
-      toast({
-        title: 'Login Successful',
-        description: result.message,
-      });
-      setApiResponse({ success: true, data: result.data });
-       // Instead of redirecting, we show the data.
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'Login Failed',
-        description: result.message,
-      });
-      setApiResponse({ success: false, data: result });
+        const result = await response.json();
+
+        if (response.ok) {
+            toast({
+                title: 'Login Successful',
+                description: result.message,
+            });
+            sessionStorage.setItem('isLoggedIn', 'true');
+            router.push('/');
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Login Failed',
+                description: result.message,
+            });
+            setApiResponse({ success: false, data: result });
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Login Error',
+            description: 'An unexpected error occurred.',
+        });
+        setApiResponse({ success: false, data: { message: 'An unexpected error occurred.'} });
     }
     
     setIsLoading(false);

@@ -14,11 +14,9 @@ const useAuth = () => {
 
     useEffect(() => {
         // In a real app, you'd check a token, session, etc.
-        // We'll simulate this with a timeout.
         const timer = setTimeout(() => {
-            // To test the logged-in state, you can change this to `true`
-            // const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
-            setIsAuthenticated(true); // Always authenticated
+            const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
+            setIsAuthenticated(loggedIn);
             setLoading(false);
         }, 0); // No delay
 
