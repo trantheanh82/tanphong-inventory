@@ -17,7 +17,7 @@ export async function PATCH(request: NextRequest) {
                 'Content-Type': 'application/json',
                 'Cookie': cookieHeader
             },
-            body: JSON.stringify({ oldPassword: currentPassword, newPassword: newPassword }),
+            body: JSON.stringify({ password: currentPassword, newPassword: newPassword }),
         });
 
         const responseData = await apiResponse.json();
