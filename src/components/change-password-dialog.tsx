@@ -50,16 +50,43 @@ export function ChangePasswordDialog({ isOpen, onOpenChange }: ChangePasswordDia
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
-    console.log(values);
-    // TODO: Implement actual password change logic
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    toast({
-        title: "Thành công",
-        description: "Mật khẩu của bạn đã được thay đổi.",
-    });
+    
+    try {
+        const response = await fetch('/api/auth/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                currentPassword: values.currentPassword,
+                newPassword: values.newPassword,
+            }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            toast({
+                title: "Thành công",
+                description: "Mật khẩu của bạn đã được thay đổi.",
+            });
+            handleClose();
+        } else {
+             toast({
+                variant: 'destructive',
+                title: "Lỗi",
+                description: result.message || "Không thể thay đổi mật khẩu.",
+            });
+        }
+
+    } catch (error) {
+        console.error('Failed to change password:', error);
+        toast({
+            variant: 'destructive',
+            title: "Lỗi",
+            description: "Đã xảy ra lỗi không mong muốn.",
+        });
+    }
+
     setIsSubmitting(false);
-    onOpenChange(false);
-    form.reset();
   };
 
   const handleClose = () => {
