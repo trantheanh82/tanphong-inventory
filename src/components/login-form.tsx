@@ -1,21 +1,45 @@
+
 "use client";
 
-import Link from 'next/link';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Mail, Lock } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { login } from '@/ai/flows/auth-flow';
+import { useToast } from '@/hooks/use-toast';
 
 export function LoginForm() {
-  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiResponse, setApiResponse] = useState<any>(null);
+  const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, you would validate credentials here.
-    // For now, we'll just simulate a successful login.
-    sessionStorage.setItem('isLoggedIn', 'true');
-    router.push('/');
+    setIsLoading(true);
+    setApiResponse(null);
+
+    const result = await login({ email, password });
+
+    if (result.success) {
+      toast({
+        title: 'Login Successful',
+        description: result.message,
+      });
+      setApiResponse({ success: true, data: result.data });
+       // Instead of redirecting, we show the data.
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: result.message,
+      });
+      setApiResponse({ success: false, data: result });
+    }
+    
+    setIsLoading(false);
   };
 
   return (
@@ -33,6 +57,8 @@ export function LoginForm() {
                         type="email" 
                         placeholder="Email" 
                         required 
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                         className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl text-black focus:outline-none focus:ring-2 focus:ring-gray-800 bg-white/80" 
                     />
                 </div>
@@ -43,18 +69,24 @@ export function LoginForm() {
                         type="password" 
                         placeholder="Mật khẩu" 
                         required 
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                         className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl text-black focus:outline-none focus:ring-2 focus:ring-gray-800 bg-white/80" 
                     />
                 </div>
-                <Button type="submit" className="w-full bg-gray-800 text-white font-bold py-3 rounded-xl hover:bg-gray-900 transition-transform transform hover:scale-105 duration-200 ease-in-out shadow-lg">
-                    Đăng nhập
+                <Button type="submit" disabled={isLoading} className="w-full bg-gray-800 text-white font-bold py-3 rounded-xl hover:bg-gray-900 transition-transform transform hover:scale-105 duration-200 ease-in-out shadow-lg disabled:bg-gray-600">
+                    {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
                 </Button>
             </form>
-            <div className="text-center mt-6">
-                <Link href="#" className="text-sm font-semibold text-gray-700 hover:underline">
-                    Quên mật khẩu?
-                </Link>
-            </div>
+            
+            {apiResponse && (
+                <div className="mt-6 p-4 bg-gray-100 rounded-xl border border-gray-200">
+                    <h3 className="font-bold text-lg mb-2">{apiResponse.success ? 'Login Success' : 'Login Error'}</h3>
+                    <pre className="text-sm text-left bg-gray-800 text-white p-3 rounded-lg overflow-x-auto">
+                        <code>{JSON.stringify(apiResponse.data, null, 2)}</code>
+                    </pre>
+                </div>
+            )}
         </CardContent>
     </Card>
   );
