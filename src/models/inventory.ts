@@ -26,3 +26,41 @@ export type InventoryItem = {
     date: string;
     details: InventoryItemDetail[];
 };
+
+export type ImportNote = {
+  fields: {
+    name: string;
+    status: string;
+    total_quantity: number;
+    import_detail: {
+      id: string;
+      title: string;
+    }[];
+    createdAt: string;
+    total_import_note: string;
+  };
+  name: string;
+  id: string;
+  autoNumber: number;
+  createdTime: string;
+  lastModifiedTime: string;
+  createdBy: string;
+  lastModifiedBy: string;
+};
+
+export type ImportNoteDetail = {
+  fields: {
+    name: string;
+    Phieu_nhap: {
+      id: string;
+      title: string;
+    };
+  };
+  name: string;
+  id: string;
+  autoNumber: number;
+  createdTime: string;
+  lastModifiedTime: string;
+  createdBy: string;
+  lastModifiedBy: string;
+};

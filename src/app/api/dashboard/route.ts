@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
 async function fetchTableData(tableId: string, cookieHeader: string | null, take: number = 5) {
-    const url = `${process.env.API_ENDPOINT}/table/${tableId}/record?take=${take}`;
+    const url = `${process.env.API_ENDPOINT}/table/${tableId}/record?take=${take}&
+fieldKeyType=dbFieldName`;
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
     };
