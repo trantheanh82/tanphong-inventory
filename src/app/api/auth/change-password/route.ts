@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-export async function POST(request: NextRequest) {
+export async function PATCH(request: NextRequest) {
     try {
         const { currentPassword, newPassword } = await request.json();
         const cookieHeader = cookies().toString();
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
         }
 
         const apiResponse = await fetch(`${process.env.API_ENDPOINT}/auth/change-password`, {
-            method: 'POST',
+            method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
                 'Cookie': cookieHeader
