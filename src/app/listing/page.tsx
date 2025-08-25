@@ -11,75 +11,79 @@ import { ScanLine, ShieldCheck, Search } from "lucide-react";
 import Link from "next/link";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { InventoryItem, InventoryItemDetail } from "@/models/inventory";
+import { InventoryItem, RecordItem, InventoryItemDetail } from "@/models/inventory";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const inventoryItems: InventoryItem[] = Array.from({ length: 40 }, (_, i) => {
-    const rand = Math.random();
-    const type = rand < 0.45 ? "Import" : rand < 0.9 ? "Export" : "Warranty";
-    const date = new Date(2023, 9, 26 - i).toISOString().split('T')[0];
-    
-    let id, name, details: InventoryItemDetail[], quantity = 0;
+
+const mapRecordToInventoryItem = (record: RecordItem, type: "Import" | "Export" | "Warranty"): InventoryItem => {
+    let details: InventoryItemDetail[] = [];
+    let quantity = 0;
 
     switch(type) {
         case "Import":
-            id = `PNK-${String(i + 1).padStart(4, '0')}`;
-            name = `Phiếu Nhập ${id}`;
-            const importDetailsCount = Math.floor(Math.random() * 3) + 1;
-            details = Array.from({ length: importDetailsCount }, (__, j) => {
-                const q = Math.floor(Math.random() * 20) + 1;
-                quantity += q;
-                return {
-                    dot: String(Math.floor(Math.random() * 9000) + 1000),
-                    quantity: q,
-                }
-            });
+            quantity = record.fields.total_quantity || 0;
+            // Assuming import_detail might contain more info if needed later
             break;
         case "Export":
-            id = `PXK-${String(i + 1).padStart(4, '0')}`;
-            name = `Phiếu Xuất ${id}`;
-            const exportDetailsCount = Math.floor(Math.random() * 3) + 1;
-            details = Array.from({ length: exportDetailsCount }, (__, j) => {
-                const q = Math.floor(Math.random() * 20) + 1;
-                return {
-                    dot: String(Math.floor(Math.random() * 9000) + 1000),
-                    quantity: q,
-                    series: `SER-${String(Math.floor(Math.random() * 900000) + 100000)}`
-                }
-            });
-            quantity = details.reduce((acc, item) => acc + item.quantity, 0);
+            quantity = record.fields.total_quantity || 0;
+            // Assuming export_note_detail might contain more info if needed later
             break;
         case "Warranty":
-            id = `PBH-${String(i + 1).padStart(4, '0')}`;
-            name = `Phiếu Bảo Hành ${id}`;
-            quantity = 1;
-            details = [{
-                dot: String(Math.floor(Math.random() * 9000) + 1000),
-                quantity: 1,
-                series: `SER-${String(Math.floor(Math.random() * 900000) + 100000)}`,
-                reason: Math.random() > 0.5 ? "Lỗi sản xuất" : "Hỏng vách"
-            }];
+            quantity = record.fields.total_quarantine_note || 0;
+            // Assuming quarantine_note_detail might contain more info if needed later
             break;
     }
 
-    return { id, type, name, quantity, date, details };
-});
+    return {
+        id: record.id,
+        type: type,
+        name: record.fields.name,
+        quantity: quantity,
+        date: record.createdTime,
+        details: details, // Details are not fully mapped here as the dialog needs a separate fetch
+    };
+};
 
 
 export default function ListingPage() {
     const searchParams = useSearchParams();
     const router = useRouter();
-    const filterType = searchParams.get('type');
+    const filterType = searchParams.get('type') as "import" | "export" | "warranty" | null;
     
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const itemsPerPage = 10;
+    const [loading, setLoading] = useState(true);
+    const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
     
+    useEffect(() => {
+        async function fetchData() {
+            if (!filterType) return;
+            setLoading(true);
+            try {
+                const response = await fetch(`/api/listing?type=${filterType}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const mappedData = data.map((record: RecordItem) => 
+                        mapRecordToInventoryItem(
+                            record, 
+                            filterType.charAt(0).toUpperCase() + filterType.slice(1) as "Import" | "Export" | "Warranty"
+                        )
+                    );
+                    setInventoryItems(mappedData);
+                }
+            } catch (error) {
+                console.error("Failed to fetch listing data:", error);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchData();
+    }, [filterType]);
+
     const filteredData = useMemo(() => {
         let items = inventoryItems;
-        if (filterType) {
-            items = items.filter(item => item.type.toLowerCase() === filterType.toLowerCase());
-        }
         if (searchQuery) {
             items = items.filter(item => 
                 item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -87,7 +91,7 @@ export default function ListingPage() {
             );
         }
         return items;
-    }, [filterType, searchQuery]);
+    }, [inventoryItems, searchQuery]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -165,6 +169,15 @@ export default function ListingPage() {
             </div>
         </div>
         <div>
+            {loading ? (
+                 <div className="p-6 space-y-2">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                </div>
+            ) : (
             <Table>
                 <TableHeader>
                     <TableRow className="bg-gray-800 hover:bg-gray-800/90 border-b-2 border-gray-700">
@@ -189,6 +202,7 @@ export default function ListingPage() {
                 ))}
                 </TableBody>
             </Table>
+            )}
         </div>
       </Card>
       
@@ -218,9 +232,11 @@ export default function ListingPage() {
         ) : (
             <div />
         )}
+        {!loading && (
         <span className="text-sm font-medium text-white">
             Tổng cộng: {filteredData.length}
         </span>
+        )}
       </div>
 
       {filterType && (
@@ -261,7 +277,7 @@ export default function ListingPage() {
                     </div>
                     <div className="space-y-2 pt-2">
                         <h4 className="font-semibold text-gray-800">Chi tiết lốp:</h4>
-                        <div className="overflow-y-auto rounded-lg border p-2 bg-gray-50/50">
+                        <div className="overflow-y-auto rounded-lg border p-2 bg-gray-50/50 max-h-48">
                            <Table>
                                 <TableHeader>
                                     <TableRow className="border-b-gray-300">
@@ -273,14 +289,20 @@ export default function ListingPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {selectedItem.details.map((detail, index) => (
+                                    {selectedItem.details.length > 0 ? selectedItem.details.map((detail, index) => (
                                         <TableRow key={index} className="border-none">
                                             {(selectedItem.type === 'Export' || selectedItem.type === 'Warranty') && <TableCell>{detail.series}</TableCell>}
                                             <TableCell>{detail.dot}</TableCell>
                                             <TableCell>{detail.quantity}</TableCell>
                                             {selectedItem.type === 'Warranty' && <TableCell>{detail.reason}</TableCell>}
                                         </TableRow>
-                                    ))}
+                                    )) : (
+                                        <TableRow>
+                                            <TableCell colSpan={selectedItem.type === 'Import' ? 2 : 3} className="text-center text-gray-500">
+                                                Chưa có chi tiết.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                            </Table>
                         </div>
