@@ -1,9 +1,16 @@
+
+"use client";
+
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { ChangePasswordDialog } from "@/components/change-password-dialog";
 
 export default function ProfilePage() {
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+
   return (
     <div className="p-4 animate-in fade-in-0 duration-500">
       <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50 p-4">
@@ -36,10 +43,11 @@ export default function ProfilePage() {
           <Separator className="bg-gray-300" />
           <div className="mt-6 flex flex-col gap-4">
             <Button className="w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl transition-transform transform hover:scale-105 duration-200 shadow-md">Edit Profile</Button>
-            <Button variant="outline" className="w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl transition-transform transform hover:scale-105 duration-200 shadow-md">Change Password</Button>
+            <Button onClick={() => setIsChangePasswordOpen(true)} variant="outline" className="w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl transition-transform transform hover:scale-105 duration-200 shadow-md">Change Password</Button>
           </div>
         </CardContent>
       </Card>
+      <ChangePasswordDialog isOpen={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen} />
     </div>
   );
 }
