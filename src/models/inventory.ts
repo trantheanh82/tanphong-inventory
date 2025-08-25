@@ -103,3 +103,41 @@ export type ExportNoteDetail = {
   createdBy: string;
   lastModifiedBy: string;
 };
+
+export type QuarantineNote = {
+  fields: {
+    name: string;
+    status: string;
+    total_quarantine_note: number;
+    quarantine_note_detail: {
+      id: string;
+      title: string;
+    }[];
+  };
+  name: string;
+  id: string;
+  autoNumber: number;
+  createdTime: string;
+  lastModifiedTime: string;
+  createdBy: string;
+  lastModifiedBy: string;
+};
+
+export type QuarantineNoteDetail = {
+  fields: {
+    name: string;
+    series: string;
+    quantity: number;
+    quantity_note: {
+      id: string;
+      title: string;
+    }[];
+  };
+  name: string;
+  id: string;
+  autoNumber: number;
+  createdTime: string;
+  lastModifiedTime: string;
+  createdBy: string;
+  lastModifiedBy: string;
+};
