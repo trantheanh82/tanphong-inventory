@@ -63,6 +63,13 @@ export default function ListingPage() {
     
     const fetchData = useCallback(async (type: string | null, search: string) => {
         if (!type) return;
+
+        if (search && search.length > 0 && search.length < 3) {
+            setInventoryItems([]);
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
         try {
             const url = search ? `/api/listing?type=${type}&search=${search}` : `/api/listing?type=${type}`;
@@ -170,7 +177,7 @@ export default function ListingPage() {
             <SearchInput 
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
-                placeholder="Tìm kiếm phiếu..."
+                placeholder="Tìm kiếm phiếu (tối thiểu 3 ký tự)..."
                 model={getSearchModel()}
             />
         </div>
@@ -320,3 +327,4 @@ export default function ListingPage() {
     </div>
   );
 }
+
