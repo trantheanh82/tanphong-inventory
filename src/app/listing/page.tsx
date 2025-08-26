@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input";
 import { InventoryItem, RecordItem, InventoryItemDetail } from "@/models/inventory";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SearchInput } from "@/components/search-input";
 
 
 const mapRecordToInventoryItem = (record: RecordItem, type: "Import" | "Export" | "Warranty"): InventoryItem => {
@@ -154,19 +155,25 @@ export default function ListingPage() {
         }
     }
 
+    const getSearchModel = (): 'import_model' | 'export_model' | 'quarantine_model' => {
+      switch(filterType) {
+          case 'import': return 'import_model';
+          case 'export': return 'export_model';
+          case 'warranty': return 'quarantine_model';
+          default: return 'import_model'; // Default case
+      }
+    }
+
   return (
     <div className="p-4 pb-20 animate-in fade-in-0 duration-500 flex flex-col">
       <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/50 flex-grow flex flex-col">
         <div className="p-4 border-b border-white/50">
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
-                <Input
-                    placeholder="Tìm kiếm phiếu..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-3 py-3 border-gray-300 rounded-xl text-black focus:outline-none focus:ring-2 focus:ring-gray-800 bg-white/80"
-                />
-            </div>
+            <SearchInput 
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                placeholder="Tìm kiếm phiếu..."
+                model={getSearchModel()}
+            />
         </div>
         <div>
             {loading ? (
