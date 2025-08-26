@@ -20,10 +20,16 @@ export async function PATCH(request: NextRequest) {
             body: JSON.stringify({ password: currentPassword, newPassword: newPassword }),
         });
 
-        const responseData = await apiResponse.json();
+        let responseData;
+        const responseText = await apiResponse.text();
+        try {
+            responseData = JSON.parse(responseText);
+        } catch (error) {
+            responseData = { message: responseText };
+        }
+
 
         if (!apiResponse.ok) {
-            // Ensure a string message is returned for errors
             const errorMessage = responseData.message || 'Failed to change password from external API.';
             return NextResponse.json(
                 { message: errorMessage },
@@ -38,7 +44,6 @@ export async function PATCH(request: NextRequest) {
 
     } catch (error: any) {
         console.error('Error in change-password route:', error);
-        // Ensure a string message is returned for exceptions
         const message = error.message || 'An internal server error occurred.';
         return NextResponse.json(
             { message },
