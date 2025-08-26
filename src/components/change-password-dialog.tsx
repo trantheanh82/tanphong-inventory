@@ -5,12 +5,12 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { Eye, EyeOff } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,9 @@ interface ChangePasswordDialogProps {
 export function ChangePasswordDialog({ isOpen, onOpenChange }: ChangePasswordDialogProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -113,7 +116,21 @@ export function ChangePasswordDialog({ isOpen, onOpenChange }: ChangePasswordDia
                         <FormItem>
                             <Label htmlFor="currentPassword">Mật khẩu hiện tại</Label>
                             <FormControl>
-                                <Input id="currentPassword" type="password" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800"/>
+                                <div className="relative">
+                                    <Input 
+                                        id="currentPassword" 
+                                        type={showCurrentPassword ? "text" : "password"} 
+                                        {...field} 
+                                        className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800 pr-10"
+                                    />
+                                    <button
+                                        type="button"
+                                        className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-800"
+                                        onClick={() => setShowCurrentPassword((prev) => !prev)}
+                                    >
+                                        {showCurrentPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                    </button>
+                                </div>
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -126,7 +143,21 @@ export function ChangePasswordDialog({ isOpen, onOpenChange }: ChangePasswordDia
                         <FormItem>
                             <Label htmlFor="newPassword">Mật khẩu mới</Label>
                              <FormControl>
-                                <Input id="newPassword" type="password" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800"/>
+                                <div className="relative">
+                                    <Input 
+                                        id="newPassword" 
+                                        type={showNewPassword ? "text" : "password"} 
+                                        {...field} 
+                                        className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800 pr-10"
+                                    />
+                                     <button
+                                        type="button"
+                                        className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-800"
+                                        onClick={() => setShowNewPassword((prev) => !prev)}
+                                    >
+                                        {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                    </button>
+                                </div>
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -139,7 +170,21 @@ export function ChangePasswordDialog({ isOpen, onOpenChange }: ChangePasswordDia
                         <FormItem>
                             <Label htmlFor="confirmPassword">Xác nhận mật khẩu mới</Label>
                              <FormControl>
-                                <Input id="confirmPassword" type="password" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800"/>
+                                <div className="relative">
+                                    <Input 
+                                        id="confirmPassword" 
+                                        type={showConfirmPassword ? "text" : "password"} 
+                                        {...field} 
+                                        className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800 pr-10"
+                                    />
+                                     <button
+                                        type="button"
+                                        className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-800"
+                                        onClick={() => setShowConfirmPassword((prev) => !prev)}
+                                    >
+                                        {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                    </button>
+                                </div>
                             </FormControl>
                             <FormMessage />
                         </FormItem>
