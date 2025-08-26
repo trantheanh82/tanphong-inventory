@@ -2,8 +2,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-async function fetchTableData(tableId: string, cookieHeader: string | null) {
-    const url = `${process.env.API_ENDPOINT}/table/${tableId}/record?fieldKeyType=dbFieldName`;
+async function fetchTableData(tableId: string, cookieHeader: string | null, searchQuery?: string | null) {
+    let url = `${process.env.API_ENDPOINT}/table/${tableId}/record?fieldKeyType=dbFieldName`;
+    if (searchQuery) {
+        // This is a basic search implementation. You may need to adjust the filter logic 
+        // based on your actual API's capabilities.
+        const filter = `AND({name} LIKE "%${searchQuery}%")`;
+        url += `&filter=${encodeURIComponent(filter)}`;
+    }
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
     };
@@ -30,6 +36,7 @@ export async function GET(request: NextRequest) {
     const cookieHeader = cookies().toString();
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get('type');
+    const query = searchParams.get('search');
     
     const { IMPORT_TBL_ID, EXPORT_TBL_ID, QUARANTINE_TBL_ID } = process.env;
 
@@ -54,7 +61,7 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const data = await fetchTableData(tableId, cookieHeader);
+        const data = await fetchTableData(tableId, cookieHeader, query);
         return NextResponse.json(data);
 
     } catch (error) {

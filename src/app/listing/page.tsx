@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ScanLine, ShieldCheck, Search } from "lucide-react";
 import Link from "next/link";
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { InventoryItem, RecordItem, InventoryItemDetail } from "@/models/inventory";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SearchInput } from "@/components/search-input";
+import { useDebounce } from "@/hooks/use-debounce";
 
 
 const mapRecordToInventoryItem = (record: RecordItem, type: "Import" | "Export" | "Warranty"): InventoryItem => {
@@ -54,45 +55,43 @@ export default function ListingPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
+    const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
     const itemsPerPage = 10;
     const [loading, setLoading] = useState(true);
     const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
     
-    useEffect(() => {
-        async function fetchData() {
-            if (!filterType) return;
-            setLoading(true);
-            try {
-                const response = await fetch(`/api/listing?type=${filterType}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    const mappedData = data.map((record: RecordItem) => 
-                        mapRecordToInventoryItem(
-                            record, 
-                            filterType.charAt(0).toUpperCase() + filterType.slice(1) as "Import" | "Export" | "Warranty"
-                        )
-                    );
-                    setInventoryItems(mappedData);
-                }
-            } catch (error) {
-                console.error("Failed to fetch listing data:", error);
-            } finally {
-                setLoading(false);
+    const fetchData = useCallback(async (type: string | null, search: string) => {
+        if (!type) return;
+        setLoading(true);
+        try {
+            const url = search ? `/api/listing?type=${type}&search=${search}` : `/api/listing?type=${type}`;
+            const response = await fetch(url);
+            if (response.ok) {
+                const data = await response.json();
+                const mappedData = data.map((record: RecordItem) => 
+                    mapRecordToInventoryItem(
+                        record, 
+                        type.charAt(0).toUpperCase() + type.slice(1) as "Import" | "Export" | "Warranty"
+                    )
+                );
+                setInventoryItems(mappedData);
             }
+        } catch (error) {
+            console.error("Failed to fetch listing data:", error);
+        } finally {
+            setLoading(false);
         }
-        fetchData();
-    }, [filterType]);
+    }, []);
+
+    useEffect(() => {
+        fetchData(filterType, debouncedSearchQuery);
+    }, [filterType, debouncedSearchQuery, fetchData]);
+
 
     const filteredData = useMemo(() => {
-        let items = inventoryItems;
-        if (searchQuery) {
-            items = items.filter(item => 
-                item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                item.id.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-        }
-        return items;
-    }, [inventoryItems, searchQuery]);
+        return inventoryItems;
+    }, [inventoryItems]);
 
     useEffect(() => {
         setCurrentPage(1);
