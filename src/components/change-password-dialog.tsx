@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "./ui/form";
+import { useRouter } from "next/navigation";
 
 
 const formSchema = z.object({
@@ -38,6 +39,7 @@ interface ChangePasswordDialogProps {
 export function ChangePasswordDialog({ isOpen, onOpenChange }: ChangePasswordDialogProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -56,7 +58,7 @@ export function ChangePasswordDialog({ isOpen, onOpenChange }: ChangePasswordDia
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                currentPassword: values.currentPassword,
+                password: values.currentPassword,
                 newPassword: values.newPassword,
             }),
         });
@@ -66,9 +68,11 @@ export function ChangePasswordDialog({ isOpen, onOpenChange }: ChangePasswordDia
         if (response.ok) {
             toast({
                 title: "Thành công",
-                description: "Mật khẩu của bạn đã được thay đổi.",
+                description: "Mật khẩu của bạn đã được thay đổi. Vui lòng đăng nhập lại.",
             });
+            sessionStorage.removeItem('isLoggedIn');
             handleClose();
+            router.push('/login');
         } else {
              toast({
                 variant: 'destructive',
