@@ -3,13 +3,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
 async function fetchTableData(tableId: string, cookieHeader: string | null, searchQuery?: string | null) {
-    let url = `${process.env.API_ENDPOINT}/table/${tableId}/record?fieldKeyType=dbFieldName`;
+    const url = new URL(`${process.env.API_ENDPOINT}/table/${tableId}/record`);
+    url.searchParams.append('fieldKeyType', 'dbFieldName');
+
     if (searchQuery) {
-        // This is a basic search implementation. You may need to adjust the filter logic 
-        // based on your actual API's capabilities.
-        const filter = `AND({name} LIKE "%${searchQuery}%")`;
-        url += `&filter=${encodeURIComponent(filter)}`;
+        url.searchParams.append('search', `name=${searchQuery}`);
+        // The backend expects projection as a JSON string array
+        url.searchParams.append('projection', '["name","total_quantity"]');
     }
+
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
     };
@@ -18,7 +20,7 @@ async function fetchTableData(tableId: string, cookieHeader: string | null, sear
     }
 
     try {
-        const response = await fetch(url, { method: 'GET', headers });
+        const response = await fetch(url.toString(), { method: 'GET', headers });
         if (!response.ok) {
             const errorText = await response.text();
             console.error(`Error fetching data for table ${tableId}:`, errorText);
