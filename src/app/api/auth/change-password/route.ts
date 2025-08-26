@@ -23,8 +23,10 @@ export async function PATCH(request: NextRequest) {
         const responseData = await apiResponse.json();
 
         if (!apiResponse.ok) {
+            // Ensure a string message is returned for errors
+            const errorMessage = responseData.message || 'Failed to change password from external API.';
             return NextResponse.json(
-                { message: responseData.message || 'Failed to change password.' },
+                { message: errorMessage },
                 { status: apiResponse.status }
             );
         }
@@ -34,10 +36,12 @@ export async function PATCH(request: NextRequest) {
             message: 'Password changed successfully.',
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error in change-password route:', error);
+        // Ensure a string message is returned for exceptions
+        const message = error.message || 'An internal server error occurred.';
         return NextResponse.json(
-            { message: 'An internal server error occurred.' },
+            { message },
             { status: 500 }
         );
     }
