@@ -7,9 +7,13 @@ async function fetchTableData(tableId: string, cookieHeader: string | null, sear
     url.searchParams.append('fieldKeyType', 'dbFieldName');
 
     if (searchQuery) {
-        url.searchParams.append('search', `name=${searchQuery}`);
+        url.searchParams.append('search[]', `${searchQuery}`);
+        url.searchParams.append('search[]', `name`);
+        url.searchParams.append('search[]', `true`);
         // The backend expects projection as a JSON string array
-        url.searchParams.append('projection', '["name","total_quantity"]');
+        url.searchParams.append('projection[]', 'name');
+        url.searchParams.append('projection[]', 'total_quantity');
+        url.searchParams.append('projection[]', 'id');
     }
 
     const headers: HeadersInit = {

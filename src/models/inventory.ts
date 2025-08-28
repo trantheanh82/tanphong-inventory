@@ -32,7 +32,7 @@ export type ImportNote = {
     name: string;
     status: string;
     total_quantity: number;
-    import_detail: {
+    import_note_detail: {
       id: string;
       title: string;
     }[];
@@ -50,11 +50,16 @@ export type ImportNote = {
 
 export type ImportNoteDetail = {
   fields: {
+    DOT: number;
     name: string;
-    Phieu_nhap: {
+    quantity: number;
+    import_note: {
       id: string;
       title: string;
     };
+    tire_type: string;
+    scanned: number;
+    status: string;
   };
   name: string;
   id: string;
@@ -68,6 +73,7 @@ export type ImportNoteDetail = {
 export type ExportNote = {
   fields: {
     name: string;
+    status: string;
     export_note_detail: {
       id: string;
       title: string;
@@ -90,10 +96,13 @@ export type ExportNoteDetail = {
     quantity: number;
     DOT: number;
     name: string;
-    phieu_xuat: {
+    export_note: {
       id: string;
       title: string;
     };
+    tire_type: string;
+    series: string;
+    status: string;
   };
   name: string;
   id: string;
@@ -108,7 +117,7 @@ export type QuarantineNote = {
   fields: {
     name: string;
     status: string;
-    total_quarantine_note: number;
+    total_warrantine_note: number;
     quarantine_note_detail: {
       id: string;
       title: string;
