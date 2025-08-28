@@ -8,7 +8,7 @@ interface SearchInputProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   placeholder: string;
-  model: 'import_model' | 'export_model' | 'quarantine_model';
+  model: 'import_model' | 'export_model' | 'warranty_model';
 }
 
 export function SearchInput({ searchQuery, setSearchQuery, placeholder, model }: SearchInputProps) {

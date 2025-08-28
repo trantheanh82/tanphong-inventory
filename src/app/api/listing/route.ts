@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type');
     const query = searchParams.get('search');
     
-    const { IMPORT_TBL_ID, EXPORT_TBL_ID, QUARANTINE_TBL_ID } = process.env;
+    const { IMPORT_TBL_ID, EXPORT_TBL_ID, QUARANTINE_TBL_ID: WARRANTY_TBL_ID } = process.env;
 
     let tableId: string | undefined;
 
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
             tableId = EXPORT_TBL_ID;
             break;
         case 'warranty':
-            tableId = QUARANTINE_TBL_ID;
+            tableId = WARRANTY_TBL_ID;
             break;
         default:
             return NextResponse.json({ message: 'Invalid type specified.' }, { status: 400 });

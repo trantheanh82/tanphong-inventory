@@ -113,12 +113,12 @@ export type ExportNoteDetail = {
   lastModifiedBy: string;
 };
 
-export type QuarantineNote = {
+export type WarrantyNote = {
   fields: {
     name: string;
     status: string;
     total_warrantine_note: number;
-    quarantine_note_detail: {
+    warranty_note_detail: {
       id: string;
       title: string;
     }[];
@@ -132,7 +132,7 @@ export type QuarantineNote = {
   lastModifiedBy: string;
 };
 
-export type QuarantineNoteDetail = {
+export type WarrantyNoteDetail = {
   fields: {
     name: string;
     series: string;

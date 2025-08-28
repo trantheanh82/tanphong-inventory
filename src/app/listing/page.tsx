@@ -31,8 +31,8 @@ const mapRecordToInventoryItem = (record: RecordItem, type: "Import" | "Export" 
             // Assuming export_note_detail might contain more info if needed later
             break;
         case "Warranty":
-            quantity = record.fields.total_quarantine_note || 0;
-            // Assuming quarantine_note_detail might contain more info if needed later
+            quantity = record.fields.total_warranty_note || 0;
+            // Assuming warranty_note_detail might contain more info if needed later
             break;
     }
 
@@ -161,11 +161,11 @@ export default function ListingPage() {
         }
     }
 
-    const getSearchModel = (): 'import_model' | 'export_model' | 'quarantine_model' => {
+    const getSearchModel = (): 'import_model' | 'export_model' | 'warranty_model' => {
       switch(filterType) {
           case 'import': return 'import_model';
           case 'export': return 'export_model';
-          case 'warranty': return 'quarantine_model';
+          case 'warranty': return 'warranty_model';
           default: return 'import_model'; // Default case
       }
     }

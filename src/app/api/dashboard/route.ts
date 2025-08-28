@@ -30,9 +30,9 @@ fieldKeyType=dbFieldName`;
 export async function GET(request: NextRequest) {
     const cookieHeader = cookies().toString();
     
-    const { IMPORT_TBL_ID, EXPORT_TBL_ID, QUARANTINE_TBL_ID } = process.env;
+    const { IMPORT_TBL_ID, EXPORT_TBL_ID, QUARANTINE_TBL_ID: WARRANTY_TBL_ID } = process.env;
 
-    if (!IMPORT_TBL_ID || !EXPORT_TBL_ID || !QUARANTINE_TBL_ID) {
+    if (!IMPORT_TBL_ID || !EXPORT_TBL_ID || !WARRANTY_TBL_ID) {
         return NextResponse.json({ message: 'Table IDs are not configured in the environment.' }, { status: 500 });
     }
 
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
         const [imports, exports, warranties] = await Promise.all([
             fetchTableData(IMPORT_TBL_ID, cookieHeader, 5),
             fetchTableData(EXPORT_TBL_ID, cookieHeader, 5),
-            fetchTableData(QUARANTINE_TBL_ID, cookieHeader, 5)
+            fetchTableData(WARRANTY_TBL_ID, cookieHeader, 5)
         ]);
         
         return NextResponse.json({ imports, exports, warranties });
