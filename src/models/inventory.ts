@@ -3,6 +3,7 @@ export type RecordItem = {
   id: string;
   name: string;
   fields: { [key: string]: any };
+  createdTime: string;
 };
 
 export type DashboardData = {
@@ -69,6 +70,7 @@ export type ImportNoteDetail = {
   createdBy: string;
   lastModifiedBy: string;
 };
+
 
 export type ExportNote = {
   fields: {
