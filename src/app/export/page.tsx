@@ -35,7 +35,7 @@ const itemSchema = z.object({
 });
 
 const formSchema = z.object({
-  exportId: z.string().min(1, { message: "Mã phiếu xuất là bắt buộc." }),
+  name: z.string().min(1, { message: "Tên phiếu xuất là bắt buộc." }),
   items: z.array(itemSchema).min(1, { message: "Phải có ít nhất một lốp xe." }),
 });
 
@@ -47,7 +47,7 @@ export default function ExportPage() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            exportId: "",
+            name: "",
             items: [{ type: "domestic", dot: "", quantity: 1, series: "" }],
         },
     });
@@ -82,7 +82,7 @@ export default function ExportPage() {
             if (response.ok) {
                 toast({
                     title: "Thành công",
-                    description: `Phiếu xuất kho "${values.exportId}" đã được tạo.`,
+                    description: `Phiếu xuất kho "${values.name}" đã được tạo.`,
                 });
                 router.push(`/scanning?noteId=${result.exportNoteId}&type=export`);
             } else {
@@ -116,12 +116,12 @@ export default function ExportPage() {
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                             <FormField
                                 control={form.control}
-                                name="exportId"
+                                name="name"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-gray-800 font-semibold">Tên phiếu</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Nhập mã phiếu xuất" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800" />
+                                            <Input placeholder="Nhập tên phiếu xuất" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>

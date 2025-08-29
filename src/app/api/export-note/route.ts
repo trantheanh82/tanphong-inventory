@@ -43,15 +43,15 @@ export async function POST(request: NextRequest) {
     const cookieHeader = cookies().toString();
 
     try {
-        const { exportId, items } = await request.json();
+        const { name, items } = await request.json();
 
-        if (!exportId || !items || !Array.isArray(items) || items.length === 0) {
+        if (!name || !items || !Array.isArray(items) || items.length === 0) {
             return NextResponse.json({ message: 'Invalid request body.' }, { status: 400 });
         }
 
         // 1. Create Export Note
         const createNotePayload = {
-            records: [{ fields: { name: exportId } }]
+            records: [{ fields: { name: name } }]
         };
         const createNoteUrl = `${API_ENDPOINT}/table/${EXPORT_TBL_ID}/record`;
         
