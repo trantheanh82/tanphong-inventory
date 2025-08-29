@@ -96,7 +96,7 @@ export type ExportNote = {
 export type ExportNoteDetail = {
   fields: {
     quantity: number;
-    DOT: number;
+    dot: number;
     name: string;
     export_note: {
       id: string;
