@@ -51,7 +51,8 @@ export async function POST(request: NextRequest) {
 
         // 1. Create Export Note
         const createNotePayload = {
-            records: [{ fields: { name: name } }]
+            records: [{ fields: { name: name } }],
+            fieldKeyType: "dbFieldName"
         };
         const createNoteUrl = `${API_ENDPOINT}/table/${EXPORT_TBL_ID}/record`;
         
@@ -74,7 +75,10 @@ export async function POST(request: NextRequest) {
             }
         }));
 
-        const createDetailsPayload = { records: detailRecords };
+        const createDetailsPayload = { 
+            records: detailRecords,
+            fieldKeyType: "dbFieldName"
+        };
         const createDetailsUrl = `${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`;
 
         await apiRequest(createDetailsUrl, 'POST', createDetailsPayload, cookieHeader);
