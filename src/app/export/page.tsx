@@ -36,7 +36,7 @@ const itemSchema = z.object({
 
 const formSchema = z.object({
   exportId: z.string().min(1, { message: "Mã phiếu xuất là bắt buộc." }),
-  items: z.array(itemSchema).min(1),
+  items: z.array(itemSchema).min(1, { message: "Phải có ít nhất một lốp xe." }),
 });
 
 export default function ExportPage() {
@@ -70,8 +70,34 @@ export default function ExportPage() {
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true);
-        console.log(values);
-        router.push('/scanning');
+        try {
+            const response = await fetch('/api/export-note', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(values),
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                toast({
+                    title: "Thành công",
+                    description: `Phiếu xuất kho "${values.exportId}" đã được tạo.`,
+                });
+                router.push(`/scanning?noteId=${result.exportNoteId}&type=export`);
+            } else {
+                throw new Error(result.message || 'Không thể tạo phiếu xuất kho.');
+            }
+        } catch (error: any) {
+            console.error('Failed to create export note:', error);
+            toast({
+                variant: 'destructive',
+                title: "Lỗi",
+                description: error.message,
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     const handleAddItem = () => {

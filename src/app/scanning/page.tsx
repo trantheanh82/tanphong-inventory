@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Zap, ZapOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -15,7 +15,22 @@ export default function ScanningPage() {
   const [isFlashOn, setIsFlashOn] = useState(true);
   const [isFlashSupported, setIsFlashSupported] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
+
+  const noteId = searchParams.get('noteId');
+  const noteType = searchParams.get('type');
+
+  useEffect(() => {
+    if (!noteId || !noteType) {
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi',
+        description: 'Không tìm thấy thông tin phiếu. Vui lòng thử lại.',
+      });
+      router.back();
+    }
+  }, [noteId, noteType, router, toast]);
 
   const applyFlashConstraint = useCallback(async (track: MediaStreamTrack, enabled: boolean) => {
     try {
