@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 
         // 1. Create Export Note
         const createNotePayload = {
-            records: [{ fields: { name: name } }]
+            records: [{ name: name }]
         };
         const createNoteUrl = `${API_ENDPOINT}/table/${EXPORT_TBL_ID}/record`;
         
