@@ -51,7 +51,8 @@ export async function POST(request: NextRequest) {
 
         // 1. Create Import Note
         const createNotePayload = {
-            records: [{ fields: { name: importId } }]
+            records: [{ fields: { name: importId } }],
+            fieldKeyType: "dbFieldName"
         };
         const createNoteUrl = `${API_ENDPOINT}/table/${IMPORT_TBL_ID}/record`;
         
@@ -69,11 +70,13 @@ export async function POST(request: NextRequest) {
                 import_note: { id: importNoteId },
                 DOT: parseInt(item.dot, 10),
                 quantity: item.quantity,
-                tire_type: "domestic", // Assuming default or needs to be added to form
             }
         }));
 
-        const createDetailsPayload = { records: detailRecords };
+        const createDetailsPayload = { 
+            records: detailRecords,
+            fieldKeyType: "dbFieldName"
+        };
         const createDetailsUrl = `${API_ENDPOINT}/table/${IMPORT_DETAIL_TBL_ID}/record`;
 
         await apiRequest(createDetailsUrl, 'POST', createDetailsPayload, cookieHeader);

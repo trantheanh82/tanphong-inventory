@@ -61,9 +61,9 @@ export default function ImportPage() {
     });
 
     const isScanButtonVisible = useMemo(() => {
-        if (!watchedItems || watchedItems.length === 0) return false;
+        if (!watchedItems || watchedItems.length === 0 || !form.getValues('importId')) return false;
         return watchedItems.every(item => item.dot && /^\d{4}$/.test(item.dot) && item.quantity && item.quantity > 0);
-    }, [watchedItems]);
+    }, [watchedItems, form]);
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true);
