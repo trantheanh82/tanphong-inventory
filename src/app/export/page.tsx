@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const itemSchema = z.object({
-  type: z.enum(['domestic', 'international'], { required_error: "Vui lòng chọn loại."}),
+  tire_type: z.enum(['Nội địa', 'Nước ngoài'], { required_error: "Vui lòng chọn loại."}),
   dot: z.string().length(4, { message: "DOT phải là 4 chữ số." }).regex(/^\d{4}$/, {
     message: "DOT phải là 4 chữ số.",
   }),
@@ -48,7 +48,7 @@ export default function ExportPage() {
         resolver: zodResolver(formSchema),
         defaultValues: {
             name: "",
-            items: [{ type: "domestic", dot: "", quantity: 1, series: "" }],
+            items: [{ tire_type: "Nội địa", dot: "", quantity: 1, series: "" }],
         },
     });
 
@@ -62,7 +62,7 @@ export default function ExportPage() {
     const isScanButtonVisible = useMemo(() => {
         if (!watchedItems || watchedItems.length === 0) return false;
         return watchedItems.every(item => 
-            item.type &&
+            item.tire_type &&
             item.dot && /^\d{4}$/.test(item.dot) && 
             item.quantity && item.quantity > 0
         );
@@ -101,7 +101,7 @@ export default function ExportPage() {
     }
 
     const handleAddItem = () => {
-        append({ type: "domestic", dot: "", quantity: 1, series: "" });
+        append({ tire_type: "Nội địa", dot: "", quantity: 1, series: "" });
     }
 
     return (
@@ -161,13 +161,13 @@ export default function ExportPage() {
                                                     >
                                                         <FormItem className="flex items-center space-x-2 space-y-0">
                                                             <FormControl>
-                                                                <RadioGroupItem value="domestic" />
+                                                                <RadioGroupItem value="Nội địa" />
                                                             </FormControl>
                                                             <FormLabel className="font-normal text-gray-800 text-base">Nội địa</FormLabel>
                                                         </FormItem>
                                                         <FormItem className="flex items-center space-x-2 space-y-0">
                                                             <FormControl>
-                                                                <RadioGroupItem value="international" />
+                                                                <RadioGroupItem value="Nước ngoài" />
                                                             </FormControl>
                                                             <FormLabel className="font-normal text-gray-800 text-base">Nước ngoài</FormLabel>
                                                         </FormItem>
