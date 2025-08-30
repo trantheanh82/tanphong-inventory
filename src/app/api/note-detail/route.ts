@@ -4,12 +4,10 @@ import { cookies } from 'next/headers';
 
 const API_ENDPOINT = process.env.API_ENDPOINT;
 
-async function fetchNoteDetails(tableId: string, noteId: string, cookieHeader: string | null) {
-    // This assumes the backend can filter details by a link to the main note record.
-    // The filter query parameter might look something like: `filter=export_note.id%3D'${noteId}'`
-    // This needs to be adapted to the actual backend API filtering capabilities.
-    // Using a generic search for now.
-    const url = `${API_ENDPOINT}/table/${tableId}/record?filter=import_note.id%3D'${noteId}'&fieldKeyType=dbFieldName`;
+async function fetchNoteDetails(tableId: string, noteId: string, filterField: string, cookieHeader: string | null) {
+    // Construct the filter query parameter, ensuring the noteId is properly quoted for the API.
+    const filterQuery = `${filterField}.id%3D'${noteId}'`;
+    const url = `${API_ENDPOINT}/table/${tableId}/record?filter=${filterQuery}&fieldKeyType=dbFieldName`;
 
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (cookieHeader) {
@@ -44,26 +42,32 @@ export async function GET(request: NextRequest) {
     const { IMPORT_DETAIL_TBL_ID, EXPORT_DETAIL_TBL_ID, WARRANTY_DETAIL_TBL_ID } = process.env;
 
     let tableId: string | undefined;
+    let filterField: string | undefined;
+
     switch (type) {
         case 'import':
             tableId = IMPORT_DETAIL_TBL_ID;
+            filterField = 'import_note';
             break;
         case 'export':
             tableId = EXPORT_DETAIL_TBL_ID;
+            filterField = 'export_note';
             break;
         case 'warranty':
             tableId = WARRANTY_DETAIL_TBL_ID;
+            // Assuming the field linking to the warranty note is named 'warranty_note'
+            filterField = 'warranty_note';
             break;
         default:
             return NextResponse.json({ message: 'Invalid type specified.' }, { status: 400 });
     }
 
-    if (!tableId) {
-        return NextResponse.json({ message: `Table ID for type '${type}' is not configured.` }, { status: 500 });
+    if (!tableId || !filterField) {
+        return NextResponse.json({ message: `Table ID or filter field for type '${type}' is not configured.` }, { status: 500 });
     }
 
     try {
-        const details = await fetchNoteDetails(tableId, noteId, cookieHeader);
+        const details = await fetchNoteDetails(tableId, noteId, filterField, cookieHeader);
         return NextResponse.json(details);
     } catch (error) {
         console.error(`Error fetching details for note ${noteId}:`, error);
