@@ -15,24 +15,21 @@ import { InventoryItem, RecordItem, InventoryItemDetail } from "@/models/invento
 import { Skeleton } from "@/components/ui/skeleton";
 import { SearchInput } from "@/components/search-input";
 import { useDebounce } from "@/hooks/use-debounce";
+import { NoteDetailRecord } from "@/models/note-detail";
 
 
 const mapRecordToInventoryItem = (record: RecordItem, type: "Import" | "Export" | "Warranty"): InventoryItem => {
-    let details: InventoryItemDetail[] = [];
     let quantity = 0;
 
     switch(type) {
         case "Import":
             quantity = record.fields.total_quantity || 0;
-            // Assuming import_detail might contain more info if needed later
             break;
         case "Export":
             quantity = record.fields.total_quantity || 0;
-            // Assuming export_note_detail might contain more info if needed later
             break;
         case "Warranty":
             quantity = record.fields.total_warranty_note || 0;
-            // Assuming warranty_note_detail might contain more info if needed later
             break;
     }
 
@@ -42,7 +39,17 @@ const mapRecordToInventoryItem = (record: RecordItem, type: "Import" | "Export" 
         name: record.fields.name,
         quantity: quantity,
         date: record.createdTime,
-        details: details, // Details are not fully mapped here as the dialog needs a separate fetch
+        details: [],
+    };
+};
+
+const mapApiDetailToInventoryDetail = (apiDetail: NoteDetailRecord, type: "import" | "export" | "warranty"): InventoryItemDetail => {
+    return {
+        dot: apiDetail.fields.DOT || apiDetail.fields.dot,
+        quantity: apiDetail.fields.quantity,
+        scanned: apiDetail.fields.scanned || 0,
+        series: apiDetail.fields.series,
+        reason: apiDetail.fields.reason,
     };
 };
 
@@ -54,6 +61,7 @@ export default function ListingPage() {
     
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+    const [isFetchingDetails, setIsFetchingDetails] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
@@ -119,8 +127,26 @@ export default function ListingPage() {
         setCurrentPage((prev) => Math.min(prev + 1, totalPages));
     };
     
-    const handleRowClick = (item: InventoryItem) => {
+    const handleRowClick = async (item: InventoryItem) => {
         setSelectedItem(item);
+        setIsFetchingDetails(true);
+        try {
+            const type = item.type.toLowerCase();
+            const response = await fetch(`/api/note-detail?type=${type}&noteId=${item.id}`);
+            if(response.ok) {
+                const detailsData: NoteDetailRecord[] = await response.json();
+                const mappedDetails = detailsData.map(d => mapApiDetailToInventoryDetail(d, type as any));
+                setSelectedItem(prev => prev ? { ...prev, details: mappedDetails } : null);
+            } else {
+                console.error("Failed to fetch note details");
+                setSelectedItem(prev => prev ? { ...prev, details: [] } : null);
+            }
+        } catch (error) {
+            console.error("Error fetching note details:", error);
+            setSelectedItem(prev => prev ? { ...prev, details: [] } : null);
+        } finally {
+            setIsFetchingDetails(false);
+        }
     };
 
     const handleCloseDialog = () => {
@@ -266,7 +292,7 @@ export default function ListingPage() {
                 <DialogHeader>
                     <DialogTitle className="text-2xl text-[#333]">Chi Tiết Phiếu</DialogTitle>
                     <DialogDescription className="text-gray-600">
-                        Thông tin chi tiết cho phiếu {selectedItem.id}
+                        Thông tin chi tiết cho phiếu {selectedItem.name}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
@@ -294,24 +320,33 @@ export default function ListingPage() {
                            <Table>
                                 <TableHeader>
                                     <TableRow className="border-b-gray-300">
-                                        {selectedItem.type === 'Export' && <TableHead className="text-gray-800">Series</TableHead>}
-                                        {selectedItem.type === 'Warranty' && <TableHead className="text-gray-800">Series</TableHead>}
+                                        <TableHead className="text-gray-800">#</TableHead>
+                                        {(selectedItem.type === 'Export' || selectedItem.type === 'Warranty') && <TableHead className="text-gray-800">Series</TableHead>}
                                         <TableHead className="text-gray-800">DOT</TableHead>
+                                        <TableHead className="text-gray-800">Đã scan</TableHead>
                                         <TableHead className="text-gray-800">Số lượng</TableHead>
                                         {selectedItem.type === 'Warranty' && <TableHead className="text-gray-800">Lý do</TableHead>}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {selectedItem.details.length > 0 ? selectedItem.details.map((detail, index) => (
+                                    {isFetchingDetails ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center">
+                                                <Skeleton className="h-8 w-full" />
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : selectedItem.details.length > 0 ? selectedItem.details.map((detail, index) => (
                                         <TableRow key={index} className="border-none">
-                                            {(selectedItem.type === 'Export' || selectedItem.type === 'Warranty') && <TableCell>{detail.series}</TableCell>}
+                                            <TableCell>{index + 1}</TableCell>
+                                            {(selectedItem.type === 'Export' || selectedItem.type === 'Warranty') && <TableCell>{detail.series || 'N/A'}</TableCell>}
                                             <TableCell>{detail.dot}</TableCell>
+                                            <TableCell>{detail.scanned}</TableCell>
                                             <TableCell>{detail.quantity}</TableCell>
                                             {selectedItem.type === 'Warranty' && <TableCell>{detail.reason}</TableCell>}
                                         </TableRow>
                                     )) : (
                                         <TableRow>
-                                            <TableCell colSpan={selectedItem.type === 'Import' ? 2 : 3} className="text-center text-gray-500">
+                                            <TableCell colSpan={5} className="text-center text-gray-500">
                                                 Chưa có chi tiết.
                                             </TableCell>
                                         </TableRow>
@@ -327,4 +362,3 @@ export default function ListingPage() {
     </div>
   );
 }
-

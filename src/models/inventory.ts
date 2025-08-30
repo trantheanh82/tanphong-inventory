@@ -15,6 +15,7 @@ export type DashboardData = {
 export type InventoryItemDetail = {
     dot: string;
     quantity: number;
+    scanned: number;
     series?: string;
     reason?: string;
 };
