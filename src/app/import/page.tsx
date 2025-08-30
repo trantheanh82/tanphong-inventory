@@ -34,7 +34,7 @@ const itemSchema = z.object({
 
 const formSchema = z.object({
   items: z.array(itemSchema).min(1, { message: "Phải có ít nhất một lốp xe." }),
-  importId: z.string().min(1, { message: "Mã phiếu nhập là bắt buộc." }),
+  name: z.string().min(1, { message: "Tên phiếu nhập là bắt buộc." }),
 });
 
 export default function ImportPage() {
@@ -45,7 +45,7 @@ export default function ImportPage() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            importId: "",
+            name: "",
             items: [{ dot: "", quantity: 1 }],
         },
     });
@@ -61,7 +61,7 @@ export default function ImportPage() {
     });
 
     const isScanButtonVisible = useMemo(() => {
-        if (!watchedItems || watchedItems.length === 0 || !form.getValues('importId')) return false;
+        if (!watchedItems || watchedItems.length === 0 || !form.getValues('name')) return false;
         return watchedItems.every(item => item.dot && /^\d{4}$/.test(item.dot) && item.quantity && item.quantity > 0);
     }, [watchedItems, form]);
 
@@ -79,7 +79,7 @@ export default function ImportPage() {
             if (response.ok) {
                 toast({
                     title: "Thành công",
-                    description: `Phiếu nhập kho "${values.importId}" đã được tạo.`,
+                    description: `Phiếu nhập kho "${values.name}" đã được tạo.`,
                 });
                 router.push(`/scanning?noteId=${result.importNoteId}&type=import`);
             } else {
@@ -109,12 +109,12 @@ export default function ImportPage() {
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                             <FormField
                                 control={form.control}
-                                name="importId"
+                                name="name"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-gray-800 font-semibold">Tên phiếu</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Nhập mã phiếu nhập" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800" />
+                                            <Input placeholder="Nhập tên phiếu nhập" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>

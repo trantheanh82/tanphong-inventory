@@ -43,15 +43,15 @@ export async function POST(request: NextRequest) {
     const cookieHeader = cookies().toString();
 
     try {
-        const { importId, items } = await request.json();
+        const { name, items } = await request.json();
 
-        if (!importId || !items || !Array.isArray(items) || items.length === 0) {
+        if (!name || !items || !Array.isArray(items) || items.length === 0) {
             return NextResponse.json({ message: 'Invalid request body.' }, { status: 400 });
         }
 
         // 1. Create Import Note
         const createNotePayload = {
-            records: [{ fields: { name: importId } }],
+            records: [{ fields: { name: name } }],
             fieldKeyType: "dbFieldName"
         };
         const createNoteUrl = `${API_ENDPOINT}/table/${IMPORT_TBL_ID}/record`;
