@@ -30,7 +30,7 @@ fieldKeyType=dbFieldName`;
 export async function GET(request: NextRequest) {
     const cookieHeader = cookies().toString();
     
-    const { IMPORT_TBL_ID, EXPORT_TBL_ID, QUARANTINE_TBL_ID: WARRANTY_TBL_ID } = process.env;
+    const { IMPORT_TBL_ID, EXPORT_TBL_ID, WARRANTY_TBL_ID } = process.env;
 
     if (!IMPORT_TBL_ID || !EXPORT_TBL_ID || !WARRANTY_TBL_ID) {
         return NextResponse.json({ message: 'Table IDs are not configured in the environment.' }, { status: 500 });

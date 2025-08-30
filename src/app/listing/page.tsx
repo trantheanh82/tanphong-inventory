@@ -11,37 +11,12 @@ import { ScanLine, ShieldCheck, Search } from "lucide-react";
 import Link from "next/link";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { InventoryItem, RecordItem, InventoryItemDetail } from "@/models/inventory";
+import { RecordItem, InventoryItemDetail } from "@/models/inventory";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SearchInput } from "@/components/search-input";
 import { useDebounce } from "@/hooks/use-debounce";
 import { NoteDetailRecord } from "@/models/note-detail";
 
-
-const mapRecordToInventoryItem = (record: RecordItem, type: "Import" | "Export" | "Warranty"): InventoryItem => {
-    let quantity = 0;
-
-    switch(type) {
-        case "Import":
-            quantity = record.fields.total_quantity || 0;
-            break;
-        case "Export":
-            quantity = record.fields.total_quantity || 0;
-            break;
-        case "Warranty":
-            quantity = record.fields.total_warranty_note || 0;
-            break;
-    }
-
-    return {
-        id: record.id,
-        type: type,
-        name: record.fields.name,
-        quantity: quantity,
-        date: record.createdTime,
-        details: [],
-    };
-};
 
 const mapApiDetailToInventoryDetail = (apiDetail: NoteDetailRecord, type: "import" | "export" | "warranty"): InventoryItemDetail => {
     return {
@@ -60,14 +35,15 @@ export default function ListingPage() {
     const filterType = searchParams.get('type') as "import" | "export" | "warranty" | null;
     
     const [currentPage, setCurrentPage] = useState(1);
-    const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+    const [selectedItem, setSelectedItem] = useState<RecordItem | null>(null);
+    const [selectedItemDetails, setSelectedItemDetails] = useState<InventoryItemDetail[]>([]);
     const [isFetchingDetails, setIsFetchingDetails] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
     const itemsPerPage = 10;
     const [loading, setLoading] = useState(true);
-    const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+    const [inventoryItems, setInventoryItems] = useState<RecordItem[]>([]);
     
     const fetchData = useCallback(async (type: string | null, search: string) => {
         if (!type) return;
@@ -84,13 +60,7 @@ export default function ListingPage() {
             const response = await fetch(url);
             if (response.ok) {
                 const data = await response.json();
-                const mappedData = data.map((record: RecordItem) => 
-                    mapRecordToInventoryItem(
-                        record, 
-                        type.charAt(0).toUpperCase() + type.slice(1) as "Import" | "Export" | "Warranty"
-                    )
-                );
-                setInventoryItems(mappedData);
+                setInventoryItems(data);
             }
         } catch (error) {
             console.error("Failed to fetch listing data:", error);
@@ -127,23 +97,24 @@ export default function ListingPage() {
         setCurrentPage((prev) => Math.min(prev + 1, totalPages));
     };
     
-    const handleRowClick = async (item: InventoryItem) => {
+    const handleRowClick = async (item: RecordItem) => {
+        if (!filterType) return;
         setSelectedItem(item);
+        setSelectedItemDetails([]);
         setIsFetchingDetails(true);
         try {
-            const type = item.type.toLowerCase();
-            const response = await fetch(`/api/note-detail?type=${type}&noteId=${item.id}`);
+            const response = await fetch(`/api/note-detail?type=${filterType}&noteId=${item.id}`);
             if(response.ok) {
                 const detailsData: NoteDetailRecord[] = await response.json();
-                const mappedDetails = detailsData.map(d => mapApiDetailToInventoryDetail(d, type as any));
-                setSelectedItem(prev => prev ? { ...prev, details: mappedDetails } : null);
+                const mappedDetails = detailsData.map(d => mapApiDetailToInventoryDetail(d, filterType));
+                setSelectedItemDetails(mappedDetails);
             } else {
                 console.error("Failed to fetch note details");
-                setSelectedItem(prev => prev ? { ...prev, details: [] } : null);
+                setSelectedItemDetails([]);
             }
         } catch (error) {
             console.error("Error fetching note details:", error);
-            setSelectedItem(prev => prev ? { ...prev, details: [] } : null);
+            setSelectedItemDetails([]);
         } finally {
             setIsFetchingDetails(false);
         }
@@ -162,19 +133,21 @@ export default function ListingPage() {
         }
     }
     
-    const getBadgeStyling = (type: "Import" | "Export" | "Warranty") => {
+    const getBadgeStyling = (type: "import" | "export" | "warranty" | null) => {
+        if (!type) return "";
         switch(type) {
-            case "Import": return "bg-blue-500";
-            case "Export": return "bg-red-500";
-            case "Warranty": return "bg-yellow-500";
+            case "import": return "bg-blue-500";
+            case "export": return "bg-red-500";
+            case "warranty": return "bg-yellow-500";
         }
     }
     
-    const getDialogTypeLabel = (type: "Import" | "Export" | "Warranty") => {
+    const getDialogTypeLabel = (type: "import" | "export" | "warranty" | null) => {
+        if (!type) return "";
         switch(type) {
-            case "Import": return "Nhập Kho";
-            case "Export": return "Xuất Kho";
-            case "Warranty": return "Bảo Hành";
+            case "import": return "Nhập Kho";
+            case "export": return "Xuất Kho";
+            case "warranty": return "Bảo Hành";
         }
     }
 
@@ -194,6 +167,13 @@ export default function ListingPage() {
           case 'warranty': return 'warranty_model';
           default: return 'import_model'; // Default case
       }
+    }
+
+    const getQuantityForRecord = (item: RecordItem) => {
+        if (filterType === 'warranty') {
+            return item.fields.total_warranty_note || 0;
+        }
+        return item.fields.total_quantity || 0;
     }
 
   return (
@@ -231,10 +211,10 @@ export default function ListingPage() {
                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                     </TableCell>
-                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{item.name}</TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{item.fields.name}</TableCell>
                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold">
-                        <Badge variant={item.type === "Import" ? "default" : "secondary"} className={`${getBadgeStyling(item.type)} text-white`}>
-                            {item.type === "Import" ? `+${item.quantity}` : Math.abs(item.quantity)}
+                        <Badge variant={filterType === "import" ? "default" : "secondary"} className={`${getBadgeStyling(filterType)} text-white`}>
+                            {filterType === "import" ? `+${getQuantityForRecord(item)}` : Math.abs(getQuantityForRecord(item))}
                         </Badge>
                     </TableCell>
                     </TableRow>
@@ -292,7 +272,7 @@ export default function ListingPage() {
                 <DialogHeader>
                     <DialogTitle className="text-2xl text-[#333]">Chi Tiết Phiếu</DialogTitle>
                     <DialogDescription className="text-gray-600">
-                        Thông tin chi tiết cho phiếu {selectedItem.name}
+                        Thông tin chi tiết cho phiếu {selectedItem.fields.name}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
@@ -302,17 +282,17 @@ export default function ListingPage() {
                     </div>
                     <div className="flex justify-between">
                         <span className="font-semibold">Loại:</span>
-                        <Badge variant={selectedItem.type === "Import" ? "default" : "secondary"} className={`${getBadgeStyling(selectedItem.type)} text-white`}>
-                           {getDialogTypeLabel(selectedItem.type)}
+                        <Badge variant={filterType === "import" ? "default" : "secondary"} className={`${getBadgeStyling(filterType)} text-white`}>
+                           {getDialogTypeLabel(filterType)}
                         </Badge>
                     </div>
                     <div className="flex justify-between">
                         <span className="font-semibold">Ngày tạo:</span>
-                        <span>{new Date(selectedItem.date).toLocaleDateString('vi-VN')}</span>
+                        <span>{new Date(selectedItem.createdTime).toLocaleDateString('vi-VN')}</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="font-semibold">Tổng số lượng:</span>
-                        <span>{selectedItem.quantity}</span>
+                        <span>{getQuantityForRecord(selectedItem)}</span>
                     </div>
                     <div className="space-y-2 pt-2">
                         <h4 className="font-semibold text-gray-800">Chi tiết lốp:</h4>
@@ -321,11 +301,11 @@ export default function ListingPage() {
                                 <TableHeader>
                                     <TableRow className="border-b-gray-300">
                                         <TableHead className="text-gray-800">#</TableHead>
-                                        {(selectedItem.type === 'Export' || selectedItem.type === 'Warranty') && <TableHead className="text-gray-800">Series</TableHead>}
+                                        {(filterType === 'export' || filterType === 'warranty') && <TableHead className="text-gray-800">Series</TableHead>}
                                         <TableHead className="text-gray-800">DOT</TableHead>
                                         <TableHead className="text-gray-800">Đã scan</TableHead>
                                         <TableHead className="text-gray-800">Số lượng</TableHead>
-                                        {selectedItem.type === 'Warranty' && <TableHead className="text-gray-800">Lý do</TableHead>}
+                                        {filterType === 'warranty' && <TableHead className="text-gray-800">Lý do</TableHead>}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -335,14 +315,14 @@ export default function ListingPage() {
                                                 <Skeleton className="h-8 w-full" />
                                             </TableCell>
                                         </TableRow>
-                                    ) : selectedItem.details.length > 0 ? selectedItem.details.map((detail, index) => (
+                                    ) : selectedItemDetails.length > 0 ? selectedItemDetails.map((detail, index) => (
                                         <TableRow key={index} className="border-none">
                                             <TableCell>{index + 1}</TableCell>
-                                            {(selectedItem.type === 'Export' || selectedItem.type === 'Warranty') && <TableCell>{detail.series || 'N/A'}</TableCell>}
+                                            {(filterType === 'export' || filterType === 'warranty') && <TableCell>{detail.series || 'N/A'}</TableCell>}
                                             <TableCell>{detail.dot}</TableCell>
                                             <TableCell>{detail.scanned}</TableCell>
                                             <TableCell>{detail.quantity}</TableCell>
-                                            {selectedItem.type === 'Warranty' && <TableCell>{detail.reason}</TableCell>}
+                                            {filterType === 'warranty' && <TableCell>{detail.reason}</TableCell>}
                                         </TableRow>
                                     )) : (
                                         <TableRow>
