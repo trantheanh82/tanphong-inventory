@@ -212,7 +212,7 @@ export default function ListingPage() {
                 <TableHeader>
                     <TableRow className="bg-gray-800 hover:bg-gray-800/90 border-b-2 border-gray-700">
                         <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">#</TableHead>
-                        <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Tên phiếu</TableHead>
+                        <TableHead className="sticky left-0 bg-gray-800 px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Tên phiếu</TableHead>
                         <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Ngày tạo</TableHead>
                         <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Trạng thái</TableHead>
                         <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Số lượng</TableHead>
@@ -224,7 +224,7 @@ export default function ListingPage() {
                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                     </TableCell>
-                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{item.fields.name}</TableCell>
+                    <TableCell className="sticky left-0 bg-white/80 group-hover:bg-gray-200/50 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{item.fields.name}</TableCell>
                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
                       {new Date(item.createdTime).toLocaleDateString('vi-VN')}
                     </TableCell>
