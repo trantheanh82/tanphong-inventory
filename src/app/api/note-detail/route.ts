@@ -10,8 +10,8 @@ async function fetchNoteDetails(tableId: string, noteId: string, filterField: st
         filterSet: [
             {
                 fieldId: filterField,
-                operator: 'isExactly',
-                value: [noteId],
+                operator: 'is',
+                value: noteId,
             },
         ],
     };

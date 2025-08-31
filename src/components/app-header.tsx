@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Power, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const pageTitles: { [key: string]: string } = {
   "/": "Kho lốp Tân Phong",
@@ -22,6 +23,7 @@ export function AppHeader() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isMounted, setIsMounted] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     setIsMounted(true);
@@ -40,9 +42,29 @@ export function AppHeader() {
   const title = getTitle();
   const isHomePage = pathname === '/';
 
-  const handleLogout = () => {
-    sessionStorage.removeItem('isLoggedIn');
-    router.push('/login');
+  const handleLogout = async () => {
+    try {
+        const response = await fetch('/api/auth/logout', { method: 'POST' });
+        
+        if (response.ok) {
+            sessionStorage.removeItem('isLoggedIn');
+            toast({ title: "Đăng xuất thành công" });
+            router.push('/login');
+        } else {
+            const result = await response.json();
+            toast({
+                variant: 'destructive',
+                title: 'Lỗi đăng xuất',
+                description: result.message || "Không thể đăng xuất. Vui lòng thử lại.",
+            });
+        }
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Lỗi',
+            description: "Đã xảy ra lỗi không mong muốn khi đăng xuất.",
+        });
+    }
   };
 
   return (
