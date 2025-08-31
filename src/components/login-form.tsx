@@ -33,16 +33,16 @@ export function LoginForm() {
 
         if (response.ok) {
             toast({
-                title: 'Login Successful',
-                description: result.message,
+                title: 'Đăng nhập thành công',
+                description: "Chào mừng trở lại!",
             });
             sessionStorage.setItem('isLoggedIn', 'true');
             router.push('/');
         } else {
             toast({
                 variant: 'destructive',
-                title: 'Login Failed',
-                description: result.message,
+                title: 'Đăng nhập thất bại',
+                description: result.message || 'Email hoặc mật khẩu không đúng.',
             });
             setApiResponse({ success: false, data: result });
         }
@@ -50,8 +50,8 @@ export function LoginForm() {
         console.error('Login error:', error);
         toast({
             variant: 'destructive',
-            title: 'Login Error',
-            description: 'An unexpected error occurred.',
+            title: 'Lỗi đăng nhập',
+            description: 'Đã có lỗi xảy ra. Vui lòng thử lại.',
         });
         setApiResponse({ success: false, data: { message: 'An unexpected error occurred.'} });
     }
@@ -62,7 +62,7 @@ export function LoginForm() {
   return (
     <Card className="w-full max-w-sm bg-white/30 backdrop-blur-lg rounded-2xl shadow-xl border border-white/50 animate-in fade-in-0 zoom-in-95 duration-500">
         <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold text-[#333]">Kho Tân Long</CardTitle>
+            <CardTitle className="text-3xl font-bold text-[#333]">Kho Tân Phong</CardTitle>
             <CardDescription className="text-gray-700">Đăng nhập để tiếp tục</CardDescription>
         </CardHeader>
         <CardContent>
