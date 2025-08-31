@@ -10,6 +10,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardData } from "@/models/inventory";
+import { cn } from "@/lib/utils";
 
 
 const TireIconSVG = (props: React.SVGProps<SVGSVGElement>) => (
@@ -22,6 +23,16 @@ const TireIconSVG = (props: React.SVGProps<SVGSVGElement>) => (
         <path d="M2 12h20" />
     </svg>
 );
+
+const StatusCircle = ({ status }: { status: string }) => {
+    const statusColor = {
+      "Mới tạo": "bg-gray-400",
+      "Đã scan đủ": "bg-green-500",
+      "Chưa scan đủ": "bg-red-500",
+    }[status];
+  
+    return <div className={cn("w-3 h-3 rounded-full", statusColor || "bg-gray-400")} />;
+};
 
 export default function DashboardPage() {
     const [data, setData] = useState<DashboardData | null>(null);
@@ -95,6 +106,7 @@ export default function DashboardPage() {
                         <TableRow className="bg-gray-200 hover:bg-gray-200/60 border-b-2 border-gray-300">
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">#</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Trạng thái</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -103,6 +115,9 @@ export default function DashboardPage() {
                             <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    <StatusCircle status={item.fields.status} />
+                                </TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.total_quantity}</TableCell>
                             </TableRow>
                         ))}
@@ -141,6 +156,7 @@ export default function DashboardPage() {
                         <TableRow className="bg-gray-200 hover:bg-gray-200/60 border-b-2 border-gray-300">
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">#</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Trạng thái</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -149,6 +165,9 @@ export default function DashboardPage() {
                              <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    <StatusCircle status={item.fields.status} />
+                                </TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.total_quantity}</TableCell>
                             </TableRow>
                         ))}
@@ -187,6 +206,7 @@ export default function DashboardPage() {
                         <TableRow className="bg-gray-200 hover:bg-gray-200/60 border-b-2 border-gray-300">
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">#</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
+                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Trạng thái</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -195,6 +215,9 @@ export default function DashboardPage() {
                              <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    <StatusCircle status={item.fields.status} />
+                                </TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.total_quarantine_note}</TableCell>
                             </TableRow>
                         ))}
@@ -216,4 +239,5 @@ export default function DashboardPage() {
   );
 }
 
+    
     
