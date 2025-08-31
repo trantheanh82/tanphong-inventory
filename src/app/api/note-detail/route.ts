@@ -5,8 +5,18 @@ import { cookies } from 'next/headers';
 const API_ENDPOINT = process.env.API_ENDPOINT;
 
 async function fetchNoteDetails(tableId: string, noteId: string, filterField: string, cookieHeader: string | null) {
-    // Construct the filter query parameter, ensuring the noteId is properly quoted for the API.
-    const filterQuery = `${filterField}.id%3D'${noteId}'`;
+    const filterObject = {
+        conjunction: 'and',
+        filterSet: [
+            {
+                fieldId: filterField,
+                operator: 'isExactly',
+                value: [noteId],
+            },
+        ],
+    };
+
+    const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
     const url = `${API_ENDPOINT}/table/${tableId}/record?filter=${filterQuery}&fieldKeyType=dbFieldName`;
 
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -55,7 +65,6 @@ export async function GET(request: NextRequest) {
             break;
         case 'warranty':
             tableId = WARRANTY_DETAIL_TBL_ID;
-            // Assuming the field linking to the warranty note is named 'warranty_note'
             filterField = 'warranty_note';
             break;
         default:
@@ -74,3 +83,4 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ message: 'An internal server error occurred.' }, { status: 500 });
     }
 }
+
