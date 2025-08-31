@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ScanLine, ShieldCheck, Search } from "lucide-react";
+import { ScanLine, ShieldCheck, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -246,21 +246,21 @@ export default function ListingPage() {
                 <Button
                     onClick={handlePrevPage}
                     disabled={currentPage === 1}
-                    size="sm"
-                    className="px-3 py-1 text-sm font-medium text-white bg-gray-800 rounded-lg hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-md"
+                    size="icon"
+                    className="h-8 w-8 text-white bg-gray-800 rounded-lg hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-md"
                 >
-                Trước
+                  <ChevronLeft className="h-5 w-5" />
                 </Button>
                 <span className="text-sm font-medium text-white">
-                Trang {currentPage} của {totalPages}
+                  {currentPage} / {totalPages}
                 </span>
                 <Button
                     onClick={handleNextPage}
                     disabled={currentPage === totalPages}
-                    size="sm"
-                    className="px-3 py-1 text-sm font-medium text-white bg-gray-800 rounded-lg hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-md"
+                    size="icon"
+                    className="h-8 w-8 text-white bg-gray-800 rounded-lg hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-md"
                 >
-                Sau
+                  <ChevronRight className="h-5 w-5" />
                 </Button>
             </div>
         ) : (
@@ -363,4 +363,6 @@ export default function ListingPage() {
 }
 
     
+    
+
     
