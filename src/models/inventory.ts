@@ -82,7 +82,7 @@ export type ExportNote = {
       title: string;
     }[];
     createdAt: string;
-    total_exporte_note: number;
+    total_export_note: number;
     total_quantity: number;
   };
   name: string;
@@ -120,7 +120,7 @@ export type WarrantyNote = {
   fields: {
     name: string;
     status: string;
-    total_warrantine_note: number;
+    total_warranty_note: number;
     warranty_note_detail: {
       id: string;
       title: string;
@@ -153,3 +153,5 @@ export type WarrantyNoteDetail = {
   createdBy: string;
   lastModifiedBy: string;
 };
+
+    
