@@ -296,8 +296,8 @@ export default function ListingPage() {
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                     <div className="flex justify-between">
-                        <span className="font-semibold">Mã Phiếu:</span>
-                        <span>{selectedItem.id}</span>
+                        <span className="font-semibold">Tên Phiếu:</span>
+                        <span>{selectedItem.fields.name}</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="font-semibold">Loại:</span>
@@ -365,8 +365,3 @@ export default function ListingPage() {
     </div>
   );
 }
-
-    
-    
-
-    
