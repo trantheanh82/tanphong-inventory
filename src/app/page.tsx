@@ -9,9 +9,22 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DashboardData } from "@/models/inventory";
+import { DashboardData, RecordItem, InventoryItemDetail } from "@/models/inventory";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { NoteDetailRecord } from "@/models/note-detail";
 
+
+const mapApiDetailToInventoryDetail = (apiDetail: NoteDetailRecord, type: "import" | "export" | "warranty"): InventoryItemDetail => {
+    return {
+        dot: apiDetail.fields.DOT || apiDetail.fields.dot,
+        quantity: apiDetail.fields.quantity,
+        scanned: apiDetail.fields.scanned || 0,
+        series: apiDetail.fields.series,
+        reason: apiDetail.fields.reason,
+    };
+};
 
 const TireIconSVG = (props: React.SVGProps<SVGSVGElement>) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -37,6 +50,10 @@ const StatusCircle = ({ status }: { status: string }) => {
 export default function DashboardPage() {
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [selectedItem, setSelectedItem] = useState<RecordItem | null>(null);
+    const [selectedItemType, setSelectedItemType] = useState<"import" | "export" | "warranty" | null>(null);
+    const [selectedItemDetails, setSelectedItemDetails] = useState<InventoryItemDetail[]>([]);
+    const [isFetchingDetails, setIsFetchingDetails] = useState(false);
 
     useEffect(() => {
         async function fetchData() {
@@ -55,6 +72,60 @@ export default function DashboardPage() {
         }
         fetchData();
     }, []);
+
+    const handleRowClick = async (item: RecordItem, type: "import" | "export" | "warranty") => {
+        setSelectedItem(item);
+        setSelectedItemType(type);
+        setSelectedItemDetails([]);
+        setIsFetchingDetails(true);
+        try {
+            const response = await fetch(`/api/note-detail?type=${type}&noteId=${item.id}`);
+            if(response.ok) {
+                const detailsData: NoteDetailRecord[] = await response.json();
+                const mappedDetails = detailsData.map(d => mapApiDetailToInventoryDetail(d, type));
+                setSelectedItemDetails(mappedDetails);
+            } else {
+                console.error("Failed to fetch note details");
+                setSelectedItemDetails([]);
+            }
+        } catch (error) {
+            console.error("Error fetching note details:", error);
+            setSelectedItemDetails([]);
+        } finally {
+            setIsFetchingDetails(false);
+        }
+    };
+
+    const handleCloseDialog = () => {
+        setSelectedItem(null);
+        setSelectedItemType(null);
+    };
+
+    const getBadgeStyling = (type: "import" | "export" | "warranty" | null) => {
+        if (!type) return "";
+        switch(type) {
+            case "import": return "bg-blue-500";
+            case "export": return "bg-red-500";
+            case "warranty": return "bg-yellow-500";
+        }
+    }
+    
+    const getDialogTypeLabel = (type: "import" | "export" | "warranty" | null) => {
+        if (!type) return "";
+        switch(type) {
+            case "import": return "Nhập Kho";
+            case "export": return "Xuất Kho";
+            case "warranty": return "Bảo Hành";
+        }
+    }
+    
+    const getQuantityForRecord = (item: RecordItem, type: "import" | "export" | "warranty") => {
+        if (type === 'warranty') {
+            return item.fields.total_warranty_note || 0;
+        }
+        return item.fields.total_quantity || 0;
+    }
+
 
   return (
     <div className="flex flex-col gap-8 animate-in fade-in-0 duration-500 p-4">
@@ -112,7 +183,7 @@ export default function DashboardPage() {
                     </TableHeader>
                     <TableBody className="bg-white/50">
                         {data?.imports?.slice(0, 3).map((item, index) => (
-                            <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
+                            <TableRow key={item.id} onClick={() => handleRowClick(item, 'import')} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -162,7 +233,7 @@ export default function DashboardPage() {
                     </TableHeader>
                     <TableBody className="bg-white/50">
                         {data?.exports?.slice(0, 3).map((item, index) => (
-                             <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
+                             <TableRow key={item.id} onClick={() => handleRowClick(item, 'export')} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -212,13 +283,13 @@ export default function DashboardPage() {
                     </TableHeader>
                     <TableBody className="bg-white/50">
                         {data?.warranties?.slice(0, 3).map((item, index) => (
-                             <TableRow key={item.id} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
+                             <TableRow key={item.id} onClick={() => handleRowClick(item, 'warranty')} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                     <StatusCircle status={item.fields.status} />
                                 </TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.total_quarantine_note}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.total_warranty_note}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -235,9 +306,83 @@ export default function DashboardPage() {
             </Button>
         </CardFooter>
       </Card>
+        {selectedItem && (
+            <Dialog open={!!selectedItem} onOpenChange={(isOpen) => !isOpen && handleCloseDialog()}>
+                <DialogContent className="bg-white/80 backdrop-blur-md rounded-xl shadow-lg border-white/50 text-gray-800">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl text-[#333]">Chi Tiết Phiếu</DialogTitle>
+                        <DialogDescription className="text-gray-600">
+                            Thông tin chi tiết cho phiếu {selectedItem.fields.name}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="flex justify-between">
+                            <span className="font-semibold">Mã Phiếu:</span>
+                            <span>{selectedItem.id}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="font-semibold">Loại:</span>
+                            <Badge variant={selectedItemType === "import" ? "default" : "secondary"} className={`${getBadgeStyling(selectedItemType)} text-white`}>
+                            {getDialogTypeLabel(selectedItemType)}
+                            </Badge>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="font-semibold">Trạng thái:</span>
+                            <span>{selectedItem.fields.status}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="font-semibold">Ngày tạo:</span>
+                            <span>{new Date(selectedItem.createdTime).toLocaleDateString('vi-VN')}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="font-semibold">Tổng số lượng:</span>
+                            <span>{selectedItemType && getQuantityForRecord(selectedItem, selectedItemType)}</span>
+                        </div>
+                        <div className="space-y-2 pt-2">
+                            <h4 className="font-semibold text-gray-800">Chi tiết lốp:</h4>
+                            <div className="overflow-y-auto rounded-lg border p-2 bg-gray-50/50 max-h-48">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="border-b-gray-300">
+                                        <TableHead className="text-gray-800">#</TableHead>
+                                        {(selectedItemType === 'export' || selectedItemType === 'warranty') && <TableHead className="text-gray-800">Series</TableHead>}
+                                        <TableHead className="text-gray-800">DOT</TableHead>
+                                        <TableHead className="text-gray-800">Đã scan</TableHead>
+                                        <TableHead className="text-gray-800">Số lượng</TableHead>
+                                        {selectedItemType === 'warranty' && <TableHead className="text-gray-800">Lý do</TableHead>}
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {isFetchingDetails ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center">
+                                                <Skeleton className="h-8 w-full" />
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : selectedItemDetails.length > 0 ? selectedItemDetails.map((detail, index) => (
+                                        <TableRow key={index} className="border-none">
+                                            <TableCell>{index + 1}</TableCell>
+                                            {(selectedItemType === 'export' || selectedItemType === 'warranty') && <TableCell>{detail.series || 'N/A'}</TableCell>}
+                                            <TableCell>{detail.dot}</TableCell>
+                                            <TableCell>{detail.scanned}</TableCell>
+                                            <TableCell>{detail.quantity}</TableCell>
+                                            {selectedItemType === 'warranty' && <TableCell>{detail.reason}</TableCell>}
+                                        </TableRow>
+                                    )) : (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center text-gray-500">
+                                                Chưa có chi tiết.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        )}
     </div>
   );
 }
-
-    
-    
