@@ -17,7 +17,8 @@ async function fetchNoteDetails(tableId: string, noteId: string, filterField: st
     };
 
     const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
-    const url = `${API_ENDPOINT}/table/${tableId}/record?filter=${filterQuery}&fieldKeyType=dbFieldName`;
+    const orderByQuery = encodeURIComponent(JSON.stringify([{ fieldId: 'createdAt', order: 'desc' }]));
+    const url = `${API_ENDPOINT}/table/${tableId}/record?filter=${filterQuery}&orderBy=${orderByQuery}&fieldKeyType=dbFieldName`;
 
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (cookieHeader) {
@@ -83,4 +84,3 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ message: 'An internal server error occurred.' }, { status: 500 });
     }
 }
-

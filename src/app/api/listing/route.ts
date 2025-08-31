@@ -14,7 +14,13 @@ async function fetchTableData(tableId: string, cookieHeader: string | null, sear
         url.searchParams.append('projection[]', 'name');
         url.searchParams.append('projection[]', 'total_quantity');
         url.searchParams.append('projection[]', 'id');
+        url.searchParams.append('projection[]', 'status');
+        url.searchParams.append('projection[]', 'createdTime');
+        url.searchParams.append('projection[]', 'total_warranty_note');
     }
+
+    const orderBy = JSON.stringify([{ fieldId: 'createdAt', order: 'desc' }]);
+    url.searchParams.append('orderBy', orderBy);
 
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
