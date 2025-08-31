@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SearchInput } from "@/components/search-input";
 import { useDebounce } from "@/hooks/use-debounce";
 import { NoteDetailRecord } from "@/models/note-detail";
+import { cn } from "@/lib/utils";
 
 
 const mapApiDetailToInventoryDetail = (apiDetail: NoteDetailRecord, type: "import" | "export" | "warranty"): InventoryItemDetail => {
@@ -26,6 +27,16 @@ const mapApiDetailToInventoryDetail = (apiDetail: NoteDetailRecord, type: "impor
         series: apiDetail.fields.series,
         reason: apiDetail.fields.reason,
     };
+};
+
+const StatusCircle = ({ status }: { status: string }) => {
+    const statusColor = {
+      "Mới tạo": "bg-gray-400",
+      "Đã scan đủ": "bg-green-500",
+      "Chưa scan đủ": "bg-red-500",
+    }[status];
+  
+    return <div className={cn("w-3 h-3 rounded-full", statusColor || "bg-gray-400")} />;
 };
 
 
@@ -202,6 +213,7 @@ export default function ListingPage() {
                     <TableRow className="bg-gray-800 hover:bg-gray-800/90 border-b-2 border-gray-700">
                         <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">#</TableHead>
                         <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Tên phiếu</TableHead>
+                        <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Trạng thái</TableHead>
                         <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Số lượng</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -212,6 +224,9 @@ export default function ListingPage() {
                         {(currentPage - 1) * itemsPerPage + index + 1}
                     </TableCell>
                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{item.fields.name}</TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <StatusCircle status={item.fields.status} />
+                    </TableCell>
                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold">
                         <Badge variant={filterType === "import" ? "default" : "secondary"} className={`${getBadgeStyling(filterType)} text-white`}>
                             {filterType === "import" ? `+${getQuantityForRecord(item)}` : Math.abs(getQuantityForRecord(item))}
@@ -287,6 +302,10 @@ export default function ListingPage() {
                         </Badge>
                     </div>
                     <div className="flex justify-between">
+                        <span className="font-semibold">Trạng thái:</span>
+                        <span>{selectedItem.fields.status}</span>
+                    </div>
+                    <div className="flex justify-between">
                         <span className="font-semibold">Ngày tạo:</span>
                         <span>{new Date(selectedItem.createdTime).toLocaleDateString('vi-VN')}</span>
                     </div>
@@ -343,4 +362,5 @@ export default function ListingPage() {
   );
 }
 
+    
     
