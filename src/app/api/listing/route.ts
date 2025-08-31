@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type');
     const query = searchParams.get('search');
     
-    const { IMPORT_TBL_ID, EXPORT_TBL_ID, QUARANTINE_TBL_ID: WARRANTY_TBL_ID } = process.env;
+    const { IMPORT_TBL_ID, EXPORT_TBL_ID, WARRANTY_TBL_ID } = process.env;
 
     let tableId: string | undefined;
 
