@@ -181,11 +181,11 @@ export default function DashboardPage() {
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
                         </TableRow>
                     </TableHeader>
-                    <TableBody className="bg-white">
+                    <TableBody>
                         {data?.imports?.slice(0, 3).map((item, index) => (
-                            <TableRow key={item.id} onClick={() => handleRowClick(item, 'import')} className="hover:bg-gray-100 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0 group">
+                            <TableRow key={item.id} onClick={() => handleRowClick(item, 'import')} className="odd:bg-white even:bg-gray-50 hover:bg-gray-100 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0 group">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
-                                <TableCell className="sticky left-0 bg-white group-hover:bg-gray-100 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
+                                <TableCell className="sticky left-0 odd:bg-white even:bg-gray-50 group-hover:bg-gray-100 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                     <StatusCircle status={item.fields.status} />
                                 </TableCell>
@@ -231,11 +231,11 @@ export default function DashboardPage() {
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
                         </TableRow>
                     </TableHeader>
-                    <TableBody className="bg-white">
+                    <TableBody>
                         {data?.exports?.slice(0, 3).map((item, index) => (
-                             <TableRow key={item.id} onClick={() => handleRowClick(item, 'export')} className="hover:bg-gray-100 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0 group">
+                             <TableRow key={item.id} onClick={() => handleRowClick(item, 'export')} className="odd:bg-white even:bg-gray-50 hover:bg-gray-100 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0 group">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
-                                <TableCell className="sticky left-0 bg-white group-hover:bg-gray-100 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
+                                <TableCell className="sticky left-0 odd:bg-white even:bg-gray-50 group-hover:bg-gray-100 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                     <StatusCircle status={item.fields.status} />
                                 </TableCell>
@@ -281,11 +281,11 @@ export default function DashboardPage() {
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
                         </TableRow>
                     </TableHeader>
-                    <TableBody className="bg-white">
+                    <TableBody>
                         {data?.warranties?.slice(0, 3).map((item, index) => (
-                             <TableRow key={item.id} onClick={() => handleRowClick(item, 'warranty')} className="hover:bg-gray-100 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0 group">
+                             <TableRow key={item.id} onClick={() => handleRowClick(item, 'warranty')} className="odd:bg-white even:bg-gray-50 hover:bg-gray-100 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0 group">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
-                                <TableCell className="sticky left-0 bg-white group-hover:bg-gray-100 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
+                                <TableCell className="sticky left-0 odd:bg-white even:bg-gray-50 group-hover:bg-gray-100 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                     <StatusCircle status={item.fields.status} />
                                 </TableCell>
@@ -387,4 +387,5 @@ export default function DashboardPage() {
   );
 }
 
+    
     
