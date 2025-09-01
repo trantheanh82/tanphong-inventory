@@ -156,7 +156,7 @@ export default function DashboardPage() {
             </div>
         </div>
 
-      <Card className="bg-white backdrop-blur-md rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
+      <Card className="bg-white rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200">
         <CardHeader className="p-0 mb-4">
             <CardTitle className="flex items-center gap-2 text-xl font-bold text-[#333]">
                 <TireIconSVG className="w-6 h-6" />
@@ -174,7 +174,7 @@ export default function DashboardPage() {
                 ) : (
                 <Table>
                     <TableHeader>
-                        <TableRow className="bg-gray-200 hover:bg-gray-200/60 border-b-2 border-gray-300">
+                        <TableRow className="bg-gray-200 hover:bg-gray-200 border-b-2 border-gray-300">
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">#</TableHead>
                             <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">Trạng thái</TableHead>
@@ -207,7 +207,7 @@ export default function DashboardPage() {
         </CardFooter>
       </Card>
 
-      <Card className="bg-white backdrop-blur-md rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
+      <Card className="bg-white rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200">
         <CardHeader className="p-0 mb-4">
             <CardTitle className="flex items-center gap-2 text-xl font-bold text-[#333]">
                 <TireIconSVG className="w-6 h-6" />
@@ -224,7 +224,7 @@ export default function DashboardPage() {
                 ) : (
                 <Table>
                     <TableHeader>
-                        <TableRow className="bg-gray-200 hover:bg-gray-200/60 border-b-2 border-gray-300">
+                        <TableRow className="bg-gray-200 hover:bg-gray-200 border-b-2 border-gray-300">
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">#</TableHead>
                             <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">Trạng thái</TableHead>
@@ -257,7 +257,7 @@ export default function DashboardPage() {
         </CardFooter>
       </Card>
 
-      <Card className="bg-white backdrop-blur-md rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
+      <Card className="bg-white rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200">
         <CardHeader className="p-0 mb-4">
             <CardTitle className="flex items-center gap-2 text-xl font-bold text-[#333]">
                 <ShieldCheck className="w-6 h-6" />
@@ -274,7 +274,7 @@ export default function DashboardPage() {
                 ) : (
                 <Table>
                     <TableHeader>
-                        <TableRow className="bg-gray-200 hover:bg-gray-200/60 border-b-2 border-gray-300">
+                        <TableRow className="bg-gray-200 hover:bg-gray-200 border-b-2 border-gray-300">
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">#</TableHead>
                             <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
                              <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">Trạng thái</TableHead>
@@ -386,7 +386,5 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
 
     
