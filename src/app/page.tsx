@@ -175,10 +175,10 @@ export default function DashboardPage() {
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-gray-200 hover:bg-gray-200 border-b-2 border-gray-300">
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">#</TableHead>
-                            <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Ngày tạo</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%] whitespace-nowrap">#</TableHead>
+                            <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Tên phiếu</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Số lượng</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Ngày tạo</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -228,10 +228,10 @@ export default function DashboardPage() {
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-gray-200 hover:bg-gray-200 border-b-2 border-gray-300">
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">#</TableHead>
-                            <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Ngày tạo</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%] whitespace-nowrap">#</TableHead>
+                            <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Tên phiếu</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Số lượng</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Ngày tạo</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -281,10 +281,10 @@ export default function DashboardPage() {
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-gray-200 hover:bg-gray-200 border-b-2 border-gray-300">
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">#</TableHead>
-                            <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Ngày tạo</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%] whitespace-nowrap">#</TableHead>
+                            <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Tên phiếu</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Số lượng</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Ngày tạo</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -354,8 +354,8 @@ export default function DashboardPage() {
                                 <TableHeader>
                                     <TableRow className="border-b-gray-300">
                                         <TableHead className="text-gray-800">#</TableHead>
-                                        {(selectedItemType === 'export' || selectedItemType === 'warranty') && <TableHead className="text-gray-800">Series</TableHead>}
                                         <TableHead className="text-gray-800">DOT</TableHead>
+                                        {(selectedItemType === 'export' || selectedItemType === 'warranty') && <TableHead className="text-gray-800">Series</TableHead>}
                                         <TableHead className="text-gray-800">Đã scan</TableHead>
                                         <TableHead className="text-gray-800">Số lượng</TableHead>
                                         {selectedItemType === 'warranty' && <TableHead className="text-gray-800">Lý do</TableHead>}
@@ -371,8 +371,8 @@ export default function DashboardPage() {
                                     ) : selectedItemDetails.length > 0 ? selectedItemDetails.map((detail, index) => (
                                         <TableRow key={index} className="border-none">
                                             <TableCell>{index + 1}</TableCell>
-                                            {(selectedItemType === 'export' || selectedItemType === 'warranty') && <TableCell>{detail.series || 'N/A'}</TableCell>}
                                             <TableCell>{detail.dot}</TableCell>
+                                            {(selectedItemType === 'export' || selectedItemType === 'warranty') && <TableCell>{detail.series || 'N/A'}</TableCell>}
                                             <TableCell>{detail.scanned}</TableCell>
                                             <TableCell>{detail.quantity}</TableCell>
                                             {selectedItemType === 'warranty' && <TableCell>{detail.reason}</TableCell>}
@@ -395,5 +395,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
 
     

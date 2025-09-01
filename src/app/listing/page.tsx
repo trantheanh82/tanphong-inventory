@@ -211,10 +211,10 @@ export default function ListingPage() {
             <Table>
                 <TableHeader>
                     <TableRow className="bg-gray-800 hover:bg-gray-800 border-b-2 border-gray-700">
-                        <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider w-[1%]">#</TableHead>
-                        <TableHead className="sticky left-0 bg-gray-800 px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Tên phiếu</TableHead>
-                        <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Số lượng</TableHead>
-                        <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Ngày tạo</TableHead>
+                        <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider w-[1%] whitespace-nowrap">#</TableHead>
+                        <TableHead className="sticky left-0 bg-gray-800 px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">Tên phiếu</TableHead>
+                        <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">Số lượng</TableHead>
+                        <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">Ngày tạo</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -325,8 +325,8 @@ export default function ListingPage() {
                                 <TableHeader>
                                     <TableRow className="border-b-gray-300">
                                         <TableHead className="text-gray-800">#</TableHead>
-                                        {(filterType === 'export' || filterType === 'warranty') && <TableHead className="text-gray-800">Series</TableHead>}
                                         <TableHead className="text-gray-800">DOT</TableHead>
+                                        {(filterType === 'export' || filterType === 'warranty') && <TableHead className="text-gray-800">Series</TableHead>}
                                         <TableHead className="text-gray-800">Đã scan</TableHead>
                                         <TableHead className="text-gray-800">Số lượng</TableHead>
                                         {filterType === 'warranty' && <TableHead className="text-gray-800">Lý do</TableHead>}
@@ -342,8 +342,8 @@ export default function ListingPage() {
                                     ) : selectedItemDetails.length > 0 ? selectedItemDetails.map((detail, index) => (
                                         <TableRow key={index} className="border-none">
                                             <TableCell>{index + 1}</TableCell>
-                                            {(filterType === 'export' || filterType === 'warranty') && <TableCell>{detail.series || 'N/A'}</TableCell>}
                                             <TableCell>{detail.dot}</TableCell>
+                                            {(filterType === 'export' || filterType === 'warranty') && <TableCell>{detail.series || 'N/A'}</TableCell>}
                                             <TableCell>{detail.scanned}</TableCell>
                                             <TableCell>{detail.quantity}</TableCell>
                                             {filterType === 'warranty' && <TableCell>{detail.reason}</TableCell>}
@@ -366,5 +366,7 @@ export default function ListingPage() {
     </div>
   );
 }
+
+    
 
     
