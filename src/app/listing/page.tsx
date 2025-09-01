@@ -220,7 +220,7 @@ export default function ListingPage() {
                 </TableHeader>
                 <TableBody className="bg-white/80">
                 {paginatedData.map((item, index) => (
-                    <TableRow key={item.id} onClick={() => handleRowClick(item)} className="hover:bg-gray-200/50 cursor-pointer transition duration-200 border-b border-gray-200/80">
+                    <TableRow key={item.id} onClick={() => handleRowClick(item)} className="hover:bg-gray-200/50 cursor-pointer transition duration-200 border-b border-gray-200/80 group">
                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                     </TableCell>
@@ -365,3 +365,5 @@ export default function ListingPage() {
     </div>
   );
 }
+
+    
