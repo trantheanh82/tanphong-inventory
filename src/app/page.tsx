@@ -44,7 +44,7 @@ const StatusCircle = ({ status }: { status: string }) => {
       "Chưa scan đủ": "bg-red-500",
     }[status];
   
-    return <div className={cn("w-3 h-3 rounded-full", statusColor || "bg-gray-400")} />;
+    return <div className={cn("w-3 h-3 rounded-full mr-2 flex-shrink-0", statusColor || "bg-gray-400")} />;
 };
 
 export default function DashboardPage() {
@@ -177,7 +177,6 @@ export default function DashboardPage() {
                         <TableRow className="bg-gray-200 hover:bg-gray-200 border-b-2 border-gray-300">
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">#</TableHead>
                             <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">Trạng thái</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Ngày tạo</TableHead>
                         </TableRow>
@@ -186,9 +185,11 @@ export default function DashboardPage() {
                         {data?.imports?.slice(0, 3).map((item, index) => (
                             <TableRow key={item.id} onClick={() => handleRowClick(item, 'import')} className="odd:bg-white even:bg-gray-50 hover:bg-gray-100 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0 group">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
-                                <TableCell className="sticky left-0 odd:bg-white even:bg-gray-50 group-hover:bg-gray-100 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    <StatusCircle status={item.fields.status} />
+                                <TableCell className="sticky left-0 odd:bg-white even:bg-gray-50 group-hover:bg-gray-100 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    <div className="flex items-center">
+                                        <StatusCircle status={item.fields.status} />
+                                        <span>{item.fields.name}</span>
+                                    </div>
                                 </TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.total_quantity}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{new Date(item.createdTime).toLocaleDateString('vi-VN')}</TableCell>
@@ -229,7 +230,6 @@ export default function DashboardPage() {
                         <TableRow className="bg-gray-200 hover:bg-gray-200 border-b-2 border-gray-300">
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">#</TableHead>
                             <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">Trạng thái</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Ngày tạo</TableHead>
                         </TableRow>
@@ -238,9 +238,11 @@ export default function DashboardPage() {
                         {data?.exports?.slice(0, 3).map((item, index) => (
                              <TableRow key={item.id} onClick={() => handleRowClick(item, 'export')} className="odd:bg-white even:bg-gray-50 hover:bg-gray-100 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0 group">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
-                                <TableCell className="sticky left-0 odd:bg-white even:bg-gray-50 group-hover:bg-gray-100 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    <StatusCircle status={item.fields.status} />
+                                <TableCell className="sticky left-0 odd:bg-white even:bg-gray-50 group-hover:bg-gray-100 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    <div className="flex items-center">
+                                        <StatusCircle status={item.fields.status} />
+                                        <span>{item.fields.name}</span>
+                                    </div>
                                 </TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.total_quantity}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{new Date(item.createdTime).toLocaleDateString('vi-VN')}</TableCell>
@@ -281,7 +283,6 @@ export default function DashboardPage() {
                         <TableRow className="bg-gray-200 hover:bg-gray-200 border-b-2 border-gray-300">
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">#</TableHead>
                             <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
-                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">Trạng thái</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Ngày tạo</TableHead>
                         </TableRow>
@@ -290,9 +291,11 @@ export default function DashboardPage() {
                         {data?.warranties?.slice(0, 3).map((item, index) => (
                              <TableRow key={item.id} onClick={() => handleRowClick(item, 'warranty')} className="odd:bg-white even:bg-gray-50 hover:bg-gray-100 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0 group">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
-                                <TableCell className="sticky left-0 odd:bg-white even:bg-gray-50 group-hover:bg-gray-100 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    <StatusCircle status={item.fields.status} />
+                                <TableCell className="sticky left-0 odd:bg-white even:bg-gray-50 group-hover:bg-gray-100 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                     <div className="flex items-center">
+                                        <StatusCircle status={item.fields.status} />
+                                        <span>{item.fields.name}</span>
+                                    </div>
                                 </TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.total_warranty_note}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{new Date(item.createdTime).toLocaleDateString('vi-VN')}</TableCell>
@@ -392,10 +395,5 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
-    
-
-    
 
     
