@@ -224,7 +224,7 @@ export default function ListingPage() {
                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                     </TableCell>
-                    <TableCell className="sticky left-0 odd:bg-white even:bg-gray-50 group-hover:bg-gray-100 px-6 py-4 text-sm font-medium text-gray-800">{item.fields.name}</TableCell>
+                    <TableCell className="sticky left-0 odd:bg-white even:bg-gray-50 group-hover:bg-gray-100 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{item.fields.name}</TableCell>
                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
                       {new Date(item.createdTime).toLocaleDateString('vi-VN')}
                     </TableCell>
@@ -367,4 +367,6 @@ export default function ListingPage() {
 }
 
     
+    
+
     
