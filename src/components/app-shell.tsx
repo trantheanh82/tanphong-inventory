@@ -11,17 +11,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 const useAuth = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
+    const pathname = usePathname();
 
     useEffect(() => {
         // In a real app, you'd check a token, session, etc.
-        const timer = setTimeout(() => {
-            const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
-            setIsAuthenticated(loggedIn);
-            setLoading(false);
-        }, 0); // No delay
-
-        return () => clearTimeout(timer);
-    }, []);
+        const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
+        setIsAuthenticated(loggedIn);
+        setLoading(false);
+    }, [pathname]); // Rerun on route change
 
     return { isAuthenticated, loading };
 };
@@ -74,7 +71,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated && !isLoginPage) {
-      return null; // or a loading spinner, while redirecting
+      // While redirecting, it's better to show a loader or nothing to avoid content flash
+      return (
+        <div className="relative min-h-screen font-sans overflow-hidden">
+            <div className="relative bg-white/30 backdrop-blur-md w-full h-screen overflow-hidden flex flex-col shadow-2xl z-10 justify-center items-center">
+                {/* You can add a loading spinner here */}
+            </div>
+        </div>
+      );
   }
 
   return (
