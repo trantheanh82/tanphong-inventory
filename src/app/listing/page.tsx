@@ -189,7 +189,7 @@ export default function ListingPage() {
 
   return (
     <div className="p-4 pb-20 animate-in fade-in-0 duration-500 flex flex-col">
-      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/50 flex-grow flex flex-col">
+      <Card className="bg-white backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/50 flex-grow flex flex-col">
         <div className="p-4 border-b border-white/50">
             <SearchInput 
                 searchQuery={searchQuery}
@@ -211,20 +211,20 @@ export default function ListingPage() {
             <Table>
                 <TableHeader>
                     <TableRow className="bg-gray-800 hover:bg-gray-800/90 border-b-2 border-gray-700">
-                        <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">#</TableHead>
+                        <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider w-[1%]">#</TableHead>
                         <TableHead className="sticky left-0 bg-gray-800 px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Tên phiếu</TableHead>
                         <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Ngày tạo</TableHead>
-                        <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Trạng thái</TableHead>
+                        <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider w-[1%]">Trạng thái</TableHead>
                         <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Số lượng</TableHead>
                     </TableRow>
                 </TableHeader>
-                <TableBody className="bg-white/80">
+                <TableBody className="bg-white">
                 {paginatedData.map((item, index) => (
-                    <TableRow key={item.id} onClick={() => handleRowClick(item)} className="hover:bg-gray-200/50 cursor-pointer transition duration-200 border-b border-gray-200/80 group">
+                    <TableRow key={item.id} onClick={() => handleRowClick(item)} className="hover:bg-gray-200 cursor-pointer transition duration-200 border-b border-gray-200/80 group">
                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                     </TableCell>
-                    <TableCell className="sticky left-0 bg-white/80 group-hover:bg-gray-200/50 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{item.fields.name}</TableCell>
+                    <TableCell className="sticky left-0 bg-white group-hover:bg-gray-200 px-6 py-4 text-sm font-medium text-gray-800">{item.fields.name}</TableCell>
                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
                       {new Date(item.createdTime).toLocaleDateString('vi-VN')}
                     </TableCell>
@@ -365,5 +365,7 @@ export default function ListingPage() {
     </div>
   );
 }
+
+    
 
     

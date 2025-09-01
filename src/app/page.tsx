@@ -156,7 +156,7 @@ export default function DashboardPage() {
             </div>
         </div>
 
-      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
+      <Card className="bg-white backdrop-blur-md rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
         <CardHeader className="p-0 mb-4">
             <CardTitle className="flex items-center gap-2 text-xl font-bold text-[#333]">
                 <TireIconSVG className="w-6 h-6" />
@@ -175,17 +175,17 @@ export default function DashboardPage() {
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-gray-200 hover:bg-gray-200/60 border-b-2 border-gray-300">
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">#</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">#</TableHead>
                             <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Trạng thái</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">Trạng thái</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
                         </TableRow>
                     </TableHeader>
-                    <TableBody className="bg-white/50">
+                    <TableBody className="bg-white">
                         {data?.imports?.slice(0, 3).map((item, index) => (
-                            <TableRow key={item.id} onClick={() => handleRowClick(item, 'import')} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0 group">
+                            <TableRow key={item.id} onClick={() => handleRowClick(item, 'import')} className="hover:bg-gray-100 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0 group">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
-                                <TableCell className="sticky left-0 bg-white/50 group-hover:bg-gray-100/50 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
+                                <TableCell className="sticky left-0 bg-white group-hover:bg-gray-100 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                     <StatusCircle status={item.fields.status} />
                                 </TableCell>
@@ -207,7 +207,7 @@ export default function DashboardPage() {
         </CardFooter>
       </Card>
 
-      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
+      <Card className="bg-white backdrop-blur-md rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
         <CardHeader className="p-0 mb-4">
             <CardTitle className="flex items-center gap-2 text-xl font-bold text-[#333]">
                 <TireIconSVG className="w-6 h-6" />
@@ -225,17 +225,17 @@ export default function DashboardPage() {
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-gray-200 hover:bg-gray-200/60 border-b-2 border-gray-300">
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">#</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">#</TableHead>
                             <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Trạng thái</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">Trạng thái</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
                         </TableRow>
                     </TableHeader>
-                    <TableBody className="bg-white/50">
+                    <TableBody className="bg-white">
                         {data?.exports?.slice(0, 3).map((item, index) => (
-                             <TableRow key={item.id} onClick={() => handleRowClick(item, 'export')} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0 group">
+                             <TableRow key={item.id} onClick={() => handleRowClick(item, 'export')} className="hover:bg-gray-100 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0 group">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
-                                <TableCell className="sticky left-0 bg-white/50 group-hover:bg-gray-100/50 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
+                                <TableCell className="sticky left-0 bg-white group-hover:bg-gray-100 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                     <StatusCircle status={item.fields.status} />
                                 </TableCell>
@@ -257,7 +257,7 @@ export default function DashboardPage() {
         </CardFooter>
       </Card>
 
-      <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
+      <Card className="bg-white backdrop-blur-md rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200 border border-white/50">
         <CardHeader className="p-0 mb-4">
             <CardTitle className="flex items-center gap-2 text-xl font-bold text-[#333]">
                 <ShieldCheck className="w-6 h-6" />
@@ -275,17 +275,17 @@ export default function DashboardPage() {
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-gray-200 hover:bg-gray-200/60 border-b-2 border-gray-300">
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">#</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">#</TableHead>
                             <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
-                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Trạng thái</TableHead>
+                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">Trạng thái</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
                         </TableRow>
                     </TableHeader>
-                    <TableBody className="bg-white/50">
+                    <TableBody className="bg-white">
                         {data?.warranties?.slice(0, 3).map((item, index) => (
-                             <TableRow key={item.id} onClick={() => handleRowClick(item, 'warranty')} className="hover:bg-gray-100/50 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0 group">
+                             <TableRow key={item.id} onClick={() => handleRowClick(item, 'warranty')} className="hover:bg-gray-100 cursor-pointer transition duration-200 border-b border-gray-200 last:border-b-0 group">
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</TableCell>
-                                <TableCell className="sticky left-0 bg-white/50 group-hover:bg-gray-100/50 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
+                                <TableCell className="sticky left-0 bg-white group-hover:bg-gray-100 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.fields.name}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                     <StatusCircle status={item.fields.status} />
                                 </TableCell>
@@ -386,5 +386,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
 
     
