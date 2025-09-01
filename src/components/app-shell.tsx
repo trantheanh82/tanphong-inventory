@@ -36,8 +36,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isScanningPage = pathname === '/scanning';
 
   useEffect(() => {
-    if (!loading && !isAuthenticated && !isLoginPage) {
-      router.push('/login');
+    if (!loading) {
+      if (!isAuthenticated && !isLoginPage) {
+        router.push('/login');
+      }
+      if (isAuthenticated && isLoginPage) {
+        router.push('/');
+      }
     }
   }, [loading, isAuthenticated, isLoginPage, router]);
 
