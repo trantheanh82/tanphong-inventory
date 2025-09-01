@@ -213,9 +213,9 @@ export default function ListingPage() {
                     <TableRow className="bg-gray-800 hover:bg-gray-800 border-b-2 border-gray-700">
                         <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider w-[1%]">#</TableHead>
                         <TableHead className="sticky left-0 bg-gray-800 px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Tên phiếu</TableHead>
-                        <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Ngày tạo</TableHead>
                         <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider w-[1%]">Trạng thái</TableHead>
                         <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Số lượng</TableHead>
+                        <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Ngày tạo</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -225,9 +225,6 @@ export default function ListingPage() {
                         {(currentPage - 1) * itemsPerPage + index + 1}
                     </TableCell>
                     <TableCell className="sticky left-0 odd:bg-white even:bg-gray-50 group-hover:bg-gray-100 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{item.fields.name}</TableCell>
-                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
-                      {new Date(item.createdTime).toLocaleDateString('vi-VN')}
-                    </TableCell>
                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         <StatusCircle status={item.fields.status} />
                     </TableCell>
@@ -235,6 +232,9 @@ export default function ListingPage() {
                         <Badge variant={filterType === "import" ? "default" : "secondary"} className={`${getBadgeStyling(filterType)} text-white`}>
                             {filterType === "import" ? `+${getQuantityForRecord(item)}` : Math.abs(getQuantityForRecord(item))}
                         </Badge>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
+                      {new Date(item.createdTime).toLocaleDateString('vi-VN')}
                     </TableCell>
                     </TableRow>
                 ))}
@@ -367,6 +367,8 @@ export default function ListingPage() {
 }
 
     
+    
+
     
 
     

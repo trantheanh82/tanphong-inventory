@@ -179,6 +179,7 @@ export default function DashboardPage() {
                             <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">Trạng thái</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Ngày tạo</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -190,6 +191,7 @@ export default function DashboardPage() {
                                     <StatusCircle status={item.fields.status} />
                                 </TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.total_quantity}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{new Date(item.createdTime).toLocaleDateString('vi-VN')}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -229,6 +231,7 @@ export default function DashboardPage() {
                             <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">Trạng thái</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Ngày tạo</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -240,6 +243,7 @@ export default function DashboardPage() {
                                     <StatusCircle status={item.fields.status} />
                                 </TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.total_quantity}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{new Date(item.createdTime).toLocaleDateString('vi-VN')}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -279,6 +283,7 @@ export default function DashboardPage() {
                             <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên phiếu</TableHead>
                              <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%]">Trạng thái</TableHead>
                             <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Số lượng</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Ngày tạo</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -290,6 +295,7 @@ export default function DashboardPage() {
                                     <StatusCircle status={item.fields.status} />
                                 </TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.total_warranty_note}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{new Date(item.createdTime).toLocaleDateString('vi-VN')}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -388,6 +394,8 @@ export default function DashboardPage() {
 }
 
     
+    
+
     
 
     
