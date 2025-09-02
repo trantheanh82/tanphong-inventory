@@ -21,13 +21,16 @@ interface ScanningState {
 export const useScanningStore = create<ScanningState>((set, get) => ({
   items: [],
   setItems: (items) => set({ items }),
-  incrementScanCount: (id) => {
+  incrementScanCount: (scannedId) => {
     set((state) => ({
-      items: state.items.map((item) =>
-        item.dot === id && item.scanned < item.quantity
-          ? { ...item, scanned: item.scanned + 1 }
-          : item
-      ),
+      items: state.items.map((item) => {
+        // Find item by dot or series and check if not fully scanned
+        const idMatch = item.dot === scannedId || item.series === scannedId;
+        if (idMatch && item.scanned < item.quantity) {
+          return { ...item, scanned: item.scanned + 1 };
+        }
+        return item;
+      }),
     }));
   },
   checkAllScanned: () => {
