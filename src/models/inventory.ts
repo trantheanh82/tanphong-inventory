@@ -40,6 +40,7 @@ export type ImportNote = {
     }[];
     createdAt: string;
     total_import_note: string;
+    scanned: string;
   };
   name: string;
   id: string;
@@ -52,7 +53,7 @@ export type ImportNote = {
 
 export type ImportNoteDetail = {
   fields: {
-    DOT: number;
+    dot: number;
     name: string;
     quantity: number;
     import_note: {
@@ -84,6 +85,7 @@ export type ExportNote = {
     createdAt: string;
     total_export_note: number;
     total_quantity: number;
+    scanned: string;
   };
   name: string;
   id: string;
