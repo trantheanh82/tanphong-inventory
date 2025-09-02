@@ -150,7 +150,7 @@ export default function ExportPage() {
                                     
                                     <FormField
                                         control={form.control}
-                                        name={`items.${index}.type`}
+                                        name={`items.${index}.tire_type`}
                                         render={({ field }) => (
                                             <FormItem className="space-y-3 bg-gray-100/60 p-4 rounded-xl border border-gray-200">
                                                 <FormControl>
@@ -207,7 +207,7 @@ export default function ExportPage() {
                                         />
                                     </div>
 
-                                    {watchedItems?.[index]?.type === 'international' && (
+                                    {watchedItems?.[index]?.tire_type === 'Nước ngoài' && (
                                         <FormField
                                             control={form.control}
                                             name={`items.${index}.series`}
