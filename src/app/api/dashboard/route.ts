@@ -3,8 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
 async function fetchTableData(tableId: string, cookieHeader: string | null, take: number = 5) {
-    const url = `${process.env.API_ENDPOINT}/table/${tableId}/record?take=${take}&
-fieldKeyType=dbFieldName`;
+    const url = new URL(`${process.env.API_ENDPOINT}/table/${tableId}/record`);
+    url.searchParams.append('take', take.toString());
+    url.searchParams.append('fieldKeyType', 'dbFieldName');
+    
+    const orderBy = JSON.stringify([{ fieldId: 'createdAt', order: 'desc' }]);
+    url.searchParams.append('orderBy', orderBy);
+
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
     };
@@ -13,7 +18,7 @@ fieldKeyType=dbFieldName`;
     }
 
     try {
-        const response = await fetch(url, { method: 'GET', headers });
+        const response = await fetch(url.toString(), { method: 'GET', headers });
         if (!response.ok) {
             const errorText = await response.text();
             console.error(`Error fetching data for table ${tableId}:`, errorText);
@@ -38,9 +43,9 @@ export async function GET(request: NextRequest) {
 
     try {
         const [imports, exports, warranties] = await Promise.all([
-            fetchTableData(IMPORT_TBL_ID, cookieHeader, 5),
-            fetchTableData(EXPORT_TBL_ID, cookieHeader, 5),
-            fetchTableData(WARRANTY_TBL_ID, cookieHeader, 5)
+            fetchTableData(IMPORT_TBL_ID, cookieHeader, 3),
+            fetchTableData(EXPORT_TBL_ID, cookieHeader, 3),
+            fetchTableData(WARRANTY_TBL_ID, cookieHeader, 3)
         ]);
         
         return NextResponse.json({ imports, exports, warranties });
