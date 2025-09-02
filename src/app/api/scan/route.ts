@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         case 'export':
             detailTableId = EXPORT_DETAIL_TBL_ID;
             noteLinkField = 'export_note';
-            dotField = 'dot'; // Assuming 'dot' is also used for export, change if different
+            dotField = 'dot';
             break;
         case 'warranty':
             // Logic for warranty scanning can be added here
@@ -86,11 +86,11 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: 'Could not find details for this note.' }, { status: 404 });
         }
 
-        const scannedDot = value; 
-        const targetItem = details.find((item: any) => String(item.fields[dotField!]) === scannedDot);
+        const scannedValue = String(value); 
+        const targetItem = details.find((item: any) => String(item.fields[dotField!]) === scannedValue);
 
         if (!targetItem) {
-            return NextResponse.json({ success: false, message: `DOT ${scannedDot} không có trong phiếu nhận, vui lòng quét lại DOT.` }, { status: 404 });
+            return NextResponse.json({ success: false, message: `DOT ${scannedValue} không có trong phiếu nhận, vui lòng quét lại DOT.` }, { status: 404 });
         }
 
         const currentScanned = targetItem.fields.scanned || 0;
@@ -99,10 +99,10 @@ export async function POST(request: NextRequest) {
         if (currentScanned >= totalQuantity) {
             return NextResponse.json({ 
                 success: true, 
-                message: `Đã quét đủ số lượng cho DOT ${scannedDot}.`,
+                message: `Đã quét đủ số lượng cho DOT ${scannedValue}.`,
                 scanned: currentScanned,
                 total: totalQuantity,
-                dot: scannedDot,
+                dot: scannedValue,
                 isCompleted: true
             });
         }
@@ -120,9 +120,9 @@ export async function POST(request: NextRequest) {
 
         await apiRequest(updateUrl, 'PATCH', cookieHeader, updatePayload);
         
-        let overallMessage = `Đã ghi nhận DOT ${scannedDot}.`;
+        let overallMessage = `Đã ghi nhận DOT ${scannedValue}.`;
         if (newScannedCount === totalQuantity) {
-            overallMessage = `Bạn đã quét đủ số lượng cho DOT ${scannedDot} (${newScannedCount}/${totalQuantity})`;
+            overallMessage = `Bạn đã quét đủ số lượng cho DOT ${scannedValue} (${newScannedCount}/${totalQuantity})`;
         }
 
 
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
             message: overallMessage,
             scanned: newScannedCount,
             total: totalQuantity,
-            dot: scannedDot,
+            dot: scannedValue,
             isCompleted: newScannedCount === totalQuantity,
         });
 
