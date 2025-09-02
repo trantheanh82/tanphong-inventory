@@ -60,10 +60,10 @@ export async function POST(request: NextRequest) {
         case 'import':
             detailTableId = IMPORT_DETAIL_TBL_ID;
             noteLinkField = 'import_note';
-            dotField = 'DOT';
+            dotField = 'dot';
             break;
         case 'export':
-            detailTableId = EXPORT_DETAIL_TBL_ID;
+            detailTableId = EXPORT_DETAIL_TBLE_ID;
             noteLinkField = 'export_note';
             dotField = 'dot';
             break;
