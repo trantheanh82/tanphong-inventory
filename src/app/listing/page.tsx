@@ -145,7 +145,7 @@ export default function ListingPage() {
     }
     
     const getBadgeStyling = (type: "import" | "export" | "warranty" | null) => {
-        if (!type) return "";
+        if (!type) return "bg-gray-500";
         switch(type) {
             case "import": return "bg-blue-500";
             case "export": return "bg-red-500";
@@ -230,7 +230,7 @@ export default function ListingPage() {
                         </div>
                     </TableCell>
                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold">
-                         <Badge variant={filterType === "import" ? "default" : "secondary"} className={`${getBadgeStyling(filterType)} text-white`}>
+                         <Badge variant={"secondary"} className={`${getBadgeStyling(filterType)} text-white`}>
                             {item.fields.scanned || 0} / {getQuantityForRecord(item)}
                         </Badge>
                     </TableCell>
@@ -302,7 +302,7 @@ export default function ListingPage() {
                     </div>
                     <div className="flex justify-between">
                         <span className="font-semibold">Loại:</span>
-                        <Badge variant={filterType === "import" ? "default" : "secondary"} className={`${getBadgeStyling(filterType)} text-white`}>
+                        <Badge variant={"secondary"} className={`${getBadgeStyling(filterType)} text-white`}>
                            {getDialogTypeLabel(filterType)}
                         </Badge>
                     </div>

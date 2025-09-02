@@ -26,17 +26,6 @@ const mapApiDetailToInventoryDetail = (apiDetail: NoteDetailRecord, type: "impor
     };
 };
 
-const TireIconSVG = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 2a4 4 0 0 0-4 4 4 4 0 0 0 8 0 4 4 0 0 0-4-4z" />
-        <path d="M12 2v20" />
-        <path d="M4.93 4.93l14.14 14.14" />
-        <path d="M4.93 19.07L19.07 4.93" />
-        <path d="M2 12h20" />
-    </svg>
-);
-
 const StatusCircle = ({ status }: { status: string }) => {
     const statusColor = {
       "Mới tạo": "bg-gray-400",
@@ -102,7 +91,7 @@ export default function DashboardPage() {
     };
 
     const getBadgeStyling = (type: "import" | "export" | "warranty" | null) => {
-        if (!type) return "";
+        if (!type) return "bg-gray-500";
         switch(type) {
             case "import": return "bg-blue-500";
             case "export": return "bg-red-500";
@@ -159,7 +148,7 @@ export default function DashboardPage() {
       <Card className="bg-white rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200">
         <CardHeader className="p-0 mb-4">
             <CardTitle className="flex items-center gap-2 text-xl font-bold text-[#333]">
-                <TireIconSVG className="w-6 h-6" />
+                <ArrowDownCircle className="w-6 h-6" />
                 <span>Nhập Kho</span>
             </CardTitle>
         </CardHeader>
@@ -174,11 +163,11 @@ export default function DashboardPage() {
                 ) : (
                 <Table>
                     <TableHeader>
-                        <TableRow className="bg-gray-200 hover:bg-gray-200 border-b-2 border-gray-300">
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%] whitespace-nowrap">#</TableHead>
-                            <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Tên phiếu</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Số lượng</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Ngày tạo</TableHead>
+                        <TableRow className="bg-gray-800 hover:bg-gray-800 border-b-2 border-gray-700">
+                            <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">#</TableHead>
+                            <TableHead className="sticky left-0 bg-gray-800 px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">Tên phiếu</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">Số lượng</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">Ngày tạo</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -191,7 +180,11 @@ export default function DashboardPage() {
                                         <span>{item.fields.name}</span>
                                     </div>
                                 </TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.scanned || 0} / {item.fields.total_quantity}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold">
+                                    <Badge variant={"secondary"} className={`${getBadgeStyling('import')} text-white`}>
+                                        {item.fields.scanned || 0} / {getQuantityForRecord(item, 'import')}
+                                    </Badge>
+                                </TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{new Date(item.createdTime).toLocaleDateString('vi-VN')}</TableCell>
                             </TableRow>
                         ))}
@@ -213,7 +206,7 @@ export default function DashboardPage() {
       <Card className="bg-white rounded-xl shadow-lg p-4 transition-transform transform hover:scale-[1.01] duration-200">
         <CardHeader className="p-0 mb-4">
             <CardTitle className="flex items-center gap-2 text-xl font-bold text-[#333]">
-                <TireIconSVG className="w-6 h-6" />
+                <ArrowUpCircle className="w-6 h-6" />
                 <span>Xuất Kho</span>
             </CardTitle>
         </CardHeader>
@@ -227,11 +220,11 @@ export default function DashboardPage() {
                 ) : (
                 <Table>
                     <TableHeader>
-                        <TableRow className="bg-gray-200 hover:bg-gray-200 border-b-2 border-gray-300">
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%] whitespace-nowrap">#</TableHead>
-                            <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Tên phiếu</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Số lượng</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Ngày tạo</TableHead>
+                        <TableRow className="bg-gray-800 hover:bg-gray-800 border-b-2 border-gray-700">
+                            <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">#</TableHead>
+                            <TableHead className="sticky left-0 bg-gray-800 px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">Tên phiếu</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">Số lượng</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">Ngày tạo</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -244,7 +237,11 @@ export default function DashboardPage() {
                                         <span>{item.fields.name}</span>
                                     </div>
                                 </TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.scanned || 0} / {item.fields.total_quantity}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold">
+                                    <Badge variant={"secondary"} className={`${getBadgeStyling('export')} text-white`}>
+                                        {item.fields.scanned || 0} / {getQuantityForRecord(item, 'export')}
+                                    </Badge>
+                                </TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{new Date(item.createdTime).toLocaleDateString('vi-VN')}</TableCell>
                             </TableRow>
                         ))}
@@ -280,11 +277,11 @@ export default function DashboardPage() {
                 ) : (
                 <Table>
                     <TableHeader>
-                        <TableRow className="bg-gray-200 hover:bg-gray-200 border-b-2 border-gray-300">
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-[1%] whitespace-nowrap">#</TableHead>
-                            <TableHead className="sticky left-0 bg-gray-200 px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Tên phiếu</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Số lượng</TableHead>
-                            <TableHead className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Ngày tạo</TableHead>
+                        <TableRow className="bg-gray-800 hover:bg-gray-800 border-b-2 border-gray-700">
+                            <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">#</TableHead>
+                            <TableHead className="sticky left-0 bg-gray-800 px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">Tên phiếu</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">Số lượng</TableHead>
+                            <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">Ngày tạo</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -297,7 +294,11 @@ export default function DashboardPage() {
                                         <span>{item.fields.name}</span>
                                     </div>
                                 </TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.scanned || 0} / {item.fields.total_warranty_note}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold">
+                                    <Badge variant={"secondary"} className={`${getBadgeStyling('warranty')} text-white`}>
+                                        {item.fields.scanned || 0} / {getQuantityForRecord(item, 'warranty')}
+                                    </Badge>
+                                </TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{new Date(item.createdTime).toLocaleDateString('vi-VN')}</TableCell>
                             </TableRow>
                         ))}
@@ -331,7 +332,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex justify-between">
                             <span className="font-semibold">Loại:</span>
-                            <Badge variant={selectedItemType === "import" ? "default" : "secondary"} className={`${getBadgeStyling(selectedItemType)} text-white`}>
+                            <Badge variant={"secondary"} className={`${getBadgeStyling(selectedItemType)} text-white`}>
                             {getDialogTypeLabel(selectedItemType)}
                             </Badge>
                         </div>
