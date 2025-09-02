@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         case 'export':
             detailTableId = EXPORT_DETAIL_TBL_ID;
             noteLinkField = 'export_note';
-            dotField = 'dot';
+            dotField = 'dot'; // Assuming 'dot' is also used for export, change if different
             break;
         case 'warranty':
             // Logic for warranty scanning can be added here
