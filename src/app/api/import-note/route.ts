@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
         const detailRecords = items.map((item: any) => ({
             fields: {
                 import_note: { id: importNoteId },
-                DOT: parseInt(item.dot, 10),
+                dot: parseInt(item.dot, 10),
                 quantity: item.quantity,
             }
         }));
