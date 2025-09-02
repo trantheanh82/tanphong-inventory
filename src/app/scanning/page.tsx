@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Zap, ZapOff, ScanSearch, XCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Zap, ZapOff, ScanSearch, XCircle, CheckCircle, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -124,8 +124,13 @@ export default function ScanningPage() {
     }
   };
 
-  const handleScan = async (valueToScan: string) => {
-    if (isSubmitting) return;
+  const handleScan = async (valueToScan: string | undefined) => {
+    if (isSubmitting || !valueToScan) {
+        if (!valueToScan) {
+             toast({ variant: 'destructive', title: "Lỗi", description: "Không có mã để quét." });
+        }
+        return;
+    };
     setIsSubmitting(true);
     
     try {
@@ -144,9 +149,15 @@ export default function ScanningPage() {
 
       if (result.success) {
         incrementScanCount(result.dot);
+        
+        let toastDescription = `Đã ghi nhận DOT ${result.dot} (${result.scanned}/${result.total})`;
+        if (result.isCompleted) {
+            toastDescription = `Bạn đã quét đủ số lượng cho DOT ${result.dot} (${result.scanned}/${result.total})`
+        }
+
         toast({
           title: "Thành công",
-          description: `Đã ghi nhận DOT ${result.dot} (${result.scanned}/${result.total})`,
+          description: toastDescription,
         });
 
         if (checkAllScanned()) {
@@ -165,6 +176,10 @@ export default function ScanningPage() {
     }
   };
 
+  const getNextItemToScan = (): ScanItem | undefined => {
+    return items.find(item => item.scanned < item.quantity);
+  }
+
   return (
     <div className="relative w-screen h-screen bg-black">
       <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
@@ -181,64 +196,72 @@ export default function ScanningPage() {
       )}
 
       <div className="absolute inset-0 flex flex-col justify-between" style={{background: 'linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.8) 100%)'}}>
-        <div className="flex justify-between p-4">
-            <Button onClick={() => router.back()} variant="ghost" size="icon" className="text-white bg-black/50 hover:bg-black/75 rounded-full">
+        <div className="flex justify-between items-center p-4">
+            <Button onClick={() => router.back()} variant="ghost" size="icon" className="text-white bg-black/50 hover:bg-black/75 rounded-full h-10 w-10">
                 <ArrowLeft className="w-6 h-6" />
             </Button>
             {isFlashSupported && (
-                <Button onClick={toggleFlash} variant="ghost" size="icon" className="text-white bg-black/50 hover:bg-black/75 rounded-full">
+                <Button onClick={toggleFlash} variant="ghost" size="icon" className="text-white bg-black/50 hover:bg-black/75 rounded-full h-10 w-10">
                     {isFlashOn ? <Zap className="w-6 h-6" /> : <ZapOff className="w-6 h-6" />}
                 </Button>
             )}
         </div>
+        
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] max-w-lg h-[20%] border-4 border-white/80 rounded-2xl shadow-lg pointer-events-none flex items-center justify-center">
+             <div className="w-full h-[2px] bg-red-500 animate-pulse" />
+        </div>
 
         <div className="flex-grow flex flex-col justify-end p-4 space-y-4">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] max-w-lg h-[25%] border-4 border-white/80 rounded-2xl shadow-lg pointer-events-none flex items-center justify-center">
-             <div className="w-full h-[2px] bg-red-500 animate-pulse" />
-          </div>
-          
-          <Card className="bg-black/70 backdrop-blur-sm border-white/30 text-white max-h-[45vh] overflow-hidden flex flex-col">
-            <CardHeader className="p-4">
-              <CardTitle className="flex justify-between items-center text-lg">
+          <Card className="bg-black/60 backdrop-blur-sm border-white/30 text-white max-h-[30vh] overflow-hidden flex flex-col">
+            <CardHeader className="p-3">
+              <CardTitle className="flex justify-between items-center text-base">
                 <span>Cần Scan ({items.length} loại)</span>
                 <div className="text-right">
-                  <div className="font-bold">{getTotalProgress().totalScanned} / {getTotalProgress().totalQuantity}</div>
-                  <Progress value={(getTotalProgress().totalScanned / getTotalProgress().totalQuantity) * 100} className="w-24 h-2 mt-1 bg-white/30" />
+                  <div className="font-semibold text-sm">{getTotalProgress().totalScanned} / {getTotalProgress().totalQuantity}</div>
+                  <Progress value={(getTotalProgress().totalScanned / getTotalProgress().totalQuantity) * 100 || 0} className="w-20 h-1.5 mt-1 bg-white/30" />
                 </div>
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 pt-0 overflow-y-auto">
-              <div className="space-y-3">
+            <CardContent className="p-3 pt-0 overflow-y-auto">
+              <div className="space-y-2">
                 {items.map(item => (
-                  <div key={item.id} className="p-3 bg-white/10 rounded-lg">
-                    <div className="flex justify-between items-center">
-                       <p className="font-semibold">{noteType === 'import' ? `DOT: ${item.dot}` : `Series: ${item.series}`}</p>
+                  <div key={item.id} className="p-2 bg-white/10 rounded-md">
+                    <div className="flex justify-between items-center text-sm">
+                       <p className="font-medium">{noteType === 'import' ? `DOT: ${item.dot}` : `Series: ${item.series}`}</p>
                        <div className="flex items-center gap-2">
-                           <span className={`font-bold ${item.scanned === item.quantity ? 'text-green-400' : 'text-yellow-400'}`}>
-                            {item.scanned} / {item.quantity}
+                           <span className={`font-semibold ${item.scanned === item.quantity ? 'text-green-400' : 'text-yellow-400'}`}>
+                            {item.scanned}/{item.quantity}
                            </span>
-                           {item.scanned === item.quantity && <CheckCircle className="w-5 h-5 text-green-400" />}
+                           {item.scanned === item.quantity && <CheckCircle className="w-4 h-4 text-green-400" />}
                        </div>
                     </div>
-                    <Progress value={(item.scanned / item.quantity) * 100} className="h-1.5 mt-1 bg-white/30" />
+                    <Progress value={(item.scanned / item.quantity) * 100} className="h-1 mt-1 bg-white/30" />
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
           
-          {/* Mock Scan Buttons */}
-          <div className="grid grid-cols-2 gap-4">
-              {items.length > 0 && items.find(i => i.scanned < i.quantity) && (
-                <Button onClick={() => handleScan(items.find(i => i.scanned < i.quantity)!.dot!)} className="bg-green-600 hover:bg-green-700 text-white h-14 text-base">
-                  Scan DOT ({items.find(i => i.scanned < i.quantity)!.dot})
-                </Button>
-              )}
-              <Button onClick={() => handleScan('0000')} className="bg-red-600 hover:bg-red-700 text-white h-14 text-base">
-                Scan Sai DOT
+          <div className="flex items-center justify-center gap-4 py-2">
+              <Button 
+                onClick={() => handleScan('0000')} 
+                variant="ghost" 
+                size="icon" 
+                className="h-14 w-14 rounded-full bg-red-500/30 text-red-400 hover:bg-red-500/50 hover:text-red-300"
+              >
+                  <XCircle className="w-8 h-8" />
               </Button>
-          </div>
 
+              <Button
+                onClick={() => handleScan(getNextItemToScan()?.dot)}
+                disabled={isSubmitting}
+                className="h-20 w-20 rounded-full bg-white/90 hover:bg-white text-gray-800 shadow-2xl flex items-center justify-center"
+              >
+                  <Camera className="w-10 h-10" />
+              </Button>
+
+               <div className="w-14 h-14" />
+          </div>
         </div>
       </div>
     </div>
