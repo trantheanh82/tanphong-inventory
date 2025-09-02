@@ -191,7 +191,7 @@ export default function DashboardPage() {
                                         <span>{item.fields.name}</span>
                                     </div>
                                 </TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.total_quantity}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.scanned || 0} / {item.fields.total_quantity}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{new Date(item.createdTime).toLocaleDateString('vi-VN')}</TableCell>
                             </TableRow>
                         ))}
@@ -244,7 +244,7 @@ export default function DashboardPage() {
                                         <span>{item.fields.name}</span>
                                     </div>
                                 </TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.total_quantity}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.scanned || 0} / {item.fields.total_quantity}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{new Date(item.createdTime).toLocaleDateString('vi-VN')}</TableCell>
                             </TableRow>
                         ))}
@@ -297,7 +297,7 @@ export default function DashboardPage() {
                                         <span>{item.fields.name}</span>
                                     </div>
                                 </TableCell>
-                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.total_warranty_note}</TableCell>
+                                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.fields.scanned || 0} / {item.fields.total_warranty_note}</TableCell>
                                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{new Date(item.createdTime).toLocaleDateString('vi-VN')}</TableCell>
                             </TableRow>
                         ))}
@@ -345,7 +345,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex justify-between">
                             <span className="font-semibold">Tổng số lượng:</span>
-                            <span>{selectedItemType && getQuantityForRecord(selectedItem, selectedItemType)}</span>
+                            <span>{selectedItem.fields.scanned || 0} / {selectedItemType && getQuantityForRecord(selectedItem, selectedItemType)}</span>
                         </div>
                         <div className="space-y-2 pt-2">
                             <h4 className="font-semibold text-gray-800">Chi tiết lốp:</h4>

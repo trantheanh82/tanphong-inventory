@@ -211,7 +211,7 @@ export default function ListingPage() {
             <Table>
                 <TableHeader>
                     <TableRow className="bg-gray-800 hover:bg-gray-800 border-b-2 border-gray-700">
-                        <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider w-[1%] whitespace-nowrap">#</TableHead>
+                        <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">#</TableHead>
                         <TableHead className="sticky left-0 bg-gray-800 px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">Tên phiếu</TableHead>
                         <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">Số lượng</TableHead>
                         <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">Ngày tạo</TableHead>
@@ -230,8 +230,8 @@ export default function ListingPage() {
                         </div>
                     </TableCell>
                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold">
-                        <Badge variant={filterType === "import" ? "default" : "secondary"} className={`${getBadgeStyling(filterType)} text-white`}>
-                            {filterType === "import" ? `+${getQuantityForRecord(item)}` : Math.abs(getQuantityForRecord(item))}
+                         <Badge variant={filterType === "import" ? "default" : "secondary"} className={`${getBadgeStyling(filterType)} text-white`}>
+                            {item.fields.scanned || 0} / {getQuantityForRecord(item)}
                         </Badge>
                     </TableCell>
                     <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
@@ -316,7 +316,7 @@ export default function ListingPage() {
                     </div>
                     <div className="flex justify-between">
                         <span className="font-semibold">Tổng số lượng:</span>
-                        <span>{getQuantityForRecord(selectedItem)}</span>
+                        <span>{selectedItem.fields.scanned || 0} / {getQuantityForRecord(selectedItem)}</span>
                     </div>
                     <div className="space-y-2 pt-2">
                         <h4 className="font-semibold text-gray-800">Chi tiết lốp:</h4>
