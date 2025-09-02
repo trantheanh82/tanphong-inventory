@@ -297,28 +297,28 @@ export default function ListingPage() {
                 </DialogHeader>
                 <div className="space-y-2 py-4">
                     <div className="flex">
-                        <span className="font-semibold w-[40%]">Tên Phiếu:</span>
-                        <span className="w-[60%]">{selectedItem.fields.name}</span>
+                        <span className="font-semibold w-1/2">Tên Phiếu:</span>
+                        <span className="w-1/2">{selectedItem.fields.name}</span>
                     </div>
                     <div className="flex items-center">
-                        <span className="font-semibold w-[40%]">Loại:</span>
-                        <div className="w-[60%]">
+                        <span className="font-semibold w-1/2">Loại:</span>
+                        <div className="w-1/2">
                             <Badge variant={"secondary"} className={`${getBadgeStyling(filterType)} text-white`}>
                                {getDialogTypeLabel(filterType)}
                             </Badge>
                         </div>
                     </div>
                     <div className="flex">
-                        <span className="font-semibold w-[40%]">Trạng thái:</span>
-                        <span className="w-[60%]">{selectedItem.fields.status}</span>
+                        <span className="font-semibold w-1/2">Trạng thái:</span>
+                        <span className="w-1/2">{selectedItem.fields.status}</span>
                     </div>
                     <div className="flex">
-                        <span className="font-semibold w-[40%]">Ngày tạo:</span>
-                        <span className="w-[60%]">{new Date(selectedItem.createdTime).toLocaleDateString('vi-VN')}</span>
+                        <span className="font-semibold w-1/2">Ngày tạo:</span>
+                        <span className="w-1/2">{new Date(selectedItem.createdTime).toLocaleDateString('vi-VN')}</span>
                     </div>
                     <div className="flex">
-                        <span className="font-semibold w-[40%]">Tổng số lượng:</span>
-                        <span className="w-[60%]">{selectedItem.fields.scanned || 0} / {getQuantityForRecord(selectedItem)}</span>
+                        <span className="font-semibold w-1/2">Tổng số lượng:</span>
+                        <span className="w-1/2">{selectedItem.fields.scanned || 0} / {getQuantityForRecord(selectedItem)}</span>
                     </div>
                     <div className="space-y-2 pt-2">
                         <h4 className="font-semibold text-gray-800">Chi tiết lốp:</h4>
@@ -368,6 +368,8 @@ export default function ListingPage() {
     </div>
   );
 }
+
+    
 
     
 
