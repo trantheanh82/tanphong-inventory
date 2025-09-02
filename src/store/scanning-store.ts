@@ -25,7 +25,7 @@ export const useScanningStore = create<ScanningState>((set, get) => ({
     set((state) => ({
       items: state.items.map((item) => {
         // Find item by dot or series and check if not fully scanned
-        const idMatch = item.dot === scannedId || item.series === scannedId;
+        const idMatch = String(item.dot) === String(scannedId) || String(item.series) === String(scannedId);
         if (idMatch && item.scanned < item.quantity) {
           return { ...item, scanned: item.scanned + 1 };
         }
