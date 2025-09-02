@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
             dotField = 'dot';
             break;
         case 'export':
-            detailTableId = EXPORT_DETAIL_TBLE_ID;
+            detailTableId = EXPORT_DETAIL_TBL_ID;
             noteLinkField = 'export_note';
             dotField = 'dot';
             break;
