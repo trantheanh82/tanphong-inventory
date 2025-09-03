@@ -24,32 +24,28 @@ const RecognizeDotNumberOutputSchema = z.object({
 });
 export type RecognizeDotNumberOutput = z.infer<typeof RecognizeDotNumberOutputSchema>;
 
+
 export async function recognizeDotNumber(input: RecognizeDotNumberInput): Promise<RecognizeDotNumberOutput> {
-  const recognizeDotFlow = ai.defineFlow(
-    {
-      name: 'recognizeDotFlow',
-      inputSchema: RecognizeDotNumberInputSchema,
-      outputSchema: RecognizeDotNumberOutputSchema,
+  const llmResponse = await ai.generate({
+    model: 'googleai/gemini-1.5-flash-latest',
+    prompt: `From the provided image, identify any 4-digit number. This is a DOT number from a tire. Respond with JSON containing the key "dotNumber" and the 4-digit number as the value. If no 4-digit number is found, return an empty string for the value. Example: {"dotNumber": "4020"}. Image: {{media url=imageDataUri}}`,
+    output: {
+      schema: z.object({
+          dotNumber: z.string().describe("The 4-digit number found in the image."),
+      })
     },
-    async (input) => {
-      const llmResponse = await ai.generate({
-        model: 'googleai/gemini-1.5-flash-latest',
-        prompt: `From the provided image, identify any 4-digit number. This is a DOT number from a tire. Respond with JSON containing the key "dotNumber" and the 4-digit number as the value. If no 4-digit number is found, return an empty string for the value. Example: {"dotNumber": "4020"}. Image: {{media url=imageDataUri}}`,
-        output: {
-          schema: z.object({
-             dotNumber: z.string().describe("The 4-digit number found in the image."),
-          })
-        }
-      });
-      
-      const output = llmResponse.output();
-      if (!output || !output.dotNumber || !/^\d{4}$/.test(output.dotNumber)) {
-        return { dotNumber: undefined };
-      }
-
-      return { dotNumber: output.dotNumber };
+    // Adding a config to enforce JSON output
+    config: {
+        responseMimeType: "application/json",
     }
-  );
+  });
+  
+  const output = llmResponse.output();
+  
+  // Validate the output to ensure it's a 4-digit number.
+  if (!output || !output.dotNumber || !/^\d{4}$/.test(output.dotNumber)) {
+    return { dotNumber: undefined };
+  }
 
-  return await recognizeDotFlow(input);
+  return { dotNumber: output.dotNumber };
 }
