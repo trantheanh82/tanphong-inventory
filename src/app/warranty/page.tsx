@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Camera, LoaderCircle } from 'lucide-react';
+import { Camera, LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -97,14 +97,7 @@ export default function WarrantyScanPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900">
-      <header className="bg-gray-800 text-white p-4 flex items-center shadow-md sticky top-0 z-20">
-        <Button onClick={() => router.back()} variant="ghost" size="icon" className="mr-2">
-          <ArrowLeft className="w-6 h-6" />
-        </Button>
-        <h1 className="text-xl font-bold">Quét Series Bảo Hành</h1>
-      </header>
-      
+    <div className="flex flex-col h-full bg-gray-900">
       <canvas ref={canvasRef} className="hidden"></canvas>
       
       <main className="flex-grow overflow-y-auto flex flex-col">
