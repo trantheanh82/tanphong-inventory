@@ -28,24 +28,21 @@ export type RecognizeDotNumberOutput = z.infer<typeof RecognizeDotNumberOutputSc
 export async function recognizeDotNumber(input: RecognizeDotNumberInput): Promise<RecognizeDotNumberOutput> {
   const llmResponse = await ai.generate({
     model: 'googleai/gemini-1.5-flash-latest',
-    prompt: `From the provided image, identify any 4-digit number. This is a DOT number from a tire. Respond with JSON containing the key "dotNumber" and the 4-digit number as the value. If no 4-digit number is found, return an empty string for the value. Example: {"dotNumber": "4020"}. Image: {{media url=imageDataUri}}`,
-    output: {
-      schema: z.object({
-          dotNumber: z.string().describe("The 4-digit number found in the image."),
-      })
-    },
-    // Adding a config to enforce JSON output
-    config: {
-        responseMimeType: "application/json",
-    }
+    prompt: `From the provided image of a tire, identify the 4-digit DOT number. Respond with only a JSON object containing the key "dotNumber" and the 4-digit number as the string value. If no 4-digit number is found, return an empty string for the value. Example: {"dotNumber": "4020"}. Image: {{media url=imageDataUri}}`,
   });
   
-  const output = llmResponse.output();
-  
-  // Validate the output to ensure it's a 4-digit number.
-  if (!output || !output.dotNumber || !/^\d{4}$/.test(output.dotNumber)) {
+  try {
+    const jsonString = llmResponse.text();
+    const output = JSON.parse(jsonString);
+
+    // Validate the output to ensure it's a 4-digit number.
+    if (output && output.dotNumber && /^\d{4}$/.test(output.dotNumber)) {
+        return { dotNumber: output.dotNumber };
+    }
+  } catch (e) {
+    console.error("Failed to parse JSON from AI response:", e);
     return { dotNumber: undefined };
   }
 
-  return { dotNumber: output.dotNumber };
+  return { dotNumber: undefined };
 }
