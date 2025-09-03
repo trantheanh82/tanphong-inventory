@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
 
     try {
         const aiResult = await recognizeDotNumber({ imageDataUri });
+        console.log('AI Result:', aiResult);
         valueToScan = aiResult.dotNumber;
     } catch (error: any) {
         console.error("AI scanning failed:", error);
