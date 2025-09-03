@@ -80,14 +80,11 @@ export default function WarrantyScanPage() {
         return;
       }
 
-      if (result.success && result.record) {
+      if (result.success) {
         toast({
             title: "Thành công",
-            description: `Đã tìm thấy lốp với series: ${result.record.fields.series}`,
+            description: result.message,
         });
-        // TODO: Redirect to a warranty creation form, passing the record ID
-        console.log("Found record:", result.record);
-        // For now, let's go back to the warranty list
         router.push(`/listing?type=warranty`);
       } else {
         toast({ variant: 'destructive', title: "Thất bại", description: result.message || "Không tìm thấy lốp xe phù hợp." });
