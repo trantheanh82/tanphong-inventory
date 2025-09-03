@@ -363,7 +363,7 @@ export default function ListingPage() {
                     </div>
                 </div>
                 <DialogFooter>
-                    {selectedItem.fields.status !== 'Đã scan đủ' && (
+                    {(selectedItem.fields.scanned || 0) < getQuantityForRecord(selectedItem) && (
                         <Button asChild className="w-full bg-gray-800 hover:bg-gray-900 text-white">
                             <Link href={`/scanning?noteId=${selectedItem.id}&type=${filterType}`}>
                                 <ScanLine className="w-5 h-5 mr-2" />

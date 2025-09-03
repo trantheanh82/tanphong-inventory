@@ -316,7 +316,7 @@ export default function DashboardPage() {
             </Button>
         </CardFooter>
       </Card>
-        {selectedItem && (
+        {selectedItem && selectedItemType && (
             <Dialog open={!!selectedItem} onOpenChange={(isOpen) => !isOpen && handleCloseDialog()}>
                 <DialogContent className="bg-white/80 backdrop-blur-md rounded-xl shadow-lg border-white/50 text-gray-800">
                     <DialogHeader>
@@ -348,7 +348,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex">
                             <span className="font-semibold w-1/2">Tổng số lượng:</span>
-                            <span className="w-1/2">{selectedItem.fields.scanned || 0} / {selectedItemType && getQuantityForRecord(selectedItem, selectedItemType)}</span>
+                            <span className="w-1/2">{selectedItem.fields.scanned || 0} / {getQuantityForRecord(selectedItem, selectedItemType)}</span>
                         </div>
                         <div className="space-y-2 pt-2">
                             <h4 className="font-semibold text-gray-800">Chi tiết lốp:</h4>
@@ -393,7 +393,7 @@ export default function DashboardPage() {
                         </div>
                     </div>
                      <DialogFooter>
-                        {selectedItem.fields.status !== 'Đã scan đủ' && selectedItemType && (
+                        {(selectedItem.fields.scanned || 0) < getQuantityForRecord(selectedItem, selectedItemType) && (
                             <Button asChild className="w-full bg-gray-800 hover:bg-gray-900 text-white">
                                 <Link href={`/scanning?noteId=${selectedItem.id}&type=${selectedItemType}`}>
                                     <ScanLine className="w-5 h-5 mr-2" />
