@@ -44,14 +44,10 @@ async function searchRecordBySeries(series: string, cookieHeader: string | null)
     
     const url = new URL(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`);
     url.searchParams.append('fieldKeyType', 'dbFieldName');
+    url.searchParams.append('search[]', series);
+    url.searchParams.append('search[]', 'series');
+    url.searchParams.append('search[]', 'true');
     
-    const filterObject = {
-        conjunction: 'and',
-        filterSet: [{ fieldId: 'series', operator: 'is', value: series }],
-    };
-    const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
-    url.searchParams.append('filter', filterQuery);
-
     return apiRequest(url.toString(), 'GET', cookieHeader);
 }
 
