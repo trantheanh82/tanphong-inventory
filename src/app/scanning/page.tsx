@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Zap, ZapOff, ScanSearch, XCircle, CheckCircle, Camera } from 'lucide-react';
+import { ArrowLeft, Zap, ZapOff, XCircle, CheckCircle, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -13,6 +13,7 @@ import { Progress } from '@/components/ui/progress';
 
 export default function ScanningPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoTrackRef = useRef<MediaStreamTrack | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isFlashOn, setIsFlashOn] = useState(true);
@@ -58,7 +59,7 @@ export default function ScanningPage() {
         const data = await response.json();
         
         const scanItems: ScanItem[] = data.map((item: any) => ({
-          id: item.fields.dot || item.fields.series,
+          id: item.fields.dot || item.fields.series || item.id,
           dot: item.fields.dot,
           series: item.fields.series,
           quantity: item.fields.quantity,
@@ -124,20 +125,58 @@ export default function ScanningPage() {
     }
   };
 
-  const handleScan = async (valueToScan: string | undefined) => {
-    if (isSubmitting || !valueToScan) {
-        if (!valueToScan) {
-             toast({ variant: 'destructive', title: "Lỗi", description: "Không có mã để quét." });
-        }
+  const handleScan = async () => {
+    if (isSubmitting || !videoRef.current || !canvasRef.current) {
         return;
     };
     setIsSubmitting(true);
     
+    // --- Image Cropping Logic ---
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    if (!context) {
+        setIsSubmitting(false);
+        return;
+    };
+
+    // Dimensions of the video stream
+    const videoWidth = video.videoWidth;
+    const videoHeight = video.videoHeight;
+
+    // Dimensions of the video element on the page
+    const viewWidth = video.clientWidth;
+    const viewHeight = video.clientHeight;
+
+    // Scanning area dimensions relative to the view
+    const scanBoxWidth = viewWidth * 0.85; 
+    const scanBoxHeight = viewHeight * 0.25;
+
+    // Position of the scanning area relative to the view
+    const scanBoxX = (viewWidth - scanBoxWidth) / 2;
+    const scanBoxY = viewHeight * 0.35; // 35% from top
+
+    // Calculate the source rect in the native video resolution
+    const sx = (scanBoxX / viewWidth) * videoWidth;
+    const sy = (scanBoxY / viewHeight) * videoHeight;
+    const sWidth = (scanBoxWidth / viewWidth) * videoWidth;
+    const sHeight = (scanBoxHeight / viewHeight) * videoHeight;
+    
+    // Set canvas size to match the cropped area
+    canvas.width = sWidth;
+    canvas.height = sHeight;
+
+    // Draw the cropped portion of the video onto the canvas
+    context.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
+    
+    const imageDataUri = canvas.toDataURL('image/jpeg', 0.9);
+    // --- End of Image Cropping Logic ---
+
     try {
       const response = await fetch('/api/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ noteId, noteType, value: valueToScan }),
+        body: JSON.stringify({ noteId, noteType, imageDataUri }),
       });
 
       const result = await response.json();
@@ -150,14 +189,9 @@ export default function ScanningPage() {
       if (result.success) {
         incrementScanCount(result.dot);
         
-        let toastDescription = `Đã ghi nhận DOT ${result.dot} (${result.scanned}/${result.total})`;
-        if (result.isCompleted) {
-            toastDescription = `Bạn đã quét đủ số lượng cho DOT ${result.dot} (${result.scanned}/${result.total})`
-        }
-
         toast({
           title: "Thành công",
-          description: toastDescription,
+          description: result.message,
         });
 
         if (checkAllScanned()) {
@@ -166,8 +200,10 @@ export default function ScanningPage() {
                 description: "Bạn đã quét đủ số lượng cho tất cả các mục.",
                 className: "bg-green-500 text-white"
             });
-            router.push(`/listing?type=${noteType}`);
+            setTimeout(() => router.push(`/listing?type=${noteType}`), 1000);
         }
+      } else {
+        toast({ variant: 'destructive', title: "Lỗi", description: result.message });
       }
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
@@ -176,13 +212,10 @@ export default function ScanningPage() {
     }
   };
 
-  const getNextItemToScan = (): ScanItem | undefined => {
-    return items.find(item => item.scanned < item.quantity);
-  }
-
   return (
     <div className="relative w-screen h-screen bg-black">
       <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
+      <canvas ref={canvasRef} className="hidden"></canvas>
       
       {hasCameraPermission === false && (
         <div className="absolute inset-0 flex items-center justify-center p-4 bg-black/80">
@@ -195,7 +228,7 @@ export default function ScanningPage() {
         </div>
       )}
 
-      <div className="absolute inset-0 flex flex-col justify-between" style={{background: 'linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.8) 100%)'}}>
+      <div className="absolute inset-0 flex flex-col justify-between" style={{background: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.8) 100%)'}}>
         <div className="flex justify-between items-center p-4">
             <Button onClick={() => router.back()} variant="ghost" size="icon" className="text-white bg-black/50 hover:bg-black/75 rounded-full h-10 w-10">
                 <ArrowLeft className="w-6 h-6" />
@@ -207,12 +240,15 @@ export default function ScanningPage() {
             )}
         </div>
         
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] max-w-lg h-[20%] border-4 border-white/80 rounded-2xl shadow-lg pointer-events-none flex items-center justify-center">
+        <div className="absolute left-1/2 -translate-x-1/2 w-[85%] h-[25%]" style={{top: '35%', transform: 'translateX(-50%) translateY(-50%)'}}>
+          <div className="w-full h-full border-4 border-white/80 rounded-2xl shadow-lg pointer-events-none flex items-center justify-center">
              <div className="w-full h-[2px] bg-red-500 animate-pulse" />
+          </div>
         </div>
 
+
         <div className="flex-grow flex flex-col justify-end p-4 space-y-4">
-          <Card className="bg-black/60 backdrop-blur-sm border-white/30 text-white max-h-[30vh] overflow-hidden flex flex-col">
+          <Card className="bg-black/70 backdrop-blur-sm border-white/30 text-white max-h-[35vh] overflow-hidden flex flex-col">
             <CardHeader className="p-3">
               <CardTitle className="flex justify-between items-center text-base">
                 <span>Cần Scan ({items.length} loại)</span>
@@ -243,21 +279,18 @@ export default function ScanningPage() {
           </Card>
           
           <div className="flex items-center justify-center gap-4 py-2">
-              <Button 
-                onClick={() => handleScan('0000')} 
-                variant="ghost" 
-                size="icon" 
-                className="h-14 w-14 rounded-full bg-red-500/30 text-red-400 hover:bg-red-500/50 hover:text-red-300"
-              >
-                  <XCircle className="w-8 h-8" />
-              </Button>
+              <div className="w-14 h-14" />
 
               <Button
-                onClick={() => handleScan(getNextItemToScan()?.dot)}
+                onClick={handleScan}
                 disabled={isSubmitting}
-                className="h-20 w-20 rounded-full bg-white/90 hover:bg-white text-gray-800 shadow-2xl flex items-center justify-center"
+                className="h-20 w-20 rounded-full bg-white/90 hover:bg-white text-gray-800 shadow-2xl flex items-center justify-center transition-transform transform active:scale-95 disabled:opacity-50"
               >
-                  <Camera className="w-10 h-10" />
+                  {isSubmitting ? (
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-800"></div>
+                  ) : (
+                    <Camera className="w-10 h-10" />
+                  )}
               </Button>
 
                <div className="w-14 h-14" />
