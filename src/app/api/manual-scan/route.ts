@@ -1,7 +1,8 @@
 
+'use server';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { recognizeDotNumber } from '@/ai/flows/scan-flow';
 
 const API_ENDPOINT = process.env.API_ENDPOINT;
 
@@ -42,30 +43,17 @@ async function fetchNoteDetails(tableId: string, noteId: string, filterField: st
     return apiRequest(url, 'GET', cookieHeader);
 }
 
-
 export async function POST(request: NextRequest) {
     const cookieHeader = cookies().toString();
-    const { noteId, noteType, imageDataUri } = await request.json();
+    const { noteId, noteType, valueToScan } = await request.json();
 
-    if (!noteId || !noteType || !imageDataUri) {
+    if (!noteId || !noteType || !valueToScan) {
         return NextResponse.json({ message: 'Missing required parameters.' }, { status: 400 });
     }
-
-    let valueToScan: string | undefined;
-
-    try {
-        const aiResult = await recognizeDotNumber({ imageDataUri });
-        console.log('AI Result:', aiResult);
-        valueToScan = aiResult.dotNumber;
-    } catch (error: any) {
-        console.error("AI scanning failed:", error);
-        return NextResponse.json({ message: "AI processing failed. Please try again." }, { status: 500 });
-    }
     
-    if (!valueToScan) {
-        return NextResponse.json({ success: false, message: "Không nhận dạng được DOT. Vui lòng thử lại." }, { status: 400 });
+    if (!/^\d{4}$/.test(valueToScan)) {
+         return NextResponse.json({ success: false, message: "DOT phải là 4 chữ số." }, { status: 400 });
     }
-
 
     const { IMPORT_DETAIL_TBL_ID, EXPORT_DETAIL_TBL_ID, WARRANTY_DETAIL_TBL_ID } = process.env;
 
@@ -85,7 +73,6 @@ export async function POST(request: NextRequest) {
             dotField = 'dot';
             break;
         case 'warranty':
-            // Logic for warranty scanning can be added here
             return NextResponse.json({ message: 'Warranty scanning not yet implemented.' }, { status: 400 });
         default:
             return NextResponse.json({ message: 'Invalid note type.' }, { status: 400 });
@@ -106,7 +93,7 @@ export async function POST(request: NextRequest) {
         const targetItem = details.find((item: any) => String(item.fields[dotField!]) === valueToScan);
 
         if (!targetItem) {
-            return NextResponse.json({ success: false, message: `DOT ${valueToScan} không có trong phiếu nhận, vui lòng quét lại DOT.` }, { status: 404 });
+            return NextResponse.json({ success: false, message: `DOT ${valueToScan} không có trong phiếu nhận.` }, { status: 404 });
         }
 
         const currentScanned = targetItem.fields.scanned || 0;
@@ -140,7 +127,6 @@ export async function POST(request: NextRequest) {
         if (newScannedCount === totalQuantity) {
             overallMessage = `Bạn đã quét đủ số lượng cho DOT ${valueToScan} (${newScannedCount}/${totalQuantity})`;
         }
-
 
         return NextResponse.json({
             success: true,
