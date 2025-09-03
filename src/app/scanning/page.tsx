@@ -131,7 +131,6 @@ export default function ScanningPage() {
     };
     setIsSubmitting(true);
     
-    // --- Image Cropping Logic ---
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
@@ -140,37 +139,27 @@ export default function ScanningPage() {
         return;
     };
 
-    // Dimensions of the video stream
     const videoWidth = video.videoWidth;
     const videoHeight = video.videoHeight;
-
-    // Dimensions of the video element on the page
     const viewWidth = video.clientWidth;
     const viewHeight = video.clientHeight;
 
-    // Scanning area dimensions relative to the view
     const scanBoxWidth = viewWidth * 0.85; 
     const scanBoxHeight = viewHeight * 0.25;
-
-    // Position of the scanning area relative to the view
     const scanBoxX = (viewWidth - scanBoxWidth) / 2;
-    const scanBoxY = viewHeight * 0.35; // 35% from top
+    const scanBoxY = (viewHeight - scanBoxHeight) / 2;
 
-    // Calculate the source rect in the native video resolution
     const sx = (scanBoxX / viewWidth) * videoWidth;
     const sy = (scanBoxY / viewHeight) * videoHeight;
     const sWidth = (scanBoxWidth / viewWidth) * videoWidth;
     const sHeight = (scanBoxHeight / viewHeight) * videoHeight;
     
-    // Set canvas size to match the cropped area
     canvas.width = sWidth;
     canvas.height = sHeight;
 
-    // Draw the cropped portion of the video onto the canvas
     context.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
     
-    const imageDataUri = canvas.toDataURL('image/jpeg', 0.9);
-    // --- End of Image Cropping Logic ---
+    const imageDataUri = canvas.toDataURL('image/jpeg', 0.95);
 
     try {
       const response = await fetch('/api/scan', {
@@ -240,7 +229,7 @@ export default function ScanningPage() {
             )}
         </div>
         
-        <div className="absolute left-1/2 -translate-x-1/2 w-[85%] h-[25%]" style={{top: '35%', transform: 'translateX(-50%) translateY(-50%)'}}>
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[85%] h-[25%]">
           <div className="w-full h-full border-4 border-white/80 rounded-2xl shadow-lg pointer-events-none flex items-center justify-center">
              <div className="w-full h-[2px] bg-red-500 animate-pulse" />
           </div>

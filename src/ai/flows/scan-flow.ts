@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI flow for recognizing a 4-digit DOT number from an image.
@@ -28,7 +29,7 @@ export type RecognizeDotNumberOutput = z.infer<typeof RecognizeDotNumberOutputSc
 export async function recognizeDotNumber(input: RecognizeDotNumberInput): Promise<RecognizeDotNumberOutput> {
   const llmResponse = await ai.generate({
     model: 'googleai/gemini-1.5-flash-latest',
-    prompt: `From the provided image of a tire, identify the 4-digit DOT number. The DOT is often inside an oval shape. Respond with only a JSON object containing the key "dotNumber" and the 4-digit number as the string value. If no 4-digit number is found, return an empty string for the value. Example: {"dotNumber": "4020"}. Image: {{media url=imageDataUri}}`,
+    prompt: `From the provided cropped image of a tire, identify the 4-digit DOT number. The DOT is often inside an oval shape. Respond with only a JSON object containing the key "dotNumber" and the 4-digit number as the string value. If no 4-digit number is found, return an empty string for the value. Example: {"dotNumber": "4020"}. Image: {{media url=imageDataUri}}`,
     output: {
       format: 'json',
       schema: RecognizeDotNumberOutputSchema,
@@ -37,7 +38,6 @@ export async function recognizeDotNumber(input: RecognizeDotNumberInput): Promis
   
   const output = llmResponse.output();
 
-  // Validate the output to ensure it's a 4-digit number.
   if (output && output.dotNumber && /^\d{4}$/.test(output.dotNumber)) {
       return { dotNumber: output.dotNumber };
   }
