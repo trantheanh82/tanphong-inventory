@@ -3,3 +3,4 @@
 import './flows/inventory-flow';
 import './flows/auth-flow';
 import './flows/scan-flow';
+import './flows/warranty-scan-flow';

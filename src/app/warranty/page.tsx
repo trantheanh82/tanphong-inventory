@@ -1,116 +1,153 @@
+'use client';
 
-"use client";
-
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { useState } from "react";
-import { ScanLine, ShieldCheck } from "lucide-react";
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { ArrowLeft, Camera, LoaderCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+export default function WarrantyScanPage() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const router = useRouter();
+  const { toast } = useToast();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-const formSchema = z.object({
-  series: z.string().min(1, { message: "Số series là bắt buộc." }),
-  reason: z.string().min(10, { message: "Lý do bảo hành phải có ít nhất 10 ký tự." }),
-});
-
-export default function WarrantyPage() {
-    const { toast } = useToast();
-    const router = useRouter();
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            series: "",
-            reason: "",
-        },
-    });
-
-    async function onSubmit(values: z.infer<typeof formSchema>) {
-        setIsSubmitting(true);
-        console.log(values);
-        // Here you would typically call an API to submit the warranty claim
-        toast({
-            title: "Yêu cầu đã được gửi",
-            description: "Yêu cầu bảo hành của bạn đã được gửi thành công.",
+  // Get camera permission
+  useEffect(() => {
+    const getCameraPermission = async () => {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setHasCameraPermission(false);
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' }
         });
-        router.push('/listing?type=warranty');
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+        setHasCameraPermission(true);
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+      }
+    };
+
+    getCameraPermission();
+    
+    return () => {
+        if(videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => track.stop());
+        }
     }
+  }, []);
 
-    return (
-        <div className="p-4 animate-in fade-in-0 duration-500">
-            <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50">
-                <CardHeader>
-                    <CardTitle className="text-[#333] flex items-center gap-2">
-                        <ShieldCheck className="w-6 h-6" />
-                        <span>Tạo Phiếu Bảo Hành</span>
-                    </CardTitle>
-                    <CardDescription className="text-gray-600">Quét số series và điền lý do để tạo phiếu bảo hành.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                            <div className="relative">
-                                <FormField
-                                    control={form.control}
-                                    name="series"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-gray-800 font-semibold">Số Series</FormLabel>
-                                            <FormControl>
-                                                <div className="flex gap-2">
-                                                    <Input placeholder="Nhập hoặc quét số series" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800 flex-grow" />
-                                                    <Button type="button" size="icon" className="bg-gray-800 hover:bg-gray-900 text-white rounded-xl" onClick={() => router.push('/scanning')}>
-                                                        <ScanLine className="w-5 h-5" />
-                                                    </Button>
-                                                </div>
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
+  const handleScan = async () => {
+    if (!videoRef.current || !canvasRef.current || isSubmitting) return;
 
-                            <FormField
-                                control={form.control}
-                                name="reason"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-gray-800 font-semibold">Lý do bảo hành</FormLabel>
-                                        <FormControl>
-                                            <Textarea placeholder="Mô tả chi tiết lý do bảo hành..." {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800" rows={4} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+    setIsSubmitting(true);
 
-                            <Button 
-                                type="submit" 
-                                disabled={isSubmitting || !form.formState.isValid}
-                                className="w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center space-x-2 shadow-md disabled:bg-gray-600"
-                            >
-                                <ShieldCheck className="w-5 h-5" />
-                                <span>{isSubmitting ? 'Đang gửi...' : 'Gửi Yêu Cầu'}</span>
-                            </Button>
-                        </form>
-                    </Form>
-                </CardContent>
-            </Card>
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+
+    if (!context) {
+        toast({ variant: 'destructive', title: "Lỗi", description: "Không thể xử lý hình ảnh." });
+        setIsSubmitting(false);
+        return;
+    }
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageDataUri = canvas.toDataURL('image/jpeg', 0.9);
+
+    try {
+      const response = await fetch('/api/warranty-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageDataUri }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast({ variant: 'destructive', title: "Lỗi", description: result.message || "Quét thất bại" });
+        return;
+      }
+
+      if (result.success && result.record) {
+        toast({
+            title: "Thành công",
+            description: `Đã tìm thấy lốp với series: ${result.record.fields.series}`,
+        });
+        // TODO: Redirect to a warranty creation form, passing the record ID
+        console.log("Found record:", result.record);
+        // For now, let's go back to the warranty list
+        router.push(`/listing?type=warranty`);
+      } else {
+        toast({ variant: 'destructive', title: "Thất bại", description: result.message || "Không tìm thấy lốp xe phù hợp." });
+      }
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-screen bg-gray-900">
+      <header className="bg-gray-800 text-white p-4 flex items-center shadow-md sticky top-0 z-20">
+        <Button onClick={() => router.back()} variant="ghost" size="icon" className="mr-2">
+          <ArrowLeft className="w-6 h-6" />
+        </Button>
+        <h1 className="text-xl font-bold">Quét Series Bảo Hành</h1>
+      </header>
+      
+      <canvas ref={canvasRef} className="hidden"></canvas>
+      
+      <main className="flex-grow overflow-y-auto flex flex-col">
+        <div className="relative flex-grow w-full bg-black flex items-center justify-center text-white/50">
+             <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
+             <div className="absolute inset-0 bg-black/40"></div>
+             {/* Scanning box overlay */}
+             <div className="absolute w-[95%] h-[30%] border-4 border-dashed border-white/50 rounded-lg animate-pulse"></div>
+
+             {hasCameraPermission === false && (
+                <div className="absolute inset-0 flex items-center justify-center p-4">
+                    <Alert variant="destructive">
+                      <AlertTitle>Camera Access Denied</AlertTitle>
+                      <AlertDescription>
+                        Please enable camera permissions in your browser settings to use this app.
+                      </AlertDescription>
+                    </Alert>
+                </div>
+            )}
+            {hasCameraPermission === null && (
+                 <div className="absolute inset-0 flex items-center justify-center">
+                    <LoaderCircle className="w-12 h-12 text-white animate-spin" />
+                 </div>
+            )}
         </div>
-    );
+      </main>
+
+      <footer className="p-4 flex justify-center sticky bottom-0 z-20">
+        <Button
+          onClick={handleScan}
+          disabled={isSubmitting || hasCameraPermission !== true}
+          className="h-20 w-20 bg-blue-600 text-white rounded-full text-xl font-bold flex items-center justify-center gap-3 hover:bg-blue-700 disabled:bg-gray-500 shadow-lg"
+        >
+          {isSubmitting ? (
+            <LoaderCircle className="w-10 h-10 animate-spin" />
+          ) : (
+            <Camera className="w-10 h-10" />
+          )}
+        </Button>
+      </footer>
+    </div>
+  );
 }
