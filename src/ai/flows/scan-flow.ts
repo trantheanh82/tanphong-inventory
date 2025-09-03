@@ -34,7 +34,7 @@ export async function recognizeDotNumber(input: RecognizeDotNumberInput): Promis
     async (input) => {
       const llmResponse = await ai.generate({
         model: 'googleai/gemini-1.5-flash-latest',
-        prompt: `You are an expert at reading text from images of tires. Your task is to find a 4-digit number in the provided image. This is a DOT number. Respond with only the 4-digit number. If no 4-digit number is found, respond with an empty string. Image: {{media url=imageDataUri}}`,
+        prompt: `From the provided image, identify any 4-digit number. This is a DOT number from a tire. Respond with JSON containing the key "dotNumber" and the 4-digit number as the value. If no 4-digit number is found, return an empty string for the value. Example: {"dotNumber": "4020"}. Image: {{media url=imageDataUri}}`,
         output: {
           schema: z.object({
              dotNumber: z.string().describe("The 4-digit number found in the image."),
