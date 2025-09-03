@@ -1,22 +1,26 @@
+'use client';
 
-"use client";
-
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, CheckCircle, Send } from 'lucide-react';
+import { ArrowLeft, Camera, CheckCircle, LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useScanningStore, ScanItem } from '@/store/scanning-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
+
 
 export default function ScanningPage() {
-  const [inputValue, setInputValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
 
   const noteId = searchParams.get('noteId');
   const noteType = searchParams.get('type');
@@ -30,13 +34,14 @@ export default function ScanningPage() {
     getTotalProgress,
   } = useScanningStore();
 
+  // Reset store on component unmount
   useEffect(() => {
-    // Reset store on component unmount
     return () => {
       reset();
     };
   }, [reset]);
-  
+
+  // Fetch note details
   useEffect(() => {
     if (!noteId || !noteType) {
       toast({
@@ -53,7 +58,7 @@ export default function ScanningPage() {
         const response = await fetch(`/api/note-detail?type=${noteType}&noteId=${noteId}`);
         if (!response.ok) throw new Error('Failed to fetch note details');
         const data = await response.json();
-        
+
         const scanItems: ScanItem[] = data.map((item: any) => ({
           id: item.fields.dot || item.fields.series || item.id,
           dot: item.fields.dot,
@@ -67,36 +72,92 @@ export default function ScanningPage() {
         toast({ variant: 'destructive', title: 'Lỗi', description: 'Không thể tải chi tiết phiếu.' });
       }
     };
-    
+
     fetchNoteDetails();
   }, [noteId, noteType, router, toast, setItems]);
+  
+  // Get camera permission
+  useEffect(() => {
+    const getCameraPermission = async () => {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setHasCameraPermission(false);
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' }
+        });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+        setHasCameraPermission(true);
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+      }
+    };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputValue || isSubmitting) return;
+    getCameraPermission();
+    
+    return () => {
+        // Stop camera stream on cleanup
+        if(videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => track.stop());
+        }
+    }
+  }, []);
+
+  const handleScan = async () => {
+    if (!videoRef.current || !canvasRef.current || isSubmitting) return;
 
     setIsSubmitting(true);
 
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+
+    if (!context) {
+        toast({ variant: 'destructive', title: "Lỗi", description: "Không thể xử lý hình ảnh." });
+        setIsSubmitting(false);
+        return;
+    }
+    
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageDataUri = canvas.toDataURL('image/jpeg', 0.9);
+
     try {
-      const response = await fetch('/api/manual-scan', {
+      const response = await fetch('/api/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ noteId, noteType, valueToScan: inputValue }),
+        body: JSON.stringify({ noteId, noteType, imageDataUri }),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        toast({ variant: 'destructive', title: "Lỗi", description: result.message });
+        toast({ variant: 'destructive', title: "Lỗi", description: result.message || "Quét thất bại" });
         return;
       }
-      
+
       if (result.success) {
+         if (result.warning) {
+            toast({
+                title: "Cảnh báo",
+                description: result.message,
+                className: "bg-yellow-100 border-yellow-500 text-yellow-800"
+            });
+         } else {
+            toast({
+                title: "Thành công",
+                description: result.message,
+            });
+         }
+        
         incrementScanCount(result.dot);
-        toast({
-          title: "Thành công",
-          description: result.message,
-        });
 
         if (checkAllScanned()) {
             toast({
@@ -113,44 +174,74 @@ export default function ScanningPage() {
         toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
     } finally {
         setIsSubmitting(false);
-        setInputValue('');
     }
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-100">
-      <header className="bg-gray-800 text-white p-4 flex items-center shadow-md">
+    <div className="flex flex-col h-full bg-gray-900">
+      <header className="bg-gray-800 text-white p-4 flex items-center shadow-md sticky top-0 z-20">
         <Button onClick={() => router.back()} variant="ghost" size="icon" className="mr-2">
           <ArrowLeft className="w-6 h-6" />
         </Button>
-        <h1 className="text-xl font-bold">Ghi nhận DOT</h1>
+        <h1 className="text-xl font-bold">Quét DOT</h1>
       </header>
+      
+      <canvas ref={canvasRef} className="hidden"></canvas>
+      
+      <main className="flex-grow p-4 overflow-y-auto flex flex-col gap-4">
+        <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center text-white/50">
+             <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
+             <div className="absolute inset-0 bg-black/40"></div>
+             {/* Scanning box overlay */}
+             <div className="absolute w-[80%] h-[30%] border-4 border-dashed border-white/50 rounded-lg animate-pulse"></div>
 
-      <main className="flex-grow p-4 overflow-y-auto">
-        <Card className="bg-white shadow-lg rounded-xl">
+             {hasCameraPermission === false && (
+                <div className="absolute inset-0 flex items-center justify-center p-4">
+                    <Alert variant="destructive">
+                      <AlertTitle>Camera Access Denied</AlertTitle>
+                      <AlertDescription>
+                        Please enable camera permissions in your browser settings to use this app.
+                      </AlertDescription>
+                    </Alert>
+                </div>
+            )}
+            {hasCameraPermission === null && (
+                 <div className="absolute inset-0 flex items-center justify-center">
+                    <LoaderCircle className="w-12 h-12 text-white animate-spin" />
+                 </div>
+            )}
+        </div>
+
+        <Card className="bg-white/10 backdrop-blur-sm shadow-lg rounded-xl border border-white/20">
           <CardHeader>
-            <CardTitle className="flex justify-between items-center text-lg text-gray-800">
+            <CardTitle className="flex justify-between items-center text-lg text-white">
               <span>Cần Ghi Nhận ({items.length} loại)</span>
               <div className="text-right">
-                <div className="font-semibold text-sm text-gray-700">{getTotalProgress().totalScanned} / {getTotalProgress().totalQuantity}</div>
-                <Progress value={(getTotalProgress().totalScanned / getTotalProgress().totalQuantity) * 100 || 0} className="w-24 h-2 mt-1 bg-gray-200" />
+                <div className="font-semibold text-sm text-gray-300">{getTotalProgress().totalScanned} / {getTotalProgress().totalQuantity}</div>
+                <Progress value={(getTotalProgress().totalScanned / getTotalProgress().totalQuantity) * 100 || 0} className="w-24 h-2 mt-1 bg-gray-700" />
               </div>
             </CardTitle>
           </CardHeader>
-          <CardContent className="max-h-[55vh] overflow-y-auto">
+          <CardContent className="max-h-[30vh] overflow-y-auto">
             <div className="space-y-3">
               {items.map(item => (
-                <div key={item.id} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div key={item.id} className={cn(
+                    "p-3 rounded-lg border",
+                    item.scanned === item.quantity ? "bg-green-500/10 border-green-500/30" : "bg-gray-700/20 border-gray-600/50"
+                    )}>
                   <div className="flex justify-between items-center">
-                    <p className="font-semibold text-gray-800">{`DOT: ${item.dot}`}</p>
+                    <p className="font-semibold text-white">{`DOT: ${item.dot}`}</p>
                     <div className="flex items-center gap-2">
-                       <span className={`font-bold text-lg ${item.scanned === item.quantity ? 'text-green-600' : 'text-yellow-600'}`}>
+                       <span className={cn(
+                           "font-bold text-lg",
+                           item.scanned === item.quantity ? 'text-green-400' : 'text-yellow-400'
+                        )}>
                         {item.scanned}/{item.quantity}
                        </span>
-                       {item.scanned === item.quantity && <CheckCircle className="w-5 h-5 text-green-600" />}
+                       {item.scanned === item.quantity && <CheckCircle className="w-5 h-5 text-green-400" />}
                     </div>
                   </div>
-                  <Progress value={(item.scanned / item.quantity) * 100} className="h-1.5 mt-2 bg-gray-200" />
+                  <Progress value={(item.scanned / item.quantity) * 100} className="h-1.5 mt-2 bg-gray-700" />
                 </div>
               ))}
             </div>
@@ -158,31 +249,21 @@ export default function ScanningPage() {
         </Card>
       </main>
 
-      <footer className="bg-white p-4 border-t border-gray-200 shadow-t-lg">
-        <form onSubmit={handleSubmit} className="flex items-center gap-2">
-          <Input
-            type="number"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Nhập 4 chữ số DOT..."
-            className="flex-grow bg-gray-100 border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800"
-            pattern="\d{4}"
-            maxLength={4}
-            required
-          />
-          <Button
-            type="submit"
-            disabled={isSubmitting || !inputValue}
-            size="icon"
-            className="h-10 w-10 bg-gray-800 text-white rounded-lg hover:bg-gray-900 disabled:bg-gray-400"
-          >
-            {isSubmitting ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-            ) : (
-              <Send className="w-5 h-5" />
-            )}
-          </Button>
-        </form>
+      <footer className="p-4 sticky bottom-0 z-20">
+        <Button
+          onClick={handleScan}
+          disabled={isSubmitting || hasCameraPermission !== true}
+          className="w-full h-16 bg-blue-600 text-white rounded-xl text-xl font-bold flex items-center justify-center gap-3 hover:bg-blue-700 disabled:bg-gray-500"
+        >
+          {isSubmitting ? (
+            <LoaderCircle className="w-8 h-8 animate-spin" />
+          ) : (
+            <>
+              <Camera className="w-8 h-8" />
+              <span>Capture DOT</span>
+            </>
+          )}
+        </Button>
       </footer>
     </div>
   );
