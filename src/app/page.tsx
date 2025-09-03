@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardData, RecordItem, InventoryItemDetail } from "@/models/inventory";
 import { cn } from "@/lib/utils";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { NoteDetailRecord } from "@/models/note-detail";
 
@@ -392,19 +392,19 @@ export default function DashboardPage() {
                             </div>
                         </div>
                     </div>
+                     <DialogFooter>
+                        {selectedItem.fields.status !== 'Đã scan đủ' && selectedItemType && (
+                            <Button asChild className="w-full bg-gray-800 hover:bg-gray-900 text-white">
+                                <Link href={`/scanning?noteId=${selectedItem.id}&type=${selectedItemType}`}>
+                                    <ScanLine className="w-5 h-5 mr-2" />
+                                    Tiếp tục quét
+                                </Link>
+                            </Button>
+                        )}
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         )}
     </div>
   );
 }
-
-    
-
-    
-
-    
-
-    
-
-    
