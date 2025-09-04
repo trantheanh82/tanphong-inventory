@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Power, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
@@ -22,7 +22,6 @@ const pageTitles: { [key: string]: string } = {
 export function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [isMounted, setIsMounted] = useState(false);
   const { toast } = useToast();
 
@@ -31,8 +30,12 @@ export function AppHeader() {
   }, []);
 
   const getTitle = () => {
-    if (pathname === '/listing') {
-      const type = searchParams.get('type');
+    // This logic is simplified as we are removing useSearchParams
+    // A more robust solution might involve passing title as a prop from pages
+    // if more dynamic titles are needed.
+    if (pathname.startsWith('/listing')) {
+      const url = new URL(window.location.href);
+      const type = url.searchParams.get('type');
       if (type === 'import') return 'Nhập Kho';
       if (type === 'export') return 'Xuất Kho';
       if (type === 'warranty') return 'Bảo Hành';
@@ -67,6 +70,16 @@ export function AppHeader() {
         });
     }
   };
+  
+  // A temporary solution to get around the build error, as `useSearchParams` is what's causing it.
+  // We'll read from `window.location` directly, but only on the client side.
+  const [clientTitle, setClientTitle] = useState(pageTitles[pathname] || "Kho lốp Tân Phong");
+  useEffect(() => {
+    if (isMounted) {
+      setClientTitle(getTitle());
+    }
+  }, [pathname, isMounted]);
+
 
   return (
     <header className="bg-gray-800/80 backdrop-blur-md text-white p-4 flex items-center justify-between shadow-lg sticky top-0 z-30">
@@ -81,7 +94,7 @@ export function AppHeader() {
         </div>
         
         <h1 className="text-xl font-bold">
-          {title}
+          {isMounted ? clientTitle : (pageTitles[pathname] || "Kho lốp Tân Phong")}
         </h1>
 
         <div className="w-10 flex justify-end">
