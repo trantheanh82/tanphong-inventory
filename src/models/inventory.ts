@@ -142,6 +142,7 @@ export type WarrantyNoteDetail = {
     name: string;
     series: string;
     quantity: number;
+    dot: number;
     quantity_note: {
       id: string;
       title: string;

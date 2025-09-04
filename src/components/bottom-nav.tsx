@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -40,8 +39,8 @@ export function BottomNav() {
     <nav className="w-full bg-white/50 backdrop-blur-md border-t border-white/50 shadow-xl">
         <div className="flex justify-around items-center h-16">
             <BottomNavItem href="/" icon={LayoutGrid} label="Trang chủ" />
-            <BottomNavItem href="/listing?type=export" icon={ArrowUpCircle} label="Xuất" />
             <BottomNavItem href="/listing?type=import" icon={ArrowDownCircle} label="Nhập" />
+            <BottomNavItem href="/listing?type=export" icon={ArrowUpCircle} label="Xuất" />
             <BottomNavItem href="/listing?type=warranty" icon={ShieldCheck} label="Bảo hành" />
             <BottomNavItem href="/profile" icon={CircleUser} label="Cá nhân" />
         </div>
