@@ -8,30 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-
-interface User {
-  id: string;
-  email: string;
-  avatar: string;
-  name: string;
-}
-
-interface Employee {
-  fields: {
-    name: string;
-    username: string;
-    position: string;
-    user: {
-      id: string;
-      email: string;
-      title: string;
-      avatarUrl: string;
-    };
-  };
-  name: string;
-  id: string;
-  createdTime: string;
-}
+import type { User, Employee } from "@/models/user";
 
 export default function ProfilePage() {
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
