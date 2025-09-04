@@ -1,27 +1,31 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { LayoutGrid, ArrowUpCircle, ArrowDownCircle, CircleUser, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
 
 const BottomNavItem = ({ href, icon: Icon, label }: { href: string; icon: React.ElementType; label: string }) => {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  
-  const getIsActive = () => {
-    if (href.startsWith('/listing')) {
-      const type = searchParams.get('type');
-      const hrefType = new URLSearchParams(href.split('?')[1]).get('type');
-      return pathname === '/listing' && type === hrefType;
-    }
-     if (href.startsWith('/warranty') && pathname.startsWith('/warranty')) {
-      return true;
-    }
-    return (href === "/" && pathname === href) || (href !== "/" && pathname.startsWith(href) && !pathname.startsWith('/listing') && !pathname.startsWith('/warranty') );
-  }
+  const [isActive, setIsActive] = useState(false);
 
-  const isActive = getIsActive();
+  useEffect(() => {
+    const checkActive = () => {
+      if (href.startsWith('/listing')) {
+        const params = new URLSearchParams(window.location.search);
+        const type = params.get('type');
+        const hrefType = new URLSearchParams(href.split('?')[1]).get('type');
+        return pathname === '/listing' && type === hrefType;
+      }
+      if (href.startsWith('/warranty') && pathname.startsWith('/warranty')) {
+        return true;
+      }
+      return (href === "/" && pathname === href) || (href !== "/" && pathname.startsWith(href) && !pathname.startsWith('/listing') && !pathname.startsWith('/warranty') );
+    }
+    setIsActive(checkActive());
+  }, [pathname, href]);
+
 
   return (
     <Link href={href} className={cn(
