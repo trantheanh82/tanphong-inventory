@@ -30,15 +30,15 @@ export function AppHeader() {
   }, []);
 
   const getTitle = () => {
-    // This logic is simplified as we are removing useSearchParams
-    // A more robust solution might involve passing title as a prop from pages
-    // if more dynamic titles are needed.
     if (pathname.startsWith('/listing')) {
-      const url = new URL(window.location.href);
-      const type = url.searchParams.get('type');
-      if (type === 'import') return 'Nhập Kho';
-      if (type === 'export') return 'Xuất Kho';
-      if (type === 'warranty') return 'Bảo Hành';
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        const type = url.searchParams.get('type');
+        if (type === 'import') return 'Nhập Kho';
+        if (type === 'export') return 'Xuất Kho';
+        if (type === 'warranty') return 'Bảo Hành';
+      }
+      return "Tồn Kho"; // Fallback title
     }
     return pageTitles[pathname] || "Kho lốp Tân Phong";
   }
@@ -71,13 +71,10 @@ export function AppHeader() {
     }
   };
   
-  // A temporary solution to get around the build error, as `useSearchParams` is what's causing it.
-  // We'll read from `window.location` directly, but only on the client side.
   const [clientTitle, setClientTitle] = useState(pageTitles[pathname] || "Kho lốp Tân Phong");
+
   useEffect(() => {
-    if (isMounted) {
-      setClientTitle(getTitle());
-    }
+    setClientTitle(getTitle());
   }, [pathname, isMounted]);
 
 
