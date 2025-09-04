@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ScanLine, ShieldCheck, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -39,8 +39,7 @@ const StatusCircle = ({ status }: { status: string }) => {
     return <div className={cn("w-3 h-3 rounded-full mr-2 flex-shrink-0", statusColor || "bg-gray-400")} />;
 };
 
-
-export default function ListingPage() {
+function ListingComponent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const filterType = searchParams.get('type') as "import" | "export" | "warranty" | null;
@@ -49,7 +48,7 @@ export default function ListingPage() {
     const [selectedItem, setSelectedItem] = useState<RecordItem | null>(null);
     const [selectedItemDetails, setSelectedItemDetails] = useState<InventoryItemDetail[]>([]);
     const [isFetchingDetails, setIsFetchingDetails] = useState(false);
-    const [searchQuery, setSearchQuery] = useState("");
+    const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || "");
     const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
     const itemsPerPage = 10;
@@ -171,15 +170,6 @@ export default function ListingPage() {
         }
     }
 
-    const getSearchModel = (): 'import_model' | 'export_model' | 'warranty_model' => {
-      switch(filterType) {
-          case 'import': return 'import_model';
-          case 'export': return 'export_model';
-          case 'warranty': return 'warranty_model';
-          default: return 'import_model'; // Default case
-      }
-    }
-
     const getQuantityForRecord = (item: RecordItem) => {
         if (filterType === 'warranty') {
             return item.fields.total_warranty_note || 0;
@@ -195,7 +185,6 @@ export default function ListingPage() {
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
                 placeholder="Tìm kiếm phiếu (tối thiểu 3 ký tự)..."
-                model={getSearchModel()}
             />
         </div>
         <div>
@@ -377,4 +366,12 @@ export default function ListingPage() {
       )}
     </div>
   );
+}
+
+export default function ListingPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <ListingComponent />
+        </Suspense>
+    )
 }

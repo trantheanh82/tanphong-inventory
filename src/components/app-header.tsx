@@ -30,16 +30,6 @@ export function AppHeader() {
   }, []);
 
   const getTitle = () => {
-    if (pathname.startsWith('/listing')) {
-      if (typeof window !== "undefined") {
-        const url = new URL(window.location.href);
-        const type = url.searchParams.get('type');
-        if (type === 'import') return 'Nhập Kho';
-        if (type === 'export') return 'Xuất Kho';
-        if (type === 'warranty') return 'Bảo Hành';
-      }
-      return "Tồn Kho"; // Fallback title
-    }
     return pageTitles[pathname] || "Kho lốp Tân Phong";
   }
 
@@ -71,11 +61,11 @@ export function AppHeader() {
     }
   };
   
-  const [clientTitle, setClientTitle] = useState(pageTitles[pathname] || "Kho lốp Tân Phong");
+  const [clientTitle, setClientTitle] = useState(title);
 
   useEffect(() => {
     setClientTitle(getTitle());
-  }, [pathname, isMounted]);
+  }, [pathname]);
 
 
   return (
@@ -91,7 +81,7 @@ export function AppHeader() {
         </div>
         
         <h1 className="text-xl font-bold">
-          {isMounted ? clientTitle : (pageTitles[pathname] || "Kho lốp Tân Phong")}
+          {isMounted ? clientTitle : title}
         </h1>
 
         <div className="w-10 flex justify-end">

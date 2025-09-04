@@ -8,13 +8,9 @@ interface SearchInputProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   placeholder: string;
-  model: 'import_model' | 'export_model' | 'warranty_model';
 }
 
-export function SearchInput({ searchQuery, setSearchQuery, placeholder, model }: SearchInputProps) {
-  // The 'model' prop is available for future use, e.g., to tailor search logic.
-  // console.log("Current search model:", model);
-
+export function SearchInput({ searchQuery, setSearchQuery, placeholder }: SearchInputProps) {
   return (
     <div className="relative">
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
