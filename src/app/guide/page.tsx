@@ -50,8 +50,8 @@ export default function GuidePage() {
             <Accordion type="single" collapsible value={activeItem} onValueChange={setActiveItem} className="space-y-4">
                 <div ref={sectionRefs['item-1']}>
                     <AccordionItem value="item-1" id="nhap-kho" className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50 px-6">
-                        <AccordionTrigger className="text-xl font-bold text-[#333] hover:no-underline">1. Quy trình Nhập Kho</AccordionTrigger>
-                        <AccordionContent className="text-gray-700 space-y-4">
+                        <AccordionTrigger className="text-lg font-bold text-[#333] hover:no-underline">1. Quy trình Nhập Kho</AccordionTrigger>
+                        <AccordionContent className="text-base text-gray-700 space-y-4">
                             <p>Chức năng này cho phép bạn tạo phiếu nhập kho và ghi nhận số lượng lốp xe được nhập vào kho thông qua việc quét mã DOT.</p>
                             <ol className="list-decimal list-inside space-y-2">
                                 <li>
@@ -80,8 +80,8 @@ export default function GuidePage() {
 
                 <div ref={sectionRefs['item-2']}>
                     <AccordionItem value="item-2" id="xuat-kho" className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50 px-6">
-                        <AccordionTrigger className="text-xl font-bold text-[#333] hover:no-underline">2. Quy trình Xuất Kho</AccordionTrigger>
-                        <AccordionContent className="text-gray-700 space-y-4">
+                        <AccordionTrigger className="text-lg font-bold text-[#333] hover:no-underline">2. Quy trình Xuất Kho</AccordionTrigger>
+                        <AccordionContent className="text-base text-gray-700 space-y-4">
                             <p>Tương tự như nhập kho, chức năng này dùng để ghi nhận lốp xe xuất ra khỏi kho. Đối với lốp "Nước ngoài", cần phải quét cả số series.</p>
                             <ol className="list-decimal list-inside space-y-2">
                                 <li>
@@ -109,8 +109,8 @@ export default function GuidePage() {
 
                 <div ref={sectionRefs['item-3']}>
                     <AccordionItem value="item-3" id="bao-hanh" className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50 px-6">
-                        <AccordionTrigger className="text-xl font-bold text-[#333] hover:no-underline">3. Quy trình Bảo Hành</AccordionTrigger>
-                        <AccordionContent className="text-gray-700 space-y-4">
+                        <AccordionTrigger className="text-lg font-bold text-[#333] hover:no-underline">3. Quy trình Bảo Hành</AccordionTrigger>
+                        <AccordionContent className="text-base text-gray-700 space-y-4">
                             <p>Chức năng này cho phép bạn nhanh chóng tạo phiếu bảo hành bằng cách quét số series của lốp xe đã được xuất bán trước đó.</p>
                             <ol className="list-decimal list-inside space-y-2">
                                 <li>Từ màn hình chính, nhấn vào nút <span className="inline-flex items-center"><ShieldCheck className="w-5 h-5 mx-1"/> <strong>Bảo Hành</strong></span>.</li>
@@ -125,8 +125,8 @@ export default function GuidePage() {
                 
                 <div ref={sectionRefs['item-4']}>
                     <AccordionItem value="item-4" id="quan-ly-phieu" className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50 px-6">
-                        <AccordionTrigger className="text-xl font-bold text-[#333] hover:no-underline">4. Xem và Quản lý các Phiếu</AccordionTrigger>
-                        <AccordionContent className="text-gray-700 space-y-4">
+                        <AccordionTrigger className="text-lg font-bold text-[#333] hover:no-underline">4. Xem và Quản lý các Phiếu</AccordionTrigger>
+                        <AccordionContent className="text-base text-gray-700 space-y-4">
                             <p>Bạn có thể xem lại danh sách các phiếu nhập, xuất, bảo hành và tiếp tục các công việc còn dang dở.</p>
                             <ul className="list-disc list-inside space-y-2">
                             <li><strong>Thanh điều hướng dưới cùng:</strong> Sử dụng các biểu tượng <LayoutGrid className="inline w-4 h-4"/>, <ArrowDownCircle className="inline w-4 h-4"/>, <ArrowUpCircle className="inline w-4 h-4"/>, <ShieldCheck className="inline w-4 h-4"/> để truy cập nhanh danh sách các loại phiếu tương ứng.</li>
@@ -140,8 +140,8 @@ export default function GuidePage() {
                 
                 <div ref={sectionRefs['item-5']}>
                     <AccordionItem value="item-5" id="ca-nhan" className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50 px-6">
-                        <AccordionTrigger className="text-xl font-bold text-[#333] hover:no-underline">5. Quản lý Thông tin Cá nhân</AccordionTrigger>
-                        <AccordionContent className="text-gray-700 space-y-4">
+                        <AccordionTrigger className="text-lg font-bold text-[#333] hover:no-underline">5. Quản lý Thông tin Cá nhân</AccordionTrigger>
+                        <AccordionContent className="text-base text-gray-700 space-y-4">
                             <p>Xem thông tin tài khoản của bạn và thực hiện các thay đổi cần thiết.</p>
                             <ul className="list-disc list-inside space-y-2">
                             <li>Nhấn vào biểu tượng <CircleUser className="inline w-4 h-4"/> ở thanh điều hướng dưới cùng để vào trang cá nhân.</li>
@@ -156,5 +156,7 @@ export default function GuidePage() {
         </div>
     );
 }
+
+    
 
     
