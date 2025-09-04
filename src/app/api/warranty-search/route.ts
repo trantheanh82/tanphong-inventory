@@ -102,15 +102,13 @@ export async function POST(request: NextRequest) {
                 warranty_note: { id: warrantyNoteId },
                 series: seriesNumber,
                 dot: exportDetailRecord.fields.dot,
-                // You might need to add other fields here like quantity, reason, etc.
-                // For now, we'll keep it simple.
                 quantity: 1, // Defaulting to 1 for a warranty claim
             }
         };
 
         const createDetailsPayload = { 
             records: [detailRecord],
-            fieldKeyType: "dbFieldName"
+            fieldKeyType: "dbFieldName" // This was the missing piece
         };
         const createDetailsUrl = `${API_ENDPOINT}/table/${WARRANTY_DETAIL_TBL_ID}/record`;
         await apiRequest(createDetailsUrl, 'POST', cookieHeader, createDetailsPayload);
