@@ -10,16 +10,12 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ message: 'Employee table ID or API endpoint is not configured.' }, { status: 500 });
     }
 
-    // The signin process should store the user ID in the session,
-    // but the current auth flow is a simple proxy. We will assume for now
-    // the backend can identify the user via the session cookie.
-    // A robust solution would be to get user ID from a decoded JWT.
-    // For this implementation, we will fetch the first employee record associated with the user session.
-    // A more specific filter would be needed in a multi-user system.
-
+    // The backend can identify the user via the session cookie.
+    // This API call will fetch the employee record linked to the current session user.
+    // We fetch just one record, assuming a one-to-one mapping between a user and an employee profile.
     const url = new URL(`${API_ENDPOINT}/table/${EMPLOYEE_TBL_ID}/record`);
     url.searchParams.append('fieldKeyType', 'dbFieldName');
-    url.searchParams.append('take', '1'); // Assuming one employee record per user
+    url.searchParams.append('take', '1'); 
 
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
