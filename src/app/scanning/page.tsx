@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Camera, CheckCircle, LoaderCircle, Scan } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 
 
-export default function ScanningPage() {
+function ScanningComponent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const router = useRouter();
@@ -317,4 +317,12 @@ export default function ScanningPage() {
       </footer>
     </div>
   );
+}
+
+export default function ScanningPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <ScanningComponent />
+        </Suspense>
+    )
 }
