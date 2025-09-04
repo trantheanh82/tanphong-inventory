@@ -18,7 +18,7 @@ import { NoteDetailRecord } from "@/models/note-detail";
 
 const mapApiDetailToInventoryDetail = (apiDetail: NoteDetailRecord, type: "import" | "export" | "warranty"): InventoryItemDetail => {
     return {
-        dot: apiDetail.fields.DOT || apiDetail.fields.dot,
+        dot: apiDetail.fields.dot,
         quantity: apiDetail.fields.quantity,
         scanned: apiDetail.fields.scanned || 0,
         series: apiDetail.fields.series,

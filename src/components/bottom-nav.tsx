@@ -13,37 +13,17 @@ const BottomNavItem = ({ href, icon: Icon, label }: { href: string; icon: React.
 
   useEffect(() => {
     const checkActive = () => {
-      // For listing pages, we need to check the query param as well.
       if (href.startsWith('/listing')) {
-        // Since this runs in useEffect, window is available.
         const currentParams = new URLSearchParams(window.location.search);
         const currentType = currentParams.get('type');
-        
         const linkParams = new URLSearchParams(href.split('?')[1] || '');
         const linkType = linkParams.get('type');
-
         return pathname === '/listing' && currentType === linkType;
       }
-      
-      // For other pages, just check the pathname.
       return pathname === href;
     };
 
-    // Set initial state without waiting for hydration for non-listing pages
-    if (!href.startsWith('/listing')) {
-      setIsActive(pathname === href);
-    } else {
-      // For listing pages, we must wait for client-side hydration
-      // to safely access window.location.search
-      setIsActive(checkActive());
-    }
-
-    // A full re-check on pathname change
-    const handlePathChange = () => {
-        setIsActive(checkActive());
-    };
-    handlePathChange();
-
+    setIsActive(checkActive());
   }, [pathname, href]);
 
 
