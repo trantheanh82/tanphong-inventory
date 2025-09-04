@@ -31,11 +31,19 @@ export function LoginForm() {
 
         const result = await response.json();
 
-        if (response.ok) {
+        if (response.ok && result.success) {
             toast({
                 title: 'Đăng nhập thành công',
                 description: "Chào mừng trở lại!",
             });
+            // Store user and employee info in sessionStorage
+            if (result.data?.user) {
+              sessionStorage.setItem('user', JSON.stringify(result.data.user));
+            }
+            if (result.data?.employee) {
+              sessionStorage.setItem('employee', JSON.stringify(result.data.employee));
+            }
+
             sessionStorage.setItem('isLoggedIn', 'true');
             router.push('/');
         } else {
@@ -95,15 +103,6 @@ export function LoginForm() {
                     {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
                 </Button>
             </form>
-            
-            {apiResponse && (
-                <div className="mt-6 p-4 bg-gray-100 rounded-xl border border-gray-200">
-                    <h3 className="font-bold text-lg mb-2">{apiResponse.success ? 'Login Success' : 'Login Error'}</h3>
-                    <pre className="text-sm text-left bg-gray-800 text-white p-3 rounded-lg overflow-x-auto">
-                        <code>{JSON.stringify(apiResponse.data, null, 2)}</code>
-                    </pre>
-                </div>
-            )}
         </CardContent>
     </Card>
   );
