@@ -1,3 +1,4 @@
+
 'use server';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, message: "Không nhận dạng được DOT. Vui lòng thử lại." }, { status: 400 });
     }
 
-    const { IMPORT_DETAIL_TBL_ID, EXPORT_DETAIL_TBL_ID, WARRANTY_DETAIL_TBL_ID } = process.env;
+    const { IMPORT_DETAIL_TBL_ID, EXPORT_DETAIL_TBL_ID } = process.env;
 
     let detailTableId: string | undefined;
     let noteLinkField: string | undefined;
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
             dotField = 'dot';
             break;
         case 'warranty':
-            return NextResponse.json({ message: 'Warranty scanning not yet implemented.' }, { status: 400 });
+             return NextResponse.json({ message: 'Warranty scanning not yet implemented via this endpoint.' }, { status: 400 });
         default:
             return NextResponse.json({ message: 'Invalid note type.' }, { status: 400 });
     }
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
         const targetItem = details.find((item: any) => String(item.fields[dotField!]) === valueToScan);
 
         if (!targetItem) {
-            return NextResponse.json({ success: false, message: `DOT ${valueToScan} không có trong phiếu nhận.` }, { status: 404 });
+            return NextResponse.json({ success: false, message: `DOT ${valueToScan} không có trong phiếu.` }, { status: 404 });
         }
 
         const currentScanned = targetItem.fields.scanned || 0;
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
 
         if (currentScanned >= totalQuantity) {
             return NextResponse.json({ 
-                success: true, // It's not a failure, but a warning state
+                success: true,
                 message: `Đã quét đủ số lượng cho DOT ${valueToScan}.`,
                 scanned: currentScanned,
                 total: totalQuantity,
@@ -119,7 +120,17 @@ export async function POST(request: NextRequest) {
                 warning: true
             });
         }
-
+        
+        // For export of "Nước ngoài" tires, require a series scan next
+        if (noteType === 'export' && targetItem.fields.tire_type === 'Nước ngoài') {
+            return NextResponse.json({
+                success: true,
+                seriesScanRequired: true,
+                dot: valueToScan,
+                message: `DOT ${valueToScan} hợp lệ. Vui lòng quét series lốp.`
+            });
+        }
+        
         const newScannedCount = currentScanned + 1;
 
         const updatePayload = {
@@ -133,8 +144,9 @@ export async function POST(request: NextRequest) {
 
         await apiRequest(updateUrl, 'PATCH', cookieHeader, updatePayload);
         
+        const isCompleted = newScannedCount === totalQuantity;
         let overallMessage = `Đã ghi nhận DOT ${valueToScan} (${newScannedCount}/${totalQuantity})`;
-        if (newScannedCount === totalQuantity) {
+        if (isCompleted) {
             overallMessage = `Bạn đã quét đủ số lượng cho DOT ${valueToScan} (${newScannedCount}/${totalQuantity})`;
         }
 
@@ -144,7 +156,7 @@ export async function POST(request: NextRequest) {
             scanned: newScannedCount,
             total: totalQuantity,
             dot: valueToScan,
-            isCompleted: newScannedCount === totalQuantity,
+            isCompleted: isCompleted,
         });
 
     } catch (error: any) {

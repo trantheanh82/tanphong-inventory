@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Camera, CheckCircle, LoaderCircle } from 'lucide-react';
+import { ArrowLeft, Camera, CheckCircle, LoaderCircle, Scan } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useScanningStore, ScanItem } from '@/store/scanning-store';
@@ -29,7 +30,10 @@ export default function ScanningPage() {
     items,
     setItems,
     incrementScanCount,
+    addSeriesToItem,
     checkAllScanned,
+    activeSeriesScan,
+    setActiveSeriesScan,
     reset,
     getTotalProgress,
   } = useScanningStore();
@@ -65,6 +69,7 @@ export default function ScanningPage() {
           series: item.fields.series,
           quantity: item.fields.quantity,
           scanned: item.fields.scanned || 0,
+          tire_type: item.fields.tire_type
         }));
         setItems(scanItems);
       } catch (error) {
@@ -100,7 +105,6 @@ export default function ScanningPage() {
     getCameraPermission();
     
     return () => {
-        // Stop camera stream on cleanup
         if(videoRef.current && videoRef.current.srcObject) {
             const stream = videoRef.current.srcObject as MediaStream;
             stream.getTracks().forEach(track => track.stop());
@@ -108,82 +112,123 @@ export default function ScanningPage() {
     }
   }, []);
 
+  const captureImage = (): string | null => {
+      if (!videoRef.current || !canvasRef.current) return null;
+
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      if (!context) return null;
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.9);
+  }
+
+  const handleSeriesScan = async (imageDataUri: string) => {
+      if (!activeSeriesScan) return;
+      
+      try {
+          const response = await fetch('/api/scan-series', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ noteId, dot: activeSeriesScan, imageDataUri }),
+          });
+          const result = await response.json();
+
+          if (!response.ok) throw new Error(result.message || "Quét series thất bại");
+
+          if (result.success) {
+              toast({ title: "Thành công", description: result.message });
+              incrementScanCount(result.dot);
+              addSeriesToItem(result.dot, result.series);
+              setActiveSeriesScan(null); // Go back to DOT scanning mode
+              if (checkAllScanned()) {
+                toast({
+                    title: "Hoàn tất",
+                    description: "Bạn đã quét đủ số lượng cho tất cả các mục.",
+                    className: "bg-green-500 text-white"
+                });
+                setTimeout(() => router.push(`/listing?type=${noteType}`), 1000);
+            }
+          } else {
+              toast({ variant: 'destructive', title: "Thất bại", description: result.message });
+          }
+      } catch (error: any) {
+          toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
+      }
+  }
+
+  const handleDotScan = async (imageDataUri: string) => {
+      try {
+          const response = await fetch('/api/scan', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ noteId, noteType, imageDataUri }),
+          });
+
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.message || "Quét thất bại");
+
+          if (result.success) {
+              if (result.seriesScanRequired) {
+                  setActiveSeriesScan(result.dot);
+                  toast({ title: "Bước tiếp theo", description: result.message });
+              } else {
+                  if (result.warning) {
+                      toast({ title: "Cảnh báo", description: result.message, className: "bg-yellow-100 border-yellow-500 text-yellow-800" });
+                  } else {
+                      toast({ title: "Thành công", description: result.message });
+                  }
+                  incrementScanCount(result.dot);
+                  if (checkAllScanned()) {
+                      toast({ title: "Hoàn tất", description: "Bạn đã quét đủ số lượng cho tất cả các mục.", className: "bg-green-500 text-white" });
+                      setTimeout(() => router.push(`/listing?type=${noteType}`), 1000);
+                  }
+              }
+          } else {
+              toast({ variant: 'destructive', title: "Thất bại", description: result.message });
+          }
+      } catch (error: any) {
+          toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
+      }
+  }
+
   const handleScan = async () => {
-    if (!videoRef.current || !canvasRef.current || isSubmitting) return;
+    if (isSubmitting) return;
 
     setIsSubmitting(true);
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-
-    if (!context) {
+    const imageDataUri = captureImage();
+    if (!imageDataUri) {
         toast({ variant: 'destructive', title: "Lỗi", description: "Không thể xử lý hình ảnh." });
         setIsSubmitting(false);
         return;
     }
     
-    // Set canvas dimensions to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imageDataUri = canvas.toDataURL('image/jpeg', 0.9);
-
-    try {
-      const response = await fetch('/api/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ noteId, noteType, imageDataUri }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        toast({ variant: 'destructive', title: "Lỗi", description: result.message || "Quét thất bại" });
-        return;
-      }
-
-      if (result.success) {
-         if (result.warning) {
-            toast({
-                title: "Cảnh báo",
-                description: result.message,
-                className: "bg-yellow-100 border-yellow-500 text-yellow-800"
-            });
-         } else {
-            toast({
-                title: "Thành công",
-                description: result.message,
-            });
-         }
-        
-        incrementScanCount(result.dot);
-
-        if (checkAllScanned()) {
-            toast({
-                title: "Hoàn tất",
-                description: "Bạn đã quét đủ số lượng cho tất cả các mục.",
-                className: "bg-green-500 text-white"
-            });
-            setTimeout(() => router.push(`/listing?type=${noteType}`), 1000);
-        }
-      } else {
-        toast({ variant: 'destructive', title: "Thất bại", description: result.message });
-      }
-    } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
-    } finally {
-        setIsSubmitting(false);
+    if (activeSeriesScan) {
+        await handleSeriesScan(imageDataUri);
+    } else {
+        await handleDotScan(imageDataUri);
     }
+
+    setIsSubmitting(false);
   };
+
+  const getPageTitle = () => {
+      if (activeSeriesScan) return `Quét Series cho DOT ${activeSeriesScan}`;
+      if (noteType === 'import') return 'Quét DOT Nhập Kho';
+      if (noteType === 'export') return 'Quét DOT Xuất Kho';
+      return 'Quét Mã';
+  }
 
   return (
     <div className="flex flex-col h-full bg-gray-900">
       <header className="bg-gray-800 text-white p-4 flex items-center shadow-md sticky top-0 z-20">
-        <Button onClick={() => router.back()} variant="ghost" size="icon" className="mr-2">
+        <Button onClick={() => activeSeriesScan ? setActiveSeriesScan(null) : router.back()} variant="ghost" size="icon" className="mr-2">
           <ArrowLeft className="w-6 h-6" />
         </Button>
-        <h1 className="text-xl font-bold">Quét DOT</h1>
+        <h1 className="text-xl font-bold">{getPageTitle()}</h1>
       </header>
       
       <canvas ref={canvasRef} className="hidden"></canvas>
@@ -193,7 +238,10 @@ export default function ScanningPage() {
              <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
              <div className="absolute inset-0 bg-black/40"></div>
              {/* Scanning box overlay */}
-             <div className="absolute w-[95%] h-[50%] border-4 border-dashed border-white/50 rounded-lg animate-pulse"></div>
+             <div className={cn(
+                "absolute border-4 border-dashed border-white/50 rounded-lg animate-pulse",
+                activeSeriesScan ? "w-[95%] h-[30%]" : "w-[95%] h-[50%]"
+             )}></div>
 
              {hasCameraPermission === false && (
                 <div className="absolute inset-0 flex items-center justify-center p-4">
@@ -227,22 +275,24 @@ export default function ScanningPage() {
                 <div className="space-y-2">
                 {items.map(item => (
                     <div key={item.id} className={cn(
-                        "p-2 rounded-lg border",
-                        item.scanned === item.quantity ? "bg-green-500/10 border-green-500/30" : "bg-gray-700/20 border-gray-600/50"
+                        "p-2 rounded-lg border transition-all",
+                        item.scanned === item.quantity ? "bg-green-500/10 border-green-500/30" : "bg-gray-700/20 border-gray-600/50",
+                        activeSeriesScan === item.dot && "ring-2 ring-blue-500"
                         )}>
-                    <div className="flex justify-between items-center">
-                        <p className="font-semibold text-xs text-white">{`DOT: ${item.dot}`}</p>
-                        <div className="flex items-center gap-2">
-                        <span className={cn(
-                            "font-bold text-sm",
-                            item.scanned === item.quantity ? 'text-green-400' : 'text-yellow-400'
-                            )}>
-                            {item.scanned}/{item.quantity}
-                        </span>
-                        {item.scanned === item.quantity && <CheckCircle className="w-3 h-3 text-green-400" />}
+                        <div className="flex justify-between items-center">
+                            <p className="font-semibold text-xs text-white">{`DOT: ${item.dot}`}</p>
+                            <div className="flex items-center gap-2">
+                            <span className={cn(
+                                "font-bold text-sm",
+                                item.scanned === item.quantity ? 'text-green-400' : 'text-yellow-400'
+                                )}>
+                                {item.scanned}/{item.quantity}
+                            </span>
+                            {item.scanned === item.quantity && <CheckCircle className="w-3 h-3 text-green-400" />}
+                            </div>
                         </div>
-                    </div>
-                    <Progress value={(item.scanned / item.quantity) * 100} className="h-1 mt-1.5 bg-gray-700" />
+                        <Progress value={(item.scanned / item.quantity) * 100} className="h-1 mt-1.5 bg-gray-700" />
+                         {item.series && <p className="text-xs text-gray-400 mt-1 truncate">Series: {item.series}</p>}
                     </div>
                 ))}
                 </div>
@@ -261,7 +311,7 @@ export default function ScanningPage() {
           {isSubmitting ? (
             <LoaderCircle className="w-10 h-10 animate-spin" />
           ) : (
-            <Camera className="w-10 h-10" />
+            activeSeriesScan ? <Scan className="w-10 h-10" /> : <Camera className="w-10 h-10" />
           )}
         </Button>
       </footer>
