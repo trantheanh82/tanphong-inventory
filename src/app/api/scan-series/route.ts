@@ -6,6 +6,7 @@ import { cookies } from 'next/headers';
 import { recognizeSeriesNumber } from '@/ai/flows/warranty-scan-flow';
 
 const API_ENDPOINT = process.env.API_ENDPOINT;
+const EXPORT_TBL_ID = process.env.EXPORT_TBL_ID;
 const EXPORT_DETAIL_TBL_ID = process.env.EXPORT_DETAIL_TBL_ID;
 
 async function apiRequest(url: string, method: string, cookieHeader: string | null, body?: any) {
@@ -54,6 +55,32 @@ async function findExportDetailRecord(noteId: string, dot: string, cookieHeader:
     return response.records?.[0];
 }
 
+async function updateNoteStatusIfCompleted(noteId: string, cookieHeader: string | null) {
+    if (!EXPORT_DETAIL_TBL_ID || !EXPORT_TBL_ID) return;
+    
+    const filterObject = {
+        conjunction: 'and',
+        filterSet: [{ fieldId: 'export_note', operator: 'is', value: noteId }],
+    };
+    const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
+    const detailsUrl = `${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record?filter=${filterQuery}&fieldKeyType=dbFieldName`;
+    const allDetailsResponse = await apiRequest(detailsUrl, 'GET', cookieHeader);
+    const allDetails = allDetailsResponse.records;
+
+    if (!allDetails || allDetails.length === 0) return;
+
+    const allScanned = allDetails.every((item: any) => (item.fields.scanned || 0) >= item.fields.quantity);
+
+    if (allScanned) {
+        const updatePayload = {
+            records: [{ id: noteId, fields: { status: 'Đã scan đủ' } }],
+            fieldKeyType: 'dbFieldName',
+        };
+        const updateUrl = `${API_ENDPOINT}/table/${EXPORT_TBL_ID}/record`;
+        await apiRequest(updateUrl, 'PATCH', cookieHeader, updatePayload);
+    }
+}
+
 
 export async function POST(request: NextRequest) {
     const cookieHeader = cookies().toString();
@@ -68,7 +95,7 @@ export async function POST(request: NextRequest) {
     try {
         seriesNumber = await recognizeSeriesNumber(imageDataUri);
     } catch (aiError) {
-        console.error("AI recognition error:", aiError);
+        console.error("AI recognition error in scan-series:", aiError);
         return NextResponse.json({ success: false, message: 'AI processing failed. Please try again.' }, { status: 500 });
     }
     
@@ -99,25 +126,34 @@ export async function POST(request: NextRequest) {
         }
         
         const newScannedCount = currentScanned + 1;
+        const isItemCompleted = newScannedCount >= totalQuantity;
+
+        const fieldsToUpdate: { scanned: number, series: string, status?: string } = {
+            scanned: newScannedCount,
+            series: targetItem.fields.series ? `${targetItem.fields.series}, ${seriesNumber}` : seriesNumber,
+        };
+
+        if (isItemCompleted) {
+            fieldsToUpdate.status = 'Đã scan đủ';
+        }
         
-        // This is a simplified approach. A robust system would create a new detail record for each unique series.
-        // For now, we update the existing record with the series and increment the scan count.
         const updatePayload = {
-            record: {
-                fields: { 
-                    scanned: newScannedCount,
-                    series: targetItem.fields.series ? `${targetItem.fields.series}, ${seriesNumber}` : seriesNumber
-                },
-            },
+            records: [{
+                id: targetItem.id,
+                fields: fieldsToUpdate,
+            }],
             fieldKeyType: "dbFieldName"
         };
-        const updateUrl = `${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record/${targetItem.id}`;
+        const updateUrl = `${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`;
 
         await apiRequest(updateUrl, 'PATCH', cookieHeader, updatePayload);
 
-        const isCompleted = newScannedCount === totalQuantity;
+        if (isItemCompleted) {
+            await updateNoteStatusIfCompleted(noteId, cookieHeader);
+        }
+
         let overallMessage = `Đã ghi nhận Series ${seriesNumber} cho DOT ${dot}.`;
-        if (isCompleted) {
+        if (isItemCompleted) {
             overallMessage = `Bạn đã quét đủ số lượng cho DOT ${dot}.`;
         }
 
@@ -126,7 +162,7 @@ export async function POST(request: NextRequest) {
             message: overallMessage,
             dot: dot,
             series: seriesNumber,
-            isCompleted: isCompleted,
+            isCompleted: isItemCompleted,
         });
 
     } catch (error: any) {

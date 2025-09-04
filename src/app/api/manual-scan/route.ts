@@ -43,6 +43,33 @@ async function fetchNoteDetails(tableId: string, noteId: string, filterField: st
     return apiRequest(url, 'GET', cookieHeader);
 }
 
+async function updateNoteStatusIfCompleted(noteType: 'import' | 'export', noteId: string, cookieHeader: string | null) {
+    const { IMPORT_TBL_ID, EXPORT_TBL_ID, IMPORT_DETAIL_TBL_ID, EXPORT_DETAIL_TBL_ID } = process.env;
+    
+    const detailTableId = noteType === 'import' ? IMPORT_DETAIL_TBL_ID : EXPORT_DETAIL_TBL_ID;
+    const noteTableId = noteType === 'import' ? IMPORT_TBL_ID : EXPORT_TBL_ID;
+    const noteLinkField = noteType === 'import' ? 'import_note' : 'export_note';
+
+    if (!detailTableId || !noteTableId) return;
+
+    const allDetailsResponse = await fetchNoteDetails(detailTableId, noteId, noteLinkField, cookieHeader);
+    const allDetails = allDetailsResponse.records;
+
+    if (!allDetails || allDetails.length === 0) return;
+
+    const allScanned = allDetails.every((item: any) => (item.fields.scanned || 0) >= item.fields.quantity);
+
+    if (allScanned) {
+        const updatePayload = {
+            records: [{ id: noteId, fields: { status: 'Đã scan đủ' } }],
+            fieldKeyType: 'dbFieldName',
+        };
+        const updateUrl = `${API_ENDPOINT}/table/${noteTableId}/record`;
+        await apiRequest(updateUrl, 'PATCH', cookieHeader, updatePayload);
+    }
+}
+
+
 export async function POST(request: NextRequest) {
     const cookieHeader = cookies().toString();
     const { noteId, noteType, valueToScan } = await request.json();
@@ -55,7 +82,7 @@ export async function POST(request: NextRequest) {
          return NextResponse.json({ success: false, message: "DOT phải là 4 chữ số." }, { status: 400 });
     }
 
-    const { IMPORT_DETAIL_TBL_ID, EXPORT_DETAIL_TBL_ID, WARRANTY_DETAIL_TBL_ID } = process.env;
+    const { IMPORT_DETAIL_TBL_ID, EXPORT_DETAIL_TBL_ID } = process.env;
 
     let detailTableId: string | undefined;
     let noteLinkField: string | undefined;
@@ -111,20 +138,31 @@ export async function POST(request: NextRequest) {
         }
 
         const newScannedCount = currentScanned + 1;
+        const isItemCompleted = newScannedCount >= totalQuantity;
+
+        const fieldsToUpdate: { scanned: number, status?: string } = { scanned: newScannedCount };
+        if (isItemCompleted) {
+            fieldsToUpdate.status = 'Đã scan đủ';
+        }
 
         const updatePayload = {
             records: [{
                 id: targetItem.id,
-                fields: { scanned: newScannedCount },
+                fields: fieldsToUpdate,
             }],
             fieldKeyType: "dbFieldName"
         };
         const updateUrl = `${API_ENDPOINT}/table/${detailTableId}/record`;
 
         await apiRequest(updateUrl, 'PATCH', cookieHeader, updatePayload);
+
+        if (isItemCompleted) {
+            // Check if the whole note is completed
+            await updateNoteStatusIfCompleted(noteType, noteId, cookieHeader);
+        }
         
         let overallMessage = `Đã ghi nhận DOT ${valueToScan} (${newScannedCount}/${totalQuantity})`;
-        if (newScannedCount === totalQuantity) {
+        if (isItemCompleted) {
             overallMessage = `Bạn đã quét đủ số lượng cho DOT ${valueToScan} (${newScannedCount}/${totalQuantity})`;
         }
 
