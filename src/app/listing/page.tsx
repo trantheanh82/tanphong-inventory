@@ -307,7 +307,7 @@ function ListingComponent() {
                     </div>
                     <div className="flex">
                         <span className="font-semibold w-1/2">Tổng số lượng:</span>
-                        <span className="w-1/2">{selectedItem.fields.scanned || 0} / {getQuantityForRecord(selectedItem)}</span>
+                        <span className="w-1/2">{selectedItem.fields.scanned || 0} / {getQuantityForRecord(item)}</span>
                     </div>
                     <div className="space-y-2 pt-2">
                         <h4 className="font-semibold text-gray-800">Chi tiết lốp:</h4>
@@ -352,7 +352,7 @@ function ListingComponent() {
                     </div>
                 </div>
                 <DialogFooter>
-                    {(selectedItem.fields.scanned || 0) < getQuantityForRecord(selectedItem) && (
+                    {(selectedItem.fields.scanned || 0) < getQuantityForRecord(item) && (
                         <Button asChild className="w-full bg-gray-800 hover:bg-gray-900 text-white">
                             <Link href={`/scanning?noteId=${selectedItem.id}&type=${filterType}`}>
                                 <ScanLine className="w-5 h-5 mr-2" />
