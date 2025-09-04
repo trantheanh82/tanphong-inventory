@@ -9,6 +9,8 @@ import { Separator } from "@/components/ui/separator";
 import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { User, Employee } from "@/models/user";
+import Link from "next/link";
+import { BookUser } from "lucide-react";
 
 export default function ProfilePage() {
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
@@ -112,6 +114,12 @@ export default function ProfilePage() {
           </div>
           <Separator className="bg-gray-300" />
           <div className="mt-6 flex flex-col gap-4">
+            <Button asChild variant="outline" className="w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl transition-transform transform hover:scale-105 duration-200 shadow-md">
+                <Link href="/guide">
+                    <BookUser className="w-5 h-5 mr-2" />
+                    Hướng dẫn
+                </Link>
+            </Button>
             <Button disabled className="w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl transition-transform transform hover:scale-105 duration-200 shadow-md disabled:opacity-50">Edit Profile (soon)</Button>
             <Button onClick={() => setIsChangePasswordOpen(true)} variant="outline" className="w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-xl transition-transform transform hover:scale-105 duration-200 shadow-md">Change Password</Button>
           </div>

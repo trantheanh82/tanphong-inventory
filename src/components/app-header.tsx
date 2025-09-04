@@ -16,6 +16,7 @@ const pageTitles: { [key: string]: string } = {
   "/profile": "Thông tin Cá nhân",
   "/warranty": "Quét Bảo Hành",
   "/scanning": "Quét Mã",
+  "/guide": "Hướng Dẫn Sử Dụng",
 };
 
 export function AppHeader() {
