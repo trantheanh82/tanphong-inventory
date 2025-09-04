@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ArrowDownCircle, ArrowUpCircle, ScanLine, ShieldCheck, LayoutGrid, CircleUser } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, ScanLine, ShieldCheck, LayoutGrid, CircleUser, Camera } from "lucide-react";
 
 export default function GuidePage() {
     return (
@@ -47,7 +47,7 @@ export default function GuidePage() {
                                 <strong>Quét Mã DOT:</strong>
                                  <ul className="list-disc list-inside pl-4 mt-1">
                                     <li>Màn hình camera sẽ hiện ra. Đưa camera vào mã DOT trên lốp xe sao cho rõ nét trong khung quét.</li>
-                                    <li>Nhấn nút chụp hình <Camera className="inline w-5 h-5" /> để hệ thống nhận dạng.</li>
+                                    <li>Nhấn nút chụp hình <ScanLine className="inline w-5 h-5" /> để hệ thống nhận dạng.</li>
                                     <li>Hệ thống sẽ tự động ghi nhận số lượng đã quét cho DOT tương ứng.</li>
                                     <li>Tiếp tục quét cho đến khi đủ số lượng của tất cả các loại lốp trong phiếu.</li>
                                 </ul>
@@ -90,7 +90,7 @@ export default function GuidePage() {
                         <ol className="list-decimal list-inside space-y-2">
                             <li>Từ màn hình chính, nhấn vào nút <span className="inline-flex items-center"><ShieldCheck className="w-5 h-5 mx-1"/> <strong>Bảo Hành</strong></span>.</li>
                             <li>Màn hình camera sẽ mở ra. Hướng camera vào số series trên lốp xe.</li>
-                            <li>Nhấn nút chụp hình <Camera className="inline w-5 h-5" />.</li>
+                            <li>Nhấn nút chụp hình <ScanLine className="inline w-5 h-5" />.</li>
                             <li>Hệ thống sẽ tự động tìm kiếm lốp xe dựa trên series trong các phiếu xuất đã có.</li>
                             <li>Nếu tìm thấy, một phiếu bảo hành và chi tiết phiếu bảo hành sẽ được tự động tạo. Nếu không tìm thấy, hệ thống sẽ báo lỗi.</li>
                         </ol>
@@ -126,3 +126,5 @@ export default function GuidePage() {
         </div>
     );
 }
+
+    
