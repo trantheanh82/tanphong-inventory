@@ -108,6 +108,7 @@ export type ExportNoteDetail = {
     tire_type: string;
     series: string;
     status: string;
+    scanned: number;
   };
   name: string;
   id: string;
