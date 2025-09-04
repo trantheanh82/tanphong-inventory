@@ -103,16 +103,15 @@ export async function POST(request: NextRequest) {
         // This is a simplified approach. A robust system would create a new detail record for each unique series.
         // For now, we update the existing record with the series and increment the scan count.
         const updatePayload = {
-            records: [{
-                id: targetItem.id,
+            record: {
                 fields: { 
                     scanned: newScannedCount,
                     series: targetItem.fields.series ? `${targetItem.fields.series}, ${seriesNumber}` : seriesNumber
                 },
-            }],
+            },
             fieldKeyType: "dbFieldName"
         };
-        const updateUrl = `${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`;
+        const updateUrl = `${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record/${targetItem.id}`;
 
         await apiRequest(updateUrl, 'PATCH', cookieHeader, updatePayload);
 
