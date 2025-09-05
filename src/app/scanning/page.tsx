@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Camera, CheckCircle, LoaderCircle, Scan } from 'lucide-react';
+import { ArrowLeft, Camera, CheckCircle, LoaderCircle, Scan, Zap, ZapOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useScanningStore, ScanItem } from '@/store/scanning-store';
@@ -16,11 +16,13 @@ import { cn } from '@/lib/utils';
 function ScanningComponent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [isFlashOn, setIsFlashOn] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const trackRef = useRef<MediaStreamTrack | null>(null);
 
 
   const noteId = searchParams.get('noteId');
@@ -44,6 +46,28 @@ function ScanningComponent() {
       reset();
     };
   }, [reset]);
+  
+  const applyFlash = async (track: MediaStreamTrack, turnOn: boolean) => {
+    try {
+      if (track.getCapabilities().torch) {
+        await track.applyConstraints({
+          advanced: [{ torch: turnOn }],
+        });
+      }
+    } catch (error) {
+      console.error('Error applying flash constraints:', error);
+    }
+  };
+
+  const toggleFlash = () => {
+    if (trackRef.current) {
+        setIsFlashOn(prev => {
+            const newState = !prev;
+            applyFlash(trackRef.current!, newState);
+            return newState;
+        });
+    }
+  };
 
   // Fetch note details
   useEffect(() => {
@@ -95,6 +119,7 @@ function ScanningComponent() {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
+        trackRef.current = stream.getVideoTracks()[0];
         setHasCameraPermission(true);
       } catch (error) {
         console.error('Error accessing camera:', error);
@@ -107,10 +132,22 @@ function ScanningComponent() {
     return () => {
         if(videoRef.current && videoRef.current.srcObject) {
             const stream = videoRef.current.srcObject as MediaStream;
-            stream.getTracks().forEach(track => track.stop());
+            stream.getTracks().forEach(track => {
+                if (track.getCapabilities().torch) {
+                    track.applyConstraints({ advanced: [{ torch: false }]});
+                }
+                track.stop();
+            });
         }
     }
   }, []);
+
+  // Apply flash when permission is granted
+  useEffect(() => {
+      if(hasCameraPermission && trackRef.current){
+        applyFlash(trackRef.current, isFlashOn)
+      }
+  }, [hasCameraPermission, isFlashOn])
 
   const captureImage = (): string | null => {
       if (!videoRef.current || !canvasRef.current) return null;
@@ -224,11 +261,14 @@ function ScanningComponent() {
 
   return (
     <div className="flex flex-col h-full bg-gray-900">
-      <header className="bg-gray-800 text-white p-4 flex items-center shadow-md sticky top-0 z-20">
+      <header className="bg-gray-800 text-white p-4 flex items-center justify-between shadow-md sticky top-0 z-20">
         <Button onClick={() => activeSeriesScan ? setActiveSeriesScan(null) : router.back()} variant="ghost" size="icon" className="mr-2">
           <ArrowLeft className="w-6 h-6" />
         </Button>
         <h1 className="text-xl font-bold">{getPageTitle()}</h1>
+        <Button onClick={toggleFlash} variant="ghost" size="icon" className="ml-2">
+          {isFlashOn ? <Zap className="w-6 h-6" /> : <ZapOff className="w-6 h-6" />}
+        </Button>
       </header>
       
       <canvas ref={canvasRef} className="hidden"></canvas>

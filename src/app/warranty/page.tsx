@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, LoaderCircle } from 'lucide-react';
+import { Camera, LoaderCircle, Zap, ZapOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -10,10 +10,34 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 export default function WarrantyScanPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [isFlashOn, setIsFlashOn] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const trackRef = useRef<MediaStreamTrack | null>(null);
+
+  const applyFlash = async (track: MediaStreamTrack, turnOn: boolean) => {
+    try {
+      if (track.getCapabilities().torch) {
+        await track.applyConstraints({
+          advanced: [{ torch: turnOn }],
+        });
+      }
+    } catch (error) {
+      console.error('Error applying flash constraints:', error);
+    }
+  };
+
+  const toggleFlash = () => {
+    if (trackRef.current) {
+        setIsFlashOn(prev => {
+            const newState = !prev;
+            applyFlash(trackRef.current!, newState);
+            return newState;
+        });
+    }
+  };
 
   // Get camera permission
   useEffect(() => {
@@ -29,6 +53,7 @@ export default function WarrantyScanPage() {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
+        trackRef.current = stream.getVideoTracks()[0];
         setHasCameraPermission(true);
       } catch (error) {
         console.error('Error accessing camera:', error);
@@ -41,10 +66,22 @@ export default function WarrantyScanPage() {
     return () => {
         if(videoRef.current && videoRef.current.srcObject) {
             const stream = videoRef.current.srcObject as MediaStream;
-            stream.getTracks().forEach(track => track.stop());
+            stream.getTracks().forEach(track => {
+                if (track.getCapabilities().torch) {
+                    track.applyConstraints({ advanced: [{ torch: false }]});
+                }
+                track.stop();
+            });
         }
     }
   }, []);
+  
+  // Apply flash when permission is granted
+  useEffect(() => {
+      if(hasCameraPermission && trackRef.current){
+        applyFlash(trackRef.current, isFlashOn)
+      }
+  }, [hasCameraPermission, isFlashOn])
 
   const handleScan = async () => {
     if (!videoRef.current || !canvasRef.current || isSubmitting) return;
@@ -98,6 +135,12 @@ export default function WarrantyScanPage() {
 
   return (
     <div className="flex flex-col h-full bg-gray-900">
+        <header className="bg-gray-800 text-white p-4 flex items-center justify-end shadow-md sticky top-0 z-20">
+            <Button onClick={toggleFlash} variant="ghost" size="icon">
+                {isFlashOn ? <Zap className="w-6 h-6" /> : <ZapOff className="w-6 h-6" />}
+            </Button>
+        </header>
+
       <canvas ref={canvasRef} className="hidden"></canvas>
       
       <main className="flex-grow overflow-y-auto flex flex-col">
