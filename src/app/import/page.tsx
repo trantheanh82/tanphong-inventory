@@ -24,8 +24,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 
 const itemSchema = z.object({
-  dot: z.string().length(2, { message: "DOT phải là 2 chữ số cuối." }).regex(/^\d{2}$/, {
-    message: "DOT phải là 2 chữ số cuối.",
+  dot: z.string().min(1, { message: "DOT là bắt buộc." }).max(2, { message: "DOT tối đa 2 chữ số." }).regex(/^\d{1,2}$/, {
+    message: "DOT chỉ được chứa số.",
   }),
   quantity: z.coerce.number().int().positive({
     message: "Số lượng phải là một số dương.",
@@ -62,7 +62,7 @@ export default function ImportPage() {
 
     const isScanButtonVisible = useMemo(() => {
         if (!watchedItems || watchedItems.length === 0 || !form.getValues('name')) return false;
-        return watchedItems.every(item => item.dot && /^\d{2}$/.test(item.dot) && item.quantity && item.quantity > 0);
+        return watchedItems.every(item => item.dot && /^\d{1,2}$/.test(item.dot) && item.quantity && item.quantity > 0);
     }, [watchedItems, form]);
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -200,3 +200,5 @@ export default function ImportPage() {
         </div>
     );
 }
+
+    
