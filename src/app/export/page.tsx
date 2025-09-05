@@ -25,8 +25,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const itemSchema = z.object({
   tire_type: z.enum(['Nội địa', 'Nước ngoài'], { required_error: "Vui lòng chọn loại."}),
-  dot: z.string().length(4, { message: "DOT phải là 4 chữ số." }).regex(/^\d{4}$/, {
-    message: "DOT phải là 4 chữ số.",
+  dot: z.string().length(2, { message: "DOT phải là 2 chữ số cuối." }).regex(/^\d{2}$/, {
+    message: "DOT phải là 2 chữ số cuối.",
   }),
   quantity: z.coerce.number().int().positive({
     message: "Số lượng phải là một số dương.",
@@ -63,7 +63,7 @@ export default function ExportPage() {
         if (!watchedItems || watchedItems.length === 0) return false;
         return watchedItems.every(item => 
             item.tire_type &&
-            item.dot && /^\d{4}$/.test(item.dot) && 
+            item.dot && /^\d{2}$/.test(item.dot) && 
             item.quantity && item.quantity > 0
         );
     }, [watchedItems]);
@@ -184,7 +184,7 @@ export default function ExportPage() {
                                             name={`items.${index}.dot`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="text-gray-800 font-normal">DOT</FormLabel>
+                                                    <FormLabel className="text-gray-800 font-normal">DOT (2 số cuối)</FormLabel>
                                                     <FormControl>
                                                         <Input type="number" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800"/>
                                                     </FormControl>

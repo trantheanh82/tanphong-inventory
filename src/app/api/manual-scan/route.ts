@@ -78,8 +78,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: 'Missing required parameters.' }, { status: 400 });
     }
     
-    if (!/^\d{4}$/.test(valueToScan)) {
-         return NextResponse.json({ success: false, message: "DOT phải là 4 chữ số." }, { status: 400 });
+    if (!/^\d{2}$/.test(valueToScan)) {
+         return NextResponse.json({ success: false, message: "DOT phải là 2 chữ số." }, { status: 400 });
     }
 
     const { IMPORT_DETAIL_TBL_ID, EXPORT_DETAIL_TBL_ID } = process.env;
