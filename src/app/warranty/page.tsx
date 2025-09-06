@@ -41,13 +41,14 @@ export default function WarrantyScanPage() {
 
   // Get camera permission
   useEffect(() => {
+    let stream: MediaStream | null = null;
     const getCameraPermission = async () => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         setHasCameraPermission(false);
         return;
       }
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
+        stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment' }
         });
         if (videoRef.current) {
@@ -64,15 +65,14 @@ export default function WarrantyScanPage() {
     getCameraPermission();
     
     return () => {
-        if(videoRef.current && videoRef.current.srcObject) {
-            const stream = videoRef.current.srcObject as MediaStream;
-            stream.getTracks().forEach(track => {
-                if (track.getCapabilities().torch) {
-                    track.applyConstraints({ advanced: [{ torch: false }]});
-                }
-                track.stop();
-            });
-        }
+      if (stream) {
+        stream.getTracks().forEach(track => {
+          if (track.getCapabilities().torch) {
+            track.applyConstraints({ advanced: [{ torch: false }]});
+          }
+          track.stop();
+        });
+      }
     }
   }, []);
   
