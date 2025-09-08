@@ -150,18 +150,50 @@ function ScanningComponent() {
   }, [hasCameraPermission, isFlashOn])
 
   const captureImage = (): string | null => {
-      if (!videoRef.current || !canvasRef.current) return null;
+    if (!videoRef.current || !canvasRef.current) return null;
 
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      const context = canvas.getContext('2d');
-      if (!context) return null;
-      
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      return canvas.toDataURL('image/jpeg', 0.9);
-  }
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    if (!context) return null;
+
+    // Dimensions of the video feed
+    const videoWidth = video.videoWidth;
+    const videoHeight = video.videoHeight;
+    
+    // Determine the overlay dimensions based on scanning mode
+    const isSeriesScan = !!activeSeriesScan;
+    const overlayWidthPercent = 0.95; 
+    const overlayHeightPercent = isSeriesScan ? 0.30 : 0.50;
+
+    // Calculate the dimensions of the crop area in pixels
+    const cropWidth = videoWidth * overlayWidthPercent;
+    const cropHeight = videoHeight * overlayHeightPercent;
+
+    // Calculate the top-left corner of the crop area to center it
+    const cropX = (videoWidth - cropWidth) / 2;
+    const cropY = (videoHeight - cropHeight) / 2;
+    
+    // Set canvas size to the size of the cropped area
+    canvas.width = cropWidth;
+    canvas.height = cropHeight;
+
+    // Draw the cropped portion of the video onto the canvas
+    context.drawImage(
+        video,
+        cropX,       // The x-coordinate where to start clipping from the video
+        cropY,       // The y-coordinate where to start clipping from the video
+        cropWidth,   // The width of the clipped image
+        cropHeight,  // The height of the clipped image
+        0,           // The x-coordinate where to place the image on the canvas
+        0,           // The y-coordinate where to place the image on the canvas
+        cropWidth,   // The width of the image to use (stretch or reduce the image)
+        cropHeight   // The height of the image to use
+    );
+
+    // Return the cropped image as a data URI with reduced quality
+    return canvas.toDataURL('image/jpeg', 0.8);
+}
 
   const handleSeriesScan = async (imageDataUri: string) => {
       if (!activeSeriesScan) return;

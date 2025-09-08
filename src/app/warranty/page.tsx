@@ -98,10 +98,34 @@ export default function WarrantyScanPage() {
         return;
     }
     
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imageDataUri = canvas.toDataURL('image/jpeg', 0.9);
+    // Dimensions of the video feed
+    const videoWidth = video.videoWidth;
+    const videoHeight = video.videoHeight;
+    
+    // Overlay dimensions (95% width, 30% height)
+    const overlayWidthPercent = 0.95; 
+    const overlayHeightPercent = 0.30;
+
+    // Calculate the dimensions of the crop area in pixels
+    const cropWidth = videoWidth * overlayWidthPercent;
+    const cropHeight = videoHeight * overlayHeightPercent;
+
+    // Calculate the top-left corner of the crop area to center it
+    const cropX = (videoWidth - cropWidth) / 2;
+    const cropY = (videoHeight - cropHeight) / 2;
+    
+    // Set canvas size to the size of the cropped area
+    canvas.width = cropWidth;
+    canvas.height = cropHeight;
+
+    // Draw the cropped portion of the video onto the canvas
+    context.drawImage(
+        video,
+        cropX, cropY, cropWidth, cropHeight, // Source rectangle
+        0, 0, cropWidth, cropHeight           // Destination rectangle
+    );
+    
+    const imageDataUri = canvas.toDataURL('image/jpeg', 0.8);
 
     try {
       const response = await fetch('/api/warranty-search', {
