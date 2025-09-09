@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { AppHeader } from '@/components/app-header';
 import { BottomNav } from '@/components/bottom-nav';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PwaUpdater } from './pwa-updater';
 
 // Mock authentication check
 const useAuth = () => {
@@ -49,6 +50,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="relative min-h-screen font-sans overflow-hidden">
             <div className="relative bg-white/30 backdrop-blur-md w-full h-screen overflow-hidden flex flex-col shadow-2xl z-10 justify-center">
                 {children}
+                 <PwaUpdater />
             </div>
         </div>
     );
@@ -90,6 +92,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
         {!isLoginPage && <BottomNav />}
       </div>
+       <PwaUpdater />
     </div>
   );
 }
