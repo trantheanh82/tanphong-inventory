@@ -6,6 +6,8 @@ import { cookies } from 'next/headers';
 
 const API_ENDPOINT = process.env.API_ENDPOINT;
 const WARRANTY_TBL_ID = process.env.WARRANTY_TBL_ID;
+const WARRANTY_DETAIL_TBL_ID = process.env.WARRANTY_DETAIL_TBL_ID;
+
 
 async function apiRequest(url: string, method: string, cookieHeader: string | null, body?: any) {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -43,17 +45,16 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: 'Invalid request body. Name and a positive quantity are required.' }, { status: 400 });
     }
     
-    if (!WARRANTY_TBL_ID) {
-        return NextResponse.json({ message: 'Warranty table is not configured in the environment.' }, { status: 500 });
+    if (!WARRANTY_TBL_ID || !WARRANTY_DETAIL_TBL_ID) {
+        return NextResponse.json({ message: 'Warranty tables are not configured in the environment.' }, { status: 500 });
     }
 
     try {
-        // Create Warranty Note with a total quantity, but no details yet.
+        // 1. Create the parent Warranty Note
         const createNotePayload = {
             records: [{ 
                 fields: { 
-                    name: name,
-                    total_warranty_note: quantity // Using this field to store expected quantity
+                    name: name
                 } 
             }],
             fieldKeyType: "dbFieldName"
@@ -66,6 +67,23 @@ export async function POST(request: NextRequest) {
             throw new Error('Failed to create warranty note or get its ID.');
         }
         const warrantyNoteId = noteRecord.id;
+
+        // 2. Create the child Warranty Note Detail records
+        const detailRecords = Array.from({ length: quantity }, () => ({
+            fields: {
+                warranty_note: { id: warrantyNoteId },
+                quantity: 1
+            }
+        }));
+
+        const createDetailsPayload = { 
+            records: detailRecords,
+            fieldKeyType: "dbFieldName"
+        };
+        const createDetailsUrl = `${API_ENDPOINT}/table/${WARRANTY_DETAIL_TBL_ID}/record`;
+
+        await apiRequest(createDetailsUrl, 'POST', createDetailsPayload, cookieHeader);
+
         
         return NextResponse.json({
             success: true,

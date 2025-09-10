@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 
 export interface ScanItem {
-  id: string; // DOT or Series
+  id: string; // DOT or Series or record ID
   dot?: string;
   series?: string;
   quantity: number;
@@ -16,6 +16,7 @@ interface ScanningState {
   setItems: (items: ScanItem[]) => void;
   addOrUpdateItem: (item: ScanItem) => void;
   incrementScanCount: (id: string) => void;
+  updateItemWithScan: (recordId: string, series: string, dot: string) => void;
   addSeriesToItem: (dot: string, series: string) => void;
   setActiveSeriesScan: (dot: string | null) => void;
   checkAllScanned: () => boolean;
@@ -43,6 +44,16 @@ export const useScanningStore = create<ScanningState>((set, get) => ({
         return { items: [...state.items, newItem] };
       }
     });
+  },
+
+  updateItemWithScan: (recordId, series, dot) => {
+    set((state) => ({
+      items: state.items.map((item) =>
+        item.id === recordId
+          ? { ...item, series, dot, scanned: 1 }
+          : item
+      ),
+    }));
   },
   
   incrementScanCount: (scannedId) => {

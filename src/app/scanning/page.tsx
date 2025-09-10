@@ -34,6 +34,7 @@ function ScanningComponent() {
     items,
     setItems,
     addOrUpdateItem,
+    updateItemWithScan,
     incrementScanCount,
     addSeriesToItem,
     checkAllScanned,
@@ -95,11 +96,11 @@ function ScanningComponent() {
         const data = await response.json();
 
         const scanItems: ScanItem[] = data.map((item: any) => ({
-          id: item.fields.dot || item.fields.series || item.id,
+          id: item.id,
           dot: item.fields.dot,
           series: item.fields.series,
-          quantity: item.fields.quantity,
-          scanned: item.fields.scanned || 0,
+          quantity: item.fields.quantity || 1,
+          scanned: (item.fields.series || item.fields.dot) ? 1 : 0,
           tire_type: item.fields.tire_type
         }));
         setItems(scanItems);
@@ -265,13 +266,7 @@ function ScanningComponent() {
       
       if (result.success) {
         toast({ title: 'Thành công', description: result.message });
-        addOrUpdateItem({
-            id: result.series,
-            dot: result.dot,
-            series: result.series,
-            quantity: 1,
-            scanned: 1,
-        });
+        updateItemWithScan(result.updatedRecordId, result.series, result.dot);
         setManualInputValue(""); // Clear input on success
         if (checkAllScanned()) {
           toast({ title: 'Hoàn tất', description: 'Bạn đã quét đủ số lượng cho tất cả các mục.', className: 'bg-green-500 text-white' });
@@ -406,7 +401,7 @@ function ScanningComponent() {
                             )}>
                             <div className="flex justify-between items-center">
                                 <p className="font-semibold text-xs text-white">
-                                    {noteType === 'warranty' ? `Series: ${item.series}` : `DOT: ${item.dot}`}
+                                    {noteType === 'warranty' ? `Series: ${item.series || '...'}` : `DOT: ${item.dot}`}
                                 </p>
                                 <div className="flex items-center gap-2">
                                 <span className={cn(
