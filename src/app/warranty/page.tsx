@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -50,7 +51,13 @@ export default function WarrantyPage() {
                 body: JSON.stringify(values),
             });
 
-            const result = await response.json();
+            const responseText = await response.text();
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (error) {
+                result = { message: responseText };
+            }
 
             if (response.ok && result.success) {
                 toast({
