@@ -17,14 +17,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 
 const itemSchema = z.object({
   series: z.string().min(1, { message: "Series là bắt buộc." }),
-  reason: z.string().min(1, { message: "Lý do là bắt buộc." }),
 });
 
 const formSchema = z.object({
@@ -41,7 +39,7 @@ export default function WarrantyPage() {
         resolver: zodResolver(formSchema),
         defaultValues: {
             name: "",
-            items: [{ series: "", reason: "" }],
+            items: [{ series: "" }],
         },
     });
 
@@ -132,19 +130,6 @@ export default function WarrantyPage() {
                                             </FormItem>
                                         )}
                                     />
-                                     <FormField
-                                        control={form.control}
-                                        name={`items.${index}.reason`}
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-gray-800 font-normal">Lý do bảo hành</FormLabel>
-                                                <FormControl>
-                                                    <Textarea placeholder="Mô tả lý do..." {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800" />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
                                 </div>
                             ))}
 
@@ -152,7 +137,7 @@ export default function WarrantyPage() {
                                 <Button 
                                     type="button" 
                                     variant="ghost"
-                                    onClick={() => append({ series: "", reason: "" })}
+                                    onClick={() => append({ series: "" })}
                                     className="text-gray-800 font-semibold py-3 px-6 rounded-xl flex items-center justify-center space-x-2"
                                 >
                                     <PlusCircle className="w-5 h-5" />

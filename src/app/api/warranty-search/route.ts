@@ -11,7 +11,6 @@ const WARRANTY_DETAIL_TBL_ID = process.env.WARRANTY_DETAIL_TBL_ID;
 
 type WarrantyItem = {
     series: string;
-    reason: string;
 };
 
 async function apiRequest(url: string, method: string, cookieHeader: string | null, body?: any) {
@@ -96,7 +95,6 @@ export async function POST(request: NextRequest) {
                 fields: {
                     warranty_note: { id: warrantyNoteId },
                     series: item.series,
-                    reason: item.reason,
                     dot: exportDetailRecord.fields.dot,
                     quantity: 1, // Defaulting to 1 for a warranty claim
                 }
