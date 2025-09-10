@@ -1,15 +1,16 @@
 
 'use client';
 
-import { useEffect, useState, useRef, Suspense } from 'react';
+import { useEffect, useState, useRef, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Camera, CheckCircle, LoaderCircle, Scan, Zap, ZapOff } from 'lucide-react';
+import { ArrowLeft, Camera, CheckCircle, LoaderCircle, Scan, Zap, ZapOff, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useScanningStore, ScanItem } from '@/store/scanning-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 
@@ -17,6 +18,7 @@ function ScanningComponent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isFlashOn, setIsFlashOn] = useState(true);
+  const [manualInputValue, setManualInputValue] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -26,11 +28,12 @@ function ScanningComponent() {
 
 
   const noteId = searchParams.get('noteId');
-  const noteType = searchParams.get('type');
+  const noteType = searchParams.get('type') as 'import' | 'export' | 'warranty';
 
   const {
     items,
     setItems,
+    addOrUpdateItem,
     incrementScanCount,
     addSeriesToItem,
     checkAllScanned,
@@ -44,10 +47,14 @@ function ScanningComponent() {
   useEffect(() => {
     return () => {
       reset();
+      // Ensure flash is off when leaving
+      if (trackRef.current && trackRef.current.getCapabilities().torch) {
+        trackRef.current.applyConstraints({ advanced: [{ torch: false }] });
+      }
     };
   }, [reset]);
   
-  const applyFlash = async (track: MediaStreamTrack, turnOn: boolean) => {
+  const applyFlash = useCallback(async (track: MediaStreamTrack, turnOn: boolean) => {
     try {
       if (track.getCapabilities().torch) {
         await track.applyConstraints({
@@ -57,7 +64,7 @@ function ScanningComponent() {
     } catch (error) {
       console.error('Error applying flash constraints:', error);
     }
-  };
+  }, []);
 
   const toggleFlash = () => {
     if (trackRef.current) {
@@ -121,7 +128,12 @@ function ScanningComponent() {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
-        trackRef.current = stream.getVideoTracks()[0];
+        const track = stream.getVideoTracks()[0];
+        trackRef.current = track;
+        // Apply initial flash state
+        if (track.getCapabilities().torch) {
+            await track.applyConstraints({ advanced: [{ torch: isFlashOn }] });
+        }
         setHasCameraPermission(true);
       } catch (error) {
         console.error('Error accessing camera:', error);
@@ -141,14 +153,7 @@ function ScanningComponent() {
         });
       }
     }
-  }, []);
-
-  // Apply flash when permission is granted
-  useEffect(() => {
-      if(hasCameraPermission && trackRef.current){
-        applyFlash(trackRef.current, isFlashOn)
-      }
-  }, [hasCameraPermission, isFlashOn])
+  }, [isFlashOn]);
 
   const captureImage = (): string | null => {
     if (!videoRef.current || !canvasRef.current) return null;
@@ -158,41 +163,24 @@ function ScanningComponent() {
     const context = canvas.getContext('2d');
     if (!context) return null;
 
-    // Dimensions of the video feed
     const videoWidth = video.videoWidth;
     const videoHeight = video.videoHeight;
     
-    // Determine the overlay dimensions based on scanning mode
-    const isSeriesScan = !!activeSeriesScan;
+    const isSeriesScan = !!activeSeriesScan || noteType === 'warranty';
     const overlayWidthPercent = 0.95; 
     const overlayHeightPercent = isSeriesScan ? 0.30 : 0.50;
 
-    // Calculate the dimensions of the crop area in pixels
     const cropWidth = videoWidth * overlayWidthPercent;
     const cropHeight = videoHeight * overlayHeightPercent;
 
-    // Calculate the top-left corner of the crop area to center it
     const cropX = (videoWidth - cropWidth) / 2;
     const cropY = (videoHeight - cropHeight) / 2;
     
-    // Set canvas size to the size of the cropped area
     canvas.width = cropWidth;
     canvas.height = cropHeight;
 
-    // Draw the cropped portion of the video onto the canvas
-    context.drawImage(
-        video,
-        cropX,       // The x-coordinate where to start clipping from the video
-        cropY,       // The y-coordinate where to start clipping from the video
-        cropWidth,   // The width of the clipped image
-        cropHeight,  // The height of the clipped image
-        0,           // The x-coordinate where to place the image on the canvas
-        0,           // The y-coordinate where to place the image on the canvas
-        cropWidth,   // The width of the image to use (stretch or reduce the image)
-        cropHeight   // The height of the image to use
-    );
+    context.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
-    // Return the cropped image as a data URI with reduced quality
     return canvas.toDataURL('image/jpeg', 0.8);
 }
 
@@ -213,7 +201,7 @@ function ScanningComponent() {
               toast({ title: "Thành công", description: result.message });
               incrementScanCount(result.dot);
               addSeriesToItem(result.dot, result.series);
-              setActiveSeriesScan(null); // Go back to DOT scanning mode
+              setActiveSeriesScan(null);
               if (checkAllScanned()) {
                 toast({
                     title: "Hoàn tất",
@@ -264,6 +252,38 @@ function ScanningComponent() {
           toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
       }
   }
+  
+  const handleWarrantyScan = async (scanPayload: { imageDataUri?: string; seriesNumber?: string }) => {
+    try {
+      const response = await fetch('/api/warranty-scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ noteId, ...scanPayload }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Quét bảo hành thất bại');
+      
+      if (result.success) {
+        toast({ title: 'Thành công', description: result.message });
+        addOrUpdateItem({
+            id: result.series,
+            dot: result.dot,
+            series: result.series,
+            quantity: 1,
+            scanned: 1,
+        });
+        setManualInputValue(""); // Clear input on success
+        if (checkAllScanned()) {
+          toast({ title: 'Hoàn tất', description: 'Bạn đã quét đủ số lượng cho tất cả các mục.', className: 'bg-green-500 text-white' });
+          setTimeout(() => router.push(`/listing?type=${noteType}`), 1000);
+        }
+      } else {
+        toast({ variant: 'destructive', title: 'Thất bại', description: result.message });
+      }
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
+    }
+  };
 
   const handleScan = async () => {
     if (isSubmitting) return;
@@ -276,7 +296,9 @@ function ScanningComponent() {
         return;
     }
     
-    if (activeSeriesScan) {
+    if (noteType === 'warranty') {
+      await handleWarrantyScan({ imageDataUri });
+    } else if (activeSeriesScan) {
         await handleSeriesScan(imageDataUri);
     } else {
         await handleDotScan(imageDataUri);
@@ -285,7 +307,23 @@ function ScanningComponent() {
     setIsSubmitting(false);
   };
 
+  const handleManualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting || !manualInputValue) return;
+    setIsSubmitting(true);
+    
+    if (noteType === 'warranty') {
+        await handleWarrantyScan({ seriesNumber: manualInputValue });
+    } else {
+        // Manual input for other types can be implemented here if needed
+        toast({ variant: 'destructive', title: 'Chưa hỗ trợ', description: 'Chức năng nhập tay chỉ dành cho bảo hành.' });
+    }
+    
+    setIsSubmitting(false);
+  };
+
   const getPageTitle = () => {
+      if (noteType === 'warranty') return 'Quét Series Bảo Hành';
       if (activeSeriesScan) return `Quét Series cho DOT ${activeSeriesScan}`;
       if (noteType === 'import') return 'Quét DOT Nhập Kho';
       if (noteType === 'export') return 'Quét DOT Xuất Kho';
@@ -298,7 +336,7 @@ function ScanningComponent() {
         <Button onClick={() => activeSeriesScan ? setActiveSeriesScan(null) : router.back()} variant="ghost" size="icon" className="mr-2">
           <ArrowLeft className="w-6 h-6" />
         </Button>
-        <h1 className="text-xl font-bold">{getPageTitle()}</h1>
+        <h1 className="text-xl font-bold text-center flex-1 truncate">{getPageTitle()}</h1>
         <Button onClick={toggleFlash} variant="ghost" size="icon" className="ml-2">
           {isFlashOn ? <Zap className="w-6 h-6" /> : <ZapOff className="w-6 h-6" />}
         </Button>
@@ -313,7 +351,7 @@ function ScanningComponent() {
              {/* Scanning box overlay */}
              <div className={cn(
                 "absolute border-4 border-dashed border-white/50 rounded-lg animate-pulse",
-                activeSeriesScan ? "w-[95%] h-[30%]" : "w-[95%] h-[50%]"
+                activeSeriesScan || noteType === 'warranty' ? "w-[95%] h-[30%]" : "w-[95%] h-[50%]"
              )}></div>
 
              {hasCameraPermission === false && (
@@ -333,46 +371,63 @@ function ScanningComponent() {
             )}
         </div>
 
-        <div className='p-4'>
+        <div className='p-4 space-y-4'>
+            {noteType === 'warranty' && (
+                <form onSubmit={handleManualSubmit} className="flex gap-2">
+                    <Input 
+                        placeholder='Hoặc nhập tay số series...'
+                        value={manualInputValue}
+                        onChange={(e) => setManualInputValue(e.target.value.toUpperCase())}
+                        className='bg-white/20 text-white placeholder:text-gray-300 border-white/30'
+                    />
+                    <Button type="submit" size="icon" disabled={isSubmitting || !manualInputValue}>
+                        <Send className='w-5 h-5'/>
+                    </Button>
+                </form>
+            )}
+
             <Card className="bg-white/10 backdrop-blur-sm shadow-lg rounded-xl border border-white/20">
-            <CardHeader className="p-3">
-                <CardTitle className="flex justify-between items-center text-xs text-white">
-                <span>Cần Ghi Nhận ({items.length} loại)</span>
-                <div className="text-right">
-                    <div className="font-semibold text-xs text-gray-300">{getTotalProgress().totalScanned} / {getTotalProgress().totalQuantity}</div>
-                    <Progress value={(getTotalProgress().totalScanned / getTotalProgress().totalQuantity) * 100 || 0} className="w-20 h-1.5 mt-1 bg-gray-700" />
-                </div>
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="max-h-[20vh] overflow-y-auto px-3 pb-3">
-                <div className="space-y-2">
-                {items.map(item => (
-                    <div key={item.id} className={cn(
-                        "p-2 rounded-lg border transition-all",
-                        item.scanned === item.quantity ? "bg-green-500/10 border-green-500/30" : "bg-gray-700/20 border-gray-600/50",
-                        activeSeriesScan === item.dot && "ring-2 ring-blue-500"
-                        )}>
-                        <div className="flex justify-between items-center">
-                            <p className="font-semibold text-xs text-white">{`DOT: ${item.dot}`}</p>
-                            <div className="flex items-center gap-2">
-                            <span className={cn(
-                                "font-bold text-sm",
-                                item.scanned === item.quantity ? 'text-green-400' : 'text-yellow-400'
-                                )}>
-                                {item.scanned}/{item.quantity}
-                            </span>
-                            {item.scanned === item.quantity && <CheckCircle className="w-3 h-3 text-green-400" />}
-                            </div>
-                        </div>
-                        <Progress value={(item.scanned / item.quantity) * 100} className="h-1 mt-1.5 bg-gray-700" />
-                         {item.series && <p className="text-xs text-gray-400 mt-1 truncate">Series: {item.series || '-'}</p>}
+                <CardHeader className="p-3">
+                    <CardTitle className="flex justify-between items-center text-xs text-white">
+                    <span>Cần Ghi Nhận ({items.length > 0 ? items.length : '...'})</span>
+                    <div className="text-right">
+                        <div className="font-semibold text-xs text-gray-300">{getTotalProgress().totalScanned} / {getTotalProgress().totalQuantity}</div>
+                        <Progress value={(getTotalProgress().totalScanned / getTotalProgress().totalQuantity) * 100 || 0} className="w-20 h-1.5 mt-1 bg-gray-700" />
                     </div>
-                ))}
-                </div>
-            </CardContent>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="max-h-[20vh] overflow-y-auto px-3 pb-3">
+                    <div className="space-y-2">
+                    {items.length > 0 ? items.map(item => (
+                        <div key={item.id} className={cn(
+                            "p-2 rounded-lg border transition-all",
+                            item.scanned === item.quantity ? "bg-green-500/10 border-green-500/30" : "bg-gray-700/20 border-gray-600/50",
+                             noteType !== 'warranty' && activeSeriesScan === item.dot && "ring-2 ring-blue-500"
+                            )}>
+                            <div className="flex justify-between items-center">
+                                <p className="font-semibold text-xs text-white">
+                                    {noteType === 'warranty' ? `Series: ${item.series}` : `DOT: ${item.dot}`}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                <span className={cn(
+                                    "font-bold text-sm",
+                                    item.scanned === item.quantity ? 'text-green-400' : 'text-yellow-400'
+                                    )}>
+                                    {item.scanned}/{item.quantity}
+                                </span>
+                                {item.scanned === item.quantity && <CheckCircle className="w-3 h-3 text-green-400" />}
+                                </div>
+                            </div>
+                            <Progress value={(item.scanned / item.quantity) * 100} className="h-1 mt-1.5 bg-gray-700" />
+                            {noteType !== 'warranty' && item.series && <p className="text-xs text-gray-400 mt-1 truncate">Series: {item.series || '-'}</p>}
+                        </div>
+                    )) : (
+                        <div className="text-center text-gray-400 text-xs py-3">Chưa có dữ liệu...</div>
+                    )}
+                    </div>
+                </CardContent>
             </Card>
         </div>
-
       </main>
 
       <footer className="p-4 flex justify-center sticky bottom-0 z-20">
@@ -384,7 +439,7 @@ function ScanningComponent() {
           {isSubmitting ? (
             <LoaderCircle className="w-10 h-10 animate-spin" />
           ) : (
-            activeSeriesScan ? <Scan className="w-10 h-10" /> : <Camera className="w-10 h-10" />
+            (activeSeriesScan || noteType === 'warranty') ? <Scan className="w-10 h-10" /> : <Camera className="w-10 h-10" />
           )}
         </Button>
       </footer>
@@ -394,7 +449,7 @@ function ScanningComponent() {
 
 export default function ScanningPage() {
     return (
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<div className='flex justify-center items-center h-screen bg-gray-900'><LoaderCircle className='w-12 h-12 text-white animate-spin' /></div>}>
             <ScanningComponent />
         </Suspense>
     )

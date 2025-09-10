@@ -14,6 +14,7 @@ interface ScanningState {
   items: ScanItem[];
   activeSeriesScan: string | null; // Holds the DOT that needs a series scan
   setItems: (items: ScanItem[]) => void;
+  addOrUpdateItem: (item: ScanItem) => void;
   incrementScanCount: (id: string) => void;
   addSeriesToItem: (dot: string, series: string) => void;
   setActiveSeriesScan: (dot: string | null) => void;
@@ -26,6 +27,23 @@ export const useScanningStore = create<ScanningState>((set, get) => ({
   items: [],
   activeSeriesScan: null,
   setItems: (items) => set({ items }),
+
+  addOrUpdateItem: (newItem) => {
+    set((state) => {
+      const existingItem = state.items.find(item => item.id === newItem.id);
+      if (existingItem) {
+        return {
+            items: state.items.map(item =>
+                item.id === newItem.id
+                    ? { ...item, scanned: item.scanned + 1 }
+                    : item
+            ),
+        };
+      } else {
+        return { items: [...state.items, newItem] };
+      }
+    });
+  },
   
   incrementScanCount: (scannedId) => {
     set((state) => ({
@@ -56,7 +74,9 @@ export const useScanningStore = create<ScanningState>((set, get) => ({
   checkAllScanned: () => {
     const { items } = get();
     if (items.length === 0) return false;
-    return items.every((item) => item.scanned >= item.quantity);
+    const totalQuantity = items.reduce((acc, item) => acc + item.quantity, 0);
+    const totalScanned = items.reduce((acc, item) => acc + item.scanned, 0);
+    return totalScanned >= totalQuantity;
   },
   
   getTotalProgress: () => {
