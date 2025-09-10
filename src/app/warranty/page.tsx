@@ -1,210 +1,177 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
+import * as z from "zod";
+import { useState } from "react";
+import { PlusCircle, Save, XCircle } from "lucide-react";
 import { useRouter } from 'next/navigation';
-import { Camera, LoaderCircle, Zap, ZapOff } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-export default function WarrantyScanPage() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
-  const [isFlashOn, setIsFlashOn] = useState(true);
-  const router = useRouter();
-  const { toast } = useToast();
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const trackRef = useRef<MediaStreamTrack | null>(null);
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { Separator } from "@/components/ui/separator";
 
-  const applyFlash = async (track: MediaStreamTrack, turnOn: boolean) => {
-    try {
-      if (track.getCapabilities().torch) {
-        await track.applyConstraints({
-          advanced: [{ torch: turnOn }],
-        });
-      }
-    } catch (error) {
-      console.error('Error applying flash constraints:', error);
-    }
-  };
+const itemSchema = z.object({
+  series: z.string().min(1, { message: "Series là bắt buộc." }),
+  reason: z.string().min(1, { message: "Lý do là bắt buộc." }),
+});
 
-  const toggleFlash = () => {
-    if (trackRef.current) {
-        setIsFlashOn(prev => {
-            const newState = !prev;
-            applyFlash(trackRef.current!, newState);
-            return newState;
-        });
-    }
-  };
+const formSchema = z.object({
+  name: z.string().min(1, { message: "Tên phiếu là bắt buộc." }),
+  items: z.array(itemSchema).min(1, { message: "Phải có ít nhất một lốp xe." }),
+});
 
-  // Get camera permission
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-    const getCameraPermission = async () => {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setHasCameraPermission(false);
-        return;
-      }
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }
-        });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+export default function WarrantyPage() {
+    const { toast } = useToast();
+    const router = useRouter();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const form = useForm<z.infer<typeof formSchema>>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            name: "",
+            items: [{ series: "", reason: "" }],
+        },
+    });
+
+    const { fields, append, remove } = useFieldArray({
+        control: form.control,
+        name: "items",
+    });
+
+    async function onSubmit(values: z.infer<typeof formSchema>) {
+        setIsSubmitting(true);
+        try {
+            const response = await fetch('/api/warranty-search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(values),
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                toast({
+                    title: "Thành công",
+                    description: `Phiếu bảo hành "${values.name}" đã được tạo.`,
+                });
+                router.push(`/listing?type=warranty`);
+            } else {
+                throw new Error(result.message || 'Không thể tạo phiếu bảo hành.');
+            }
+        } catch (error: any) {
+            console.error('Failed to create warranty note:', error);
+            toast({
+                variant: 'destructive',
+                title: "Lỗi",
+                description: error.message,
+            });
+        } finally {
+            setIsSubmitting(false);
         }
-        trackRef.current = stream.getVideoTracks()[0];
-        setHasCameraPermission(true);
-      } catch (error) {
-        console.error('Error accessing camera:', error);
-        setHasCameraPermission(false);
-      }
-    };
-
-    getCameraPermission();
-    
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => {
-          if (track.getCapabilities().torch) {
-            track.applyConstraints({ advanced: [{ torch: false }]});
-          }
-          track.stop();
-        });
-      }
     }
-  }, []);
-  
-  // Apply flash when permission is granted
-  useEffect(() => {
-      if(hasCameraPermission && trackRef.current){
-        applyFlash(trackRef.current, isFlashOn)
-      }
-  }, [hasCameraPermission, isFlashOn])
 
-  const handleScan = async () => {
-    if (!videoRef.current || !canvasRef.current || isSubmitting) return;
+    return (
+        <div className="p-4 animate-in fade-in-0 duration-500">
+            <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50">
+                <CardHeader>
+                    <CardTitle className="text-[#333]">Tạo Phiếu Bảo Hành</CardTitle>
+                    <CardDescription className="text-gray-600">Điền thông tin chi tiết cho phiếu bảo hành.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-gray-800 font-semibold">Tên phiếu bảo hành</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="VD: Bảo hành cho khách A" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800" />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
 
-    setIsSubmitting(true);
+                            <Separator />
 
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
+                            {fields.map((field, index) => (
+                                <div key={field.id} className="relative space-y-4 p-4 border border-gray-200 rounded-lg">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="font-semibold text-gray-800">Lốp xe #{index + 1}</h3>
+                                        {fields.length > 1 && (
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-red-500 hover:text-red-700">
+                                                <XCircle className="w-5 h-5" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                    
+                                    <FormField
+                                        control={form.control}
+                                        name={`items.${index}.series`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-gray-800 font-normal">Series lốp</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Nhập hoặc quét series" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800" />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                     <FormField
+                                        control={form.control}
+                                        name={`items.${index}.reason`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-gray-800 font-normal">Lý do bảo hành</FormLabel>
+                                                <FormControl>
+                                                    <Textarea placeholder="Mô tả lý do..." {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800" />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            ))}
 
-    if (!context) {
-        toast({ variant: 'destructive', title: "Lỗi", description: "Không thể xử lý hình ảnh." });
-        setIsSubmitting(false);
-        return;
-    }
-    
-    // Dimensions of the video feed
-    const videoWidth = video.videoWidth;
-    const videoHeight = video.videoHeight;
-    
-    // Overlay dimensions (95% width, 30% height)
-    const overlayWidthPercent = 0.95; 
-    const overlayHeightPercent = 0.30;
-
-    // Calculate the dimensions of the crop area in pixels
-    const cropWidth = videoWidth * overlayWidthPercent;
-    const cropHeight = videoHeight * overlayHeightPercent;
-
-    // Calculate the top-left corner of the crop area to center it
-    const cropX = (videoWidth - cropWidth) / 2;
-    const cropY = (videoHeight - cropHeight) / 2;
-    
-    // Set canvas size to the size of the cropped area
-    canvas.width = cropWidth;
-    canvas.height = cropHeight;
-
-    // Draw the cropped portion of the video onto the canvas
-    context.drawImage(
-        video,
-        cropX, cropY, cropWidth, cropHeight, // Source rectangle
-        0, 0, cropWidth, cropHeight           // Destination rectangle
-    );
-    
-    const imageDataUri = canvas.toDataURL('image/jpeg', 0.8);
-
-    try {
-      const response = await fetch('/api/warranty-search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageDataUri }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        toast({ variant: 'destructive', title: "Lỗi", description: result.message || "Quét thất bại" });
-        return;
-      }
-
-      if (result.success) {
-        toast({
-            title: "Thành công",
-            description: result.message,
-        });
-        router.push(`/listing?type=warranty`);
-      } else {
-        toast({ variant: 'destructive', title: "Thất bại", description: result.message || "Không tìm thấy lốp xe phù hợp." });
-      }
-    } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
-    } finally {
-        setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="flex flex-col h-full bg-gray-900">
-        <header className="bg-gray-800 text-white p-4 flex items-center justify-end shadow-md sticky top-0 z-20">
-            <Button onClick={toggleFlash} variant="ghost" size="icon">
-                {isFlashOn ? <Zap className="w-6 h-6" /> : <ZapOff className="w-6 h-6" />}
-            </Button>
-        </header>
-
-      <canvas ref={canvasRef} className="hidden"></canvas>
-      
-      <main className="flex-grow overflow-y-auto flex flex-col">
-        <div className="relative flex-grow w-full bg-black flex items-center justify-center text-white/50">
-             <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
-             <div className="absolute inset-0 bg-black/40"></div>
-             {/* Scanning box overlay */}
-             <div className="absolute w-[95%] h-[30%] border-4 border-dashed border-white/50 rounded-lg animate-pulse"></div>
-
-             {hasCameraPermission === false && (
-                <div className="absolute inset-0 flex items-center justify-center p-4">
-                    <Alert variant="destructive">
-                      <AlertTitle>Camera Access Denied</AlertTitle>
-                      <AlertDescription>
-                        Please enable camera permissions in your browser settings to use this app.
-                      </AlertDescription>
-                    </Alert>
-                </div>
-            )}
-            {hasCameraPermission === null && (
-                 <div className="absolute inset-0 flex items-center justify-center">
-                    <LoaderCircle className="w-12 h-12 text-white animate-spin" />
-                 </div>
-            )}
+                            <div className="flex items-center justify-between gap-4 mt-6">
+                                <Button 
+                                    type="button" 
+                                    variant="ghost"
+                                    onClick={() => append({ series: "", reason: "" })}
+                                    className="text-gray-800 font-semibold py-3 px-6 rounded-xl flex items-center justify-center space-x-2"
+                                >
+                                    <PlusCircle className="w-5 h-5" />
+                                    <span>Thêm lốp</span>
+                                </Button>
+                                
+                                <Button 
+                                    type="submit" 
+                                    disabled={isSubmitting || !form.formState.isValid}
+                                    className="bg-gray-800 hover:bg-gray-900 text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center space-x-2 shadow-md disabled:bg-gray-600"
+                                >
+                                    <Save className="w-5 h-5" />
+                                    <span>{isSubmitting ? 'Đang tạo...' : 'Tạo Phiếu'}</span>
+                                </Button>
+                            </div>
+                        </form>
+                    </Form>
+                </CardContent>
+            </Card>
         </div>
-      </main>
-
-      <footer className="p-4 flex justify-center sticky bottom-0 z-20">
-        <Button
-          onClick={handleScan}
-          disabled={isSubmitting || hasCameraPermission !== true}
-          className="h-20 w-20 bg-blue-600 text-white rounded-full text-xl font-bold flex items-center justify-center gap-3 hover:bg-blue-700 disabled:bg-gray-500 shadow-lg"
-        >
-          {isSubmitting ? (
-            <LoaderCircle className="w-10 h-10 animate-spin" />
-          ) : (
-            <Camera className="w-10 h-10" />
-          )}
-        </Button>
-      </footer>
-    </div>
-  );
+    );
 }
