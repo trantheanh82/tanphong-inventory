@@ -32,8 +32,9 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
         console.error(`API Error from ${method} ${url}: ${errorMessage}`);
         throw new Error(errorMessage);
     }
-
-    return response.json();
+    
+    const responseText = await response.text();
+    return responseText ? JSON.parse(responseText) : {};
 }
 
 
