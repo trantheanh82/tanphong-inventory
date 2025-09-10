@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useRef, Suspense } from 'react';
@@ -364,7 +365,7 @@ function ScanningComponent() {
                             </div>
                         </div>
                         <Progress value={(item.scanned / item.quantity) * 100} className="h-1 mt-1.5 bg-gray-700" />
-                         {item.series && <p className="text-xs text-gray-400 mt-1 truncate">Series: {item.series}</p>}
+                         {item.series && <p className="text-xs text-gray-400 mt-1 truncate">Series: {item.series || '-'}</p>}
                     </div>
                 ))}
                 </div>

@@ -375,7 +375,7 @@ export default function DashboardPage() {
                                         <TableRow key={index} className="border-none">
                                             <TableCell>{index + 1}</TableCell>
                                             <TableCell>{detail.dot}</TableCell>
-                                            {(selectedItemType === 'export' || selectedItemType === 'warranty') && <TableCell>{detail.series || 'N/A'}</TableCell>}
+                                            {(selectedItemType === 'export' || selectedItemType === 'warranty') && <TableCell>{detail.series || '-'}</TableCell>}
                                             <TableCell>{detail.scanned}</TableCell>
                                             <TableCell>{detail.quantity}</TableCell>
                                             {selectedItemType === 'warranty' && <TableCell>{detail.reason}</TableCell>}

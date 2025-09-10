@@ -334,7 +334,7 @@ function ListingComponent() {
                                         <TableRow key={index} className="border-none">
                                             <TableCell>{index + 1}</TableCell>
                                             <TableCell>{detail.dot}</TableCell>
-                                            {(filterType === 'export' || filterType === 'warranty') && <TableCell>{detail.series || 'N/A'}</TableCell>}
+                                            {(filterType === 'export' || filterType === 'warranty') && <TableCell>{detail.series || '-'}</TableCell>}
                                             <TableCell>{detail.scanned}</TableCell>
                                             <TableCell>{detail.quantity}</TableCell>
                                             {filterType === 'warranty' && <TableCell>{detail.reason}</TableCell>}
