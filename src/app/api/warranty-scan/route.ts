@@ -1,10 +1,11 @@
+
 'use server';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { recognizeSeriesNumber } from '@/ai/flows/warranty-scan-flow';
 
-const { API_ENDPOINT, EXPORT_DETAIL_TBL_ID, WARRANTY_DETAIL_TBL_ID } = process.env;
+const { API_ENDPOINT, EXPORT_DETAIL_TBL_ID, WARRANTY_DETAIL_TBL_ID, WARRANTY_TBL_ID } = process.env;
 
 async function apiRequest(url: string, method: string, cookieHeader: string | null, body?: any) {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -30,7 +31,6 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
         throw new Error(errorMessage);
     }
     
-    // Handle cases where the response might not have a body
     const responseText = await response.text();
     return responseText ? JSON.parse(responseText) : {};
 }
@@ -51,6 +51,17 @@ async function searchRecordBySeries(series: string, cookieHeader: string | null)
     return response.records?.[0];
 }
 
+async function getWarrantyNoteDetailsCount(noteId: string, cookieHeader: string | null): Promise<number> {
+    const filterObject = {
+        conjunction: 'and',
+        filterSet: [{ fieldId: 'warranty_note', operator: 'is', value: noteId }],
+    };
+    const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
+    const countUrl = `${API_ENDPOINT}/table/${WARRANTY_DETAIL_TBL_ID}/record/count?filter=${filterQuery}`;
+    const response = await apiRequest(countUrl, 'GET', cookieHeader);
+    return response.count || 0;
+}
+
 export async function POST(request: NextRequest) {
     const cookieHeader = cookies().toString();
     const { noteId, imageDataUri, seriesNumber: manualSeriesNumber } = await request.json();
@@ -59,13 +70,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: 'Missing required parameters (noteId and either image or manual series).' }, { status: 400 });
     }
     
-    if (!WARRANTY_DETAIL_TBL_ID) {
+    if (!WARRANTY_DETAIL_TBL_ID || !WARRANTY_TBL_ID) {
         return NextResponse.json({ message: 'Warranty tables are not configured.' }, { status: 500 });
     }
 
     let seriesNumber: string | undefined = manualSeriesNumber;
     
-    // Step 1: Recognize Series Number from image if provided
     if (imageDataUri) {
         try {
             seriesNumber = await recognizeSeriesNumber(imageDataUri);
@@ -83,13 +93,25 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        // Step 2: Validate the series by searching in export details
+        const warrantyNoteResponse = await apiRequest(`${API_ENDPOINT}/table/${WARRANTY_TBL_ID}/record/${noteId}`, 'GET', cookieHeader);
+        const warrantyNote = warrantyNoteResponse.record;
+
+        if (!warrantyNote) {
+             return NextResponse.json({ success: false, message: `Không tìm thấy phiếu bảo hành.` }, { status: 404 });
+        }
+        
+        const totalQuantity = warrantyNote.fields.total_warranty_note || 0;
+        const currentScannedCount = await getWarrantyNoteDetailsCount(noteId, cookieHeader);
+        
+        if (currentScannedCount >= totalQuantity) {
+             return NextResponse.json({ success: false, message: `Đã quét đủ số lượng cho phiếu bảo hành này.` }, { status: 400 });
+        }
+
         const exportDetailRecord = await searchRecordBySeries(seriesNumber, cookieHeader);
         if (!exportDetailRecord) {
             return NextResponse.json({ success: false, message: `Không tìm thấy lốp xe đã bán với series: ${seriesNumber}` }, { status: 404 });
         }
         
-        // Step 3: Check if this series has already been claimed for this warranty note
         const filterObject = {
             conjunction: 'and',
             filterSet: [
@@ -104,25 +126,32 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã được thêm vào phiếu bảo hành này.` }, { status: 409 });
         }
 
-
-        // Step 4: Create Warranty Detail Record
         const createDetailPayload = {
             records: [{
                 fields: {
                     warranty_note: { id: noteId },
                     series: seriesNumber,
                     dot: exportDetailRecord.fields.dot,
-                    quantity: 1, // Always 1 for a warranty claim
+                    quantity: 1,
                 }
             }],
             fieldKeyType: "dbFieldName"
         };
         const createDetailUrl = `${API_ENDPOINT}/table/${WARRANTY_DETAIL_TBL_ID}/record`;
         await apiRequest(createDetailUrl, 'POST', cookieHeader, createDetailPayload);
+        
+        const newScannedCount = currentScannedCount + 1;
+        if (newScannedCount >= totalQuantity) {
+            const updateNotePayload = {
+                records: [{ id: noteId, fields: { status: 'Đã scan đủ' } }],
+                fieldKeyType: "dbFieldName",
+            };
+            await apiRequest(`${API_ENDPOINT}/table/${WARRANTY_TBL_ID}/record`, 'PATCH', cookieHeader, updateNotePayload);
+        }
 
         return NextResponse.json({
             success: true,
-            message: `Đã ghi nhận lốp với series ${seriesNumber}.`,
+            message: `Đã ghi nhận lốp với series ${seriesNumber}. (${newScannedCount}/${totalQuantity})`,
             series: seriesNumber,
             dot: exportDetailRecord.fields.dot,
         });
