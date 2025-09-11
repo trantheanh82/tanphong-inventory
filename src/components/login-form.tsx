@@ -1,21 +1,32 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Mail, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { Checkbox } from './ui/checkbox';
+import { Label } from './ui/label';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [apiResponse, setApiResponse] = useState<any>(null);
   const { toast } = useToast();
   const router = useRouter();
+  
+  useEffect(() => {
+    const rememberedEmail = localStorage.getItem('rememberedEmail');
+    if (rememberedEmail) {
+      setEmail(rememberedEmail);
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +47,13 @@ export function LoginForm() {
                 title: 'Đăng nhập thành công',
                 description: "Chào mừng trở lại!",
             });
+
+            if (rememberMe) {
+                localStorage.setItem('rememberedEmail', email);
+            } else {
+                localStorage.removeItem('rememberedEmail');
+            }
+
             // Store user and employee info in sessionStorage
             if (result.data?.user) {
               sessionStorage.setItem('user', JSON.stringify(result.data.user));
@@ -98,6 +116,17 @@ export function LoginForm() {
                         onChange={(e) => setPassword(e.target.value)}
                         className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl text-black focus:outline-none focus:ring-2 focus:ring-gray-800 bg-white/80" 
                     />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="remember-me"
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                    className="border-gray-500"
+                  />
+                  <Label htmlFor="remember-me" className="text-sm font-medium text-gray-800 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Ghi nhớ đăng nhập
+                  </Label>
                 </div>
                 <Button type="submit" disabled={isLoading} className="w-full bg-gray-800 text-white font-bold py-3 rounded-xl hover:bg-gray-900 transition-transform transform hover:scale-105 duration-200 ease-in-out shadow-lg disabled:bg-gray-600">
                     {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
