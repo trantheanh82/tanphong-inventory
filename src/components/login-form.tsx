@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
+import CryptoJS from 'crypto-js';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
@@ -32,6 +33,7 @@ export function LoginForm() {
     e.preventDefault();
     setIsLoading(true);
     setApiResponse(null);
+    const secret = process.env.NEXT_PUBLIC_CRYPTO_SECRET || 'your-default-secret-key';
 
     try {
         const response = await fetch('/api/auth/signin', {
@@ -50,8 +52,16 @@ export function LoginForm() {
 
             if (rememberMe) {
                 localStorage.setItem('rememberedEmail', email);
+                localStorage.setItem('rememberMe', 'true');
+                const encryptedEmail = CryptoJS.AES.encrypt(email, secret).toString();
+                const encryptedPassword = CryptoJS.AES.encrypt(password, secret).toString();
+                localStorage.setItem('authEmail', encryptedEmail);
+                localStorage.setItem('authToken', encryptedPassword);
             } else {
                 localStorage.removeItem('rememberedEmail');
+                localStorage.removeItem('rememberMe');
+                localStorage.removeItem('authEmail');
+                localStorage.removeItem('authToken');
             }
 
             // Store user and employee info in sessionStorage

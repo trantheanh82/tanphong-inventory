@@ -7,19 +7,65 @@ import { AppHeader } from '@/components/app-header';
 import { BottomNav } from '@/components/bottom-nav';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PwaUpdater } from './pwa-updater';
+import CryptoJS from 'crypto-js';
 
-// Mock authentication check
 const useAuth = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
     const pathname = usePathname();
+    const router = useRouter();
 
     useEffect(() => {
-        // In a real app, you'd check a token, session, etc.
-        const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
-        setIsAuthenticated(loggedIn);
-        setLoading(false);
-    }, [pathname]); // Rerun on route change
+        const attemptAutoLogin = async () => {
+            const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
+            if (loggedIn) {
+                setIsAuthenticated(true);
+                setLoading(false);
+                return;
+            }
+
+            const remembered = localStorage.getItem('rememberMe') === 'true';
+            const encryptedEmail = localStorage.getItem('authEmail');
+            const encryptedPassword = localStorage.getItem('authToken');
+            const secret = process.env.NEXT_PUBLIC_CRYPTO_SECRET || 'your-default-secret-key';
+
+            if (remembered && encryptedEmail && encryptedPassword) {
+                try {
+                    const email = CryptoJS.AES.decrypt(encryptedEmail, secret).toString(CryptoJS.enc.Utf8);
+                    const password = CryptoJS.AES.decrypt(encryptedPassword, secret).toString(CryptoJS.enc.Utf8);
+
+                    if (email && password) {
+                        const response = await fetch('/api/auth/signin', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email, password }),
+                        });
+                        const result = await response.json();
+                        if (response.ok && result.success) {
+                            sessionStorage.setItem('isLoggedIn', 'true');
+                            setIsAuthenticated(true);
+                            router.push('/');
+                        } else {
+                            // Auto-login failed, clear stored creds
+                            localStorage.removeItem('rememberMe');
+                            localStorage.removeItem('authEmail');
+                            localStorage.removeItem('authToken');
+                        }
+                    }
+                } catch (error) {
+                    console.error("Auto-login decryption/fetch failed:", error);
+                     // Clear stored creds on error
+                    localStorage.removeItem('rememberMe');
+                    localStorage.removeItem('authEmail');
+                    localStorage.removeItem('authToken');
+                }
+            }
+            setLoading(false);
+        };
+        
+        attemptAutoLogin();
+
+    }, [pathname, router]);
 
     return { isAuthenticated, loading };
 };
