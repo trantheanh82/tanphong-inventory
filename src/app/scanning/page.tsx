@@ -100,7 +100,7 @@ function ScanningComponent() {
           dot: item.fields.dot,
           series: item.fields.series,
           quantity: item.fields.quantity || 1,
-          scanned: (item.fields.series || item.fields.dot) ? 1 : 0,
+          scanned: item.fields.series ? 1 : 0, // For warranty, scanned is 1 if series exists
           tire_type: item.fields.tire_type
         }));
         setItems(scanItems);
@@ -268,8 +268,9 @@ function ScanningComponent() {
         toast({ title: 'Thành công', description: result.message });
         updateItemWithScan(result.updatedRecordId, result.series, result.dot);
         setManualInputValue(""); // Clear input on success
-        if (checkAllScanned()) {
-          toast({ title: 'Hoàn tất', description: 'Bạn đã quét đủ số lượng cho tất cả các mục.', className: 'bg-green-500 text-white' });
+        
+        if (result.isCompleted) {
+          toast({ title: 'Hoàn tất', description: 'Đã scan đủ số lượng cho phiếu bảo hành.', className: 'bg-green-500 text-white' });
           setTimeout(() => router.push(`/listing?type=${noteType}`), 1000);
         }
       } else {
@@ -449,5 +450,3 @@ export default function ScanningPage() {
         </Suspense>
     )
 }
-
-    

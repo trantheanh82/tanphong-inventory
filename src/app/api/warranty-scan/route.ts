@@ -56,7 +56,7 @@ async function findEmptyWarrantyDetail(noteId: string, cookieHeader: string | nu
         conjunction: 'and',
         filterSet: [
             { fieldId: 'warranty_note', operator: 'is', value: noteId },
-            { fieldId: 'series', operator: 'is', value: null } // Find a record where series is not yet set
+            { fieldId: 'series', operator: 'isEmpty', value: null } // Find a record where series is not yet set
         ],
     };
     const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
 
         const exportDetailRecord = await searchRecordBySeries(seriesNumber, cookieHeader);
         if (!exportDetailRecord) {
-            return NextResponse.json({ success: false, message: `Không tìm thấy lốp xe đã bán với series: ${seriesNumber}` }, { status: 404 });
+            return NextResponse.json({ success: false, message: `Không tìm thấy series trên hệ thống: ${seriesNumber}` }, { status: 404 });
         }
         
         const filterObject = {
@@ -162,7 +162,9 @@ export async function POST(request: NextRequest) {
         const newScannedCount = await countFilledWarrantyDetails(noteId, cookieHeader);
         const totalQuantity = await countTotalWarrantyDetails(noteId, cookieHeader);
 
-        if (newScannedCount >= totalQuantity) {
+        const isNoteCompleted = newScannedCount >= totalQuantity;
+
+        if (isNoteCompleted) {
             const updateNotePayload = {
                 records: [{ id: noteId, fields: { status: 'Đã scan đủ' } }],
                 fieldKeyType: "dbFieldName",
@@ -172,10 +174,11 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            message: `Đã ghi nhận lốp với series ${seriesNumber}. (${newScannedCount}/${totalQuantity})`,
+            message: isNoteCompleted ? `Đã scan đủ. Ghi nhận lốp cuối cùng với series ${seriesNumber}.` : `Đã ghi nhận lốp với series ${seriesNumber}. (${newScannedCount}/${totalQuantity})`,
             series: seriesNumber,
             dot: exportDetailRecord.fields.dot,
-            updatedRecordId: emptyDetailRecord.id
+            updatedRecordId: emptyDetailRecord.id,
+            isCompleted: isNoteCompleted
         });
     } catch (error: any) {
         console.error('Error processing warranty scan:', error);

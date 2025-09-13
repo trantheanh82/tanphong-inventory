@@ -85,9 +85,7 @@ export const useScanningStore = create<ScanningState>((set, get) => ({
   checkAllScanned: () => {
     const { items } = get();
     if (items.length === 0) return false;
-    const totalQuantity = items.reduce((acc, item) => acc + item.quantity, 0);
-    const totalScanned = items.reduce((acc, item) => acc + item.scanned, 0);
-    return totalScanned >= totalQuantity;
+    return items.every(item => item.scanned >= item.quantity);
   },
   
   getTotalProgress: () => {
