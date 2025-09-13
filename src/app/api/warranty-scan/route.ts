@@ -42,13 +42,23 @@ async function searchRecordBySeries(series: string, cookieHeader: string | null)
     
     const url = new URL(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`);
     url.searchParams.append('fieldKeyType', 'dbFieldName');
-    url.searchParams.append('search[]', series);
-    url.searchParams.append('search[]', 'series');
-    url.searchParams.append('search[]', 'true');
-    url.searchParams.append('take', '1');
     
     const response = await apiRequest(url.toString(), 'GET', cookieHeader);
-    return response.records?.[0];
+    
+    if (!response.records || response.records.length === 0) {
+        return undefined;
+    }
+
+    for (const record of response.records) {
+        if (record.fields && record.fields.series) {
+            const seriesList = record.fields.series.split(',').map((s: string) => s.trim());
+            if (seriesList.includes(series)) {
+                return record;
+            }
+        }
+    }
+    
+    return undefined;
 }
 
 async function findEmptyWarrantyDetail(noteId: string, cookieHeader: string | null) {
