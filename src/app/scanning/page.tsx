@@ -261,7 +261,10 @@ function ScanningComponent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ noteId, ...scanPayload }),
       });
-      const result = await response.json();
+      
+      const responseText = await response.text();
+      const result = responseText ? JSON.parse(responseText) : {};
+
       if (!response.ok) throw new Error(result.message || 'Quét bảo hành thất bại');
       
       if (result.success) {
