@@ -45,6 +45,35 @@ async function fetchTableData(tableId: string, cookieHeader: string | null, sear
     }
 }
 
+async function fetchWarrantyDetailsCount(noteId: string, cookieHeader: string | null): Promise<number> {
+    const { API_ENDPOINT, WARRANTY_DETAIL_TBL_ID } = process.env;
+    if (!API_ENDPOINT || !WARRANTY_DETAIL_TBL_ID) return 0;
+    
+    const filterObject = {
+        conjunction: 'and',
+        filterSet: [
+            { fieldId: 'warranty_note', operator: 'is', value: noteId },
+            { fieldId: 'series', operator: 'isNot', value: null }
+        ],
+    };
+    const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
+    const url = `${API_ENDPOINT}/table/${WARRANTY_DETAIL_TBL_ID}/record?filter=${filterQuery}&fieldKeyType=dbFieldName`;
+    
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    if (cookieHeader) {
+        headers['Cookie'] = cookieHeader;
+    }
+
+    try {
+        const response = await fetch(url.toString(), { method: 'GET', headers });
+        if (!response.ok) return 0;
+        const data = await response.json();
+        return data.records?.length || 0;
+    } catch (error) {
+        return 0;
+    }
+}
+
 export async function GET(request: NextRequest) {
     const cookieHeader = cookies().toString();
     const searchParams = request.nextUrl.searchParams;
@@ -74,7 +103,21 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const data = await fetchTableData(tableId, cookieHeader, query);
+        let data = await fetchTableData(tableId, cookieHeader, query);
+
+        if (type === 'warranty') {
+            data = await Promise.all(data.map(async (warranty: any) => {
+                const scannedCount = await fetchWarrantyDetailsCount(warranty.id, cookieHeader);
+                return {
+                    ...warranty,
+                    fields: {
+                        ...warranty.fields,
+                        scanned: scannedCount,
+                    }
+                };
+            }));
+        }
+
         return NextResponse.json(data);
 
     } catch (error) {

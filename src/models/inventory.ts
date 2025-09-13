@@ -148,6 +148,7 @@ export type WarrantyNoteDetail = {
       id: string;
       title: string;
     }[];
+    scanned: number;
   };
   name: string;
   id: string;
