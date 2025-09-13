@@ -83,13 +83,16 @@ export async function POST(request: NextRequest) {
         };
         const createDetailsUrl = `${API_ENDPOINT}/table/${WARRANTY_DETAIL_TBL_ID}/record`;
 
-        await apiRequest(createDetailsUrl, 'POST', createDetailsPayload, cookieHeader);
+        await apiRequest(createDetailsUrl, 'POST', cookieHeader, createDetailsPayload);
 
         
         return NextResponse.json({
             success: true,
             message: `Tạo phiếu bảo hành "${name}" thành công. Sẵn sàng để quét.`,
             warrantyNoteId: warrantyNoteId,
+            records: noteResponse.records,
+            name: noteRecord.name,
+            id: noteRecord.id
         });
 
     } catch (error: any) {

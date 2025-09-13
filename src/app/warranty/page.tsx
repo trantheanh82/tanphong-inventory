@@ -58,6 +58,11 @@ export default function WarrantyPage() {
             } catch (error) {
                 result = { message: responseText };
             }
+            
+            toast({
+                title: "Thành công",
+                description: `Phiếu bảo hành "${values.name}" đã được tạo.`,
+            });
 
             if (response.ok && result.success) {
                 toast({
