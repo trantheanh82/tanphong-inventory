@@ -1,3 +1,4 @@
+
 'use server';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -48,16 +49,16 @@ async function searchRecordBySeries(series: string, cookieHeader: string | null)
     
     const response = await apiRequest(url, 'GET', cookieHeader);
     
-    // Since 'contains' can have partial matches, we still need to verify the full series number.
     if (!response.records || response.records.length === 0) {
         return undefined;
     }
 
+    // Since 'contains' can have partial matches, we must verify the full series number.
     for (const record of response.records) {
         if (record.fields && record.fields.series) {
             const seriesList = record.fields.series.split(',').map((s: string) => s.trim());
             if (seriesList.includes(series)) {
-                return record;
+                return record; // Return the first record with an exact match
             }
         }
     }
@@ -88,9 +89,9 @@ async function countFilledWarrantyDetails(noteId: string, cookieHeader: string |
         ],
     };
     const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
-    const countUrl = `${API_ENDPOINT}/table/${WARRANTY_DETAIL_TBL_ID}/record/count?filter=${filterQuery}`;
-    const response = await apiRequest(countUrl, 'GET', cookieHeader);
-    return response.count || 0;
+    const url = `${API_ENDPOINT}/table/${WARRANTY_DETAIL_TBL_ID}/record?filter=${filterQuery}&fieldKeyType=dbFieldName`;
+    const response = await apiRequest(url, 'GET', cookieHeader);
+    return response.records?.length || 0;
 }
 
 async function countTotalWarrantyDetails(noteId: string, cookieHeader: string | null): Promise<number> {
@@ -99,9 +100,9 @@ async function countTotalWarrantyDetails(noteId: string, cookieHeader: string | 
         filterSet: [{ fieldId: 'warranty_note', operator: 'is', value: noteId }],
     };
     const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
-    const countUrl = `${API_ENDPOINT}/table/${WARRANTY_DETAIL_TBL_ID}/record/count?filter=${filterQuery}`;
-    const response = await apiRequest(countUrl, 'GET', cookieHeader);
-    return response.count || 0;
+    const url = `${API_ENDPOINT}/table/${WARRANTY_DETAIL_TBL_ID}/record?filter=${filterQuery}&fieldKeyType=dbFieldName`;
+    const response = await apiRequest(url, 'GET', cookieHeader);
+    return response.records?.length || 0;
 }
 
 
