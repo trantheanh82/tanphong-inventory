@@ -40,11 +40,16 @@ async function searchRecordBySeries(series: string, cookieHeader: string | null)
         throw new Error('Environment variables for API endpoint and table IDs are not set.');
     }
     
-    const url = new URL(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`);
-    url.searchParams.append('fieldKeyType', 'dbFieldName');
+    const filterObject = {
+        conjunction: 'and',
+        filterSet: [{ fieldId: 'series', operator: 'contains', value: series }],
+    };
+    const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
+    const url = `${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record?filter=${filterQuery}&fieldKeyType=dbFieldName`;
     
-    const response = await apiRequest(url.toString(), 'GET', cookieHeader);
+    const response = await apiRequest(url, 'GET', cookieHeader);
     
+    // Since 'contains' can have partial matches, we still need to verify the full series number.
     if (!response.records || response.records.length === 0) {
         return undefined;
     }
