@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
         const emptyDetailRecord = await findEmptyWarrantyDetail(noteId, cookieHeader);
 
         if (!emptyDetailRecord) {
-            return NextResponse.json({ success: false, message: `Đã quét đủ số lượng cho phiếu bảo hành này.` }, { status: 400 });
+            return NextResponse.json({ success: true, warning: true, message: `Đã quét đủ số lượng cho phiếu bảo hành này.` }, { status: 200 });
         }
 
         const exportDetailRecord = await searchRecordBySeries(seriesNumber, cookieHeader);

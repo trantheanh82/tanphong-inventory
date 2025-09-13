@@ -265,8 +265,13 @@ function ScanningComponent() {
       if (!response.ok) throw new Error(result.message || 'Quét bảo hành thất bại');
       
       if (result.success) {
-        toast({ title: 'Thành công', description: result.message });
-        updateItemWithScan(result.updatedRecordId, result.series, result.dot);
+        if (result.warning) {
+          toast({ title: "Thông tin", description: result.message });
+        } else {
+          toast({ title: 'Thành công', description: result.message });
+          updateItemWithScan(result.updatedRecordId, result.series, result.dot);
+        }
+        
         setManualInputValue(""); // Clear input on success
         
         if (result.isCompleted) {
