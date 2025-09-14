@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã được quét cho phiếu này.` }, { status: 409 });
         }
 
-        // Rule 2: Check if series has been claimed in ANY warranty note (excluding current note context as it is handled above)
+        // Rule 2: Check if series has been claimed in ANY warranty note
         const allClaimsFilter = {
             conjunction: 'and',
             filterSet: [{ fieldId: 'series', operator: 'is', value: seriesNumber }],
@@ -165,16 +165,16 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã được bảo hành.` }, { status: 409 });
         }
         
-        // Rule 3: Find an empty slot in the current warranty note
-        const emptyDetailRecord = await findEmptyWarrantyDetail(noteId, cookieHeader);
-        if (!emptyDetailRecord) {
-            return NextResponse.json({ success: true, warning: true, message: `Đã quét đủ số lượng cho phiếu bảo hành này.` }, { status: 200 });
-        }
-
-        // Rule 4: Validate the series exists in export records
+        // Rule 3: Validate the series exists in export records
         const exportDetailRecord = await searchRecordBySeries(seriesNumber, cookieHeader);
         if (!exportDetailRecord) {
             return NextResponse.json({ success: false, message: `Không tìm thấy series trên hệ thống: ${seriesNumber}` }, { status: 404 });
+        }
+        
+        // Rule 4: Find an empty slot in the current warranty note
+        const emptyDetailRecord = await findEmptyWarrantyDetail(noteId, cookieHeader);
+        if (!emptyDetailRecord) {
+            return NextResponse.json({ success: true, warning: true, message: `Đã quét đủ số lượng cho phiếu bảo hành này.` }, { status: 200 });
         }
 
         const updatePayload = {
@@ -219,3 +219,5 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, message }, { status: 500 });
     }
 }
+
+    
