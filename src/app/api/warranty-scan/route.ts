@@ -40,8 +40,6 @@ async function searchRecordBySeries(series: string, cookieHeader: string | null)
         throw new Error('Environment variables for API endpoint and table IDs are not set.');
     }
     
-    // This function should search for the series number in the export details.
-    // It should not be constrained by a warranty note ID.
     const filterObject = {
         conjunction: 'and',
         filterSet: [
