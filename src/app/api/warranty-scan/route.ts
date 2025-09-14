@@ -35,7 +35,7 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
     return responseText ? JSON.parse(responseText) : {};
 }
 
-async function searchRecordBySeries(series: string, cookieHeader: string | null) {
+async function searchRecordBySeriesInExport(series: string, cookieHeader: string | null) {
     if (!API_ENDPOINT || !EXPORT_DETAIL_TBL_ID) {
         throw new Error('Environment variables for API endpoint and table IDs are not set.');
     }
@@ -151,27 +151,16 @@ export async function POST(request: NextRequest) {
         const currentNoteDetailsUrl = `${API_ENDPOINT}/table/${WARRANTY_DETAIL_TBL_ID}/record?filter=${encodeURIComponent(JSON.stringify(currentNoteDetailsFilter))}&fieldKeyType=dbFieldName&take=1`;
         const currentNoteDetailsResponse = await apiRequest(currentNoteDetailsUrl, 'GET', cookieHeader);
         if (currentNoteDetailsResponse.records?.length > 0) {
-            return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã được quét cho phiếu này.` }, { status: 409 });
+            return NextResponse.json({ success: false, message: `Series đã được quét, hãy quét series khác` }, { status: 409 });
         }
 
-        // Rule 2: Check if series has been claimed in ANY warranty note
-        const allClaimsFilter = {
-            conjunction: 'and',
-            filterSet: [{ fieldId: 'series', operator: 'is', value: seriesNumber }],
-        };
-        const allClaimsUrl = `${API_ENDPOINT}/table/${WARRANTY_DETAIL_TBL_ID}/record?filter=${encodeURIComponent(JSON.stringify(allClaimsFilter))}&fieldKeyType=dbFieldName&take=1`;
-        const existingClaimResponse = await apiRequest(allClaimsUrl, 'GET', cookieHeader);
-        if (existingClaimResponse.records?.length > 0) {
-            return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã được bảo hành.` }, { status: 409 });
-        }
-        
-        // Rule 3: Validate the series exists in export records
-        const exportDetailRecord = await searchRecordBySeries(seriesNumber, cookieHeader);
+        // Rule 2: Validate the series exists in export records
+        const exportDetailRecord = await searchRecordBySeriesInExport(seriesNumber, cookieHeader);
         if (!exportDetailRecord) {
-            return NextResponse.json({ success: false, message: `Không tìm thấy series trên hệ thống: ${seriesNumber}` }, { status: 404 });
+            return NextResponse.json({ success: false, message: `Không tìm thấy series trong hệ thống` }, { status: 404 });
         }
         
-        // Rule 4: Find an empty slot in the current warranty note
+        // Find an empty slot in the current warranty note
         const emptyDetailRecord = await findEmptyWarrantyDetail(noteId, cookieHeader);
         if (!emptyDetailRecord) {
             return NextResponse.json({ success: true, warning: true, message: `Đã quét đủ số lượng cho phiếu bảo hành này.` }, { status: 200 });
@@ -219,7 +208,3 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, message }, { status: 500 });
     }
 }
-
-    
-
-    
