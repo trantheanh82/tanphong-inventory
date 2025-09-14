@@ -99,7 +99,7 @@ export function LoginForm() {
     <Card className="w-full max-w-sm bg-white/30 backdrop-blur-lg rounded-2xl shadow-xl border border-white/50 animate-in fade-in-0 zoom-in-95 duration-500">
         <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold text-[#333]">Kho Tân Phong</CardTitle>
-            <CardDescription className="text-gray-700">Đăng nhập để tiếp tục</CardDescription>
+            <CardDescription className="text-gray-700">Đăng nhập</CardDescription>
         </CardHeader>
         <CardContent>
             <form className="space-y-6" onSubmit={handleLogin}>
