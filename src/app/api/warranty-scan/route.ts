@@ -102,7 +102,8 @@ async function countTotalWarrantyDetails(noteId: string, cookieHeader: string | 
     const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
     const url = `${API_ENDPOINT}/table/${WARRANTY_DETAIL_TBL_ID}/record?filter=${filterQuery}&fieldKeyType=dbFieldName`;
     const response = await apiRequest(url, 'GET', cookieHeader);
-    return response.records?.length || 0;
+    const records = await response.records || [];
+    return records.length;
 }
 
 
@@ -137,28 +138,41 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const emptyDetailRecord = await findEmptyWarrantyDetail(noteId, cookieHeader);
+        // Rule 1: Check for duplicates within the current warranty note
+        const currentNoteDetailsFilter = {
+            conjunction: 'and',
+            filterSet: [
+                { fieldId: 'warranty_note', operator: 'is', value: noteId },
+                { fieldId: 'series', operator: 'is', value: seriesNumber }
+            ],
+        };
+        const currentNoteDetailsUrl = `${API_ENDPOINT}/table/${WARRANTY_DETAIL_TBL_ID}/record?filter=${encodeURIComponent(JSON.stringify(currentNoteDetailsFilter))}&fieldKeyType=dbFieldName&take=1`;
+        const currentNoteDetailsResponse = await apiRequest(currentNoteDetailsUrl, 'GET', cookieHeader);
+        if (currentNoteDetailsResponse.records?.length > 0) {
+            return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã được quét cho phiếu này.` }, { status: 409 });
+        }
 
+        // Rule 2: Check if series has been claimed in ANY warranty note (excluding current note context as it is handled above)
+        const allClaimsFilter = {
+            conjunction: 'and',
+            filterSet: [{ fieldId: 'series', operator: 'is', value: seriesNumber }],
+        };
+        const allClaimsUrl = `${API_ENDPOINT}/table/${WARRANTY_DETAIL_TBL_ID}/record?filter=${encodeURIComponent(JSON.stringify(allClaimsFilter))}&fieldKeyType=dbFieldName&take=1`;
+        const existingClaimResponse = await apiRequest(allClaimsUrl, 'GET', cookieHeader);
+        if (existingClaimResponse.records?.length > 0) {
+            return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã được bảo hành.` }, { status: 409 });
+        }
+        
+        // Rule 3: Find an empty slot in the current warranty note
+        const emptyDetailRecord = await findEmptyWarrantyDetail(noteId, cookieHeader);
         if (!emptyDetailRecord) {
             return NextResponse.json({ success: true, warning: true, message: `Đã quét đủ số lượng cho phiếu bảo hành này.` }, { status: 200 });
         }
 
+        // Rule 4: Validate the series exists in export records
         const exportDetailRecord = await searchRecordBySeries(seriesNumber, cookieHeader);
         if (!exportDetailRecord) {
             return NextResponse.json({ success: false, message: `Không tìm thấy series trên hệ thống: ${seriesNumber}` }, { status: 404 });
-        }
-        
-        const filterObject = {
-            conjunction: 'and',
-            filterSet: [
-                { fieldId: 'series', operator: 'is', value: seriesNumber }
-            ],
-        };
-        const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
-        const checkUrl = `${API_ENDPOINT}/table/${WARRANTY_DETAIL_TBL_ID}/record?filter=${filterQuery}&fieldKeyType=dbFieldName&take=1`;
-        const existingClaimResponse = await apiRequest(checkUrl, 'GET', cookieHeader);
-        if (existingClaimResponse.records?.length > 0) {
-            return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã được bảo hành.` }, { status: 409 });
         }
 
         const updatePayload = {
@@ -168,6 +182,7 @@ export async function POST(request: NextRequest) {
                     series: seriesNumber,
                     dot: exportDetailRecord.fields.dot,
                     scanned: 1,
+                    status: 'Đã scan',
                 }
             }],
             fieldKeyType: "dbFieldName"
@@ -202,3 +217,5 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, message }, { status: 500 });
     }
 }
+
+    
