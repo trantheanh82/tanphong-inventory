@@ -35,16 +35,17 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
     return responseText ? JSON.parse(responseText) : {};
 }
 
-async function searchRecordBySeries(series: string, noteId: number, cookieHeader: string | null) {
+async function searchRecordBySeries(series: string, cookieHeader: string | null) {
     if (!API_ENDPOINT || !EXPORT_DETAIL_TBL_ID) {
         throw new Error('Environment variables for API endpoint and table IDs are not set.');
     }
     
+    // This function should search for the series number in the export details.
+    // It should not be constrained by a warranty note ID.
     const filterObject = {
         conjunction: 'and',
         filterSet: [
-            { fieldId: 'series', operator: 'contains', value: series },
-            { fieldId: 'warranty_note', operator: 'is', value: noteId },
+            { fieldId: 'series', operator: 'contains', value: series }
         ],
     };
     const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
@@ -173,7 +174,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Rule 4: Validate the series exists in export records
-        const exportDetailRecord = await searchRecordBySeries(seriesNumber, noteId, cookieHeader);
+        const exportDetailRecord = await searchRecordBySeries(seriesNumber, cookieHeader);
         if (!exportDetailRecord) {
             return NextResponse.json({ success: false, message: `Không tìm thấy series trên hệ thống: ${seriesNumber}` }, { status: 404 });
         }
@@ -220,3 +221,5 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, message }, { status: 500 });
     }
 }
+
+    
