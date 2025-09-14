@@ -84,14 +84,14 @@ async function countFilledWarrantyDetails(noteId: string, cookieHeader: string |
     const filterObject = {
         conjunction: 'and',
         filterSet: [
-            { fieldId: 'warranty_note', operator: 'is', value: noteId },
-            { fieldId: 'series', operator: 'isNot', value: null }
+            { fieldId: 'warranty_note', operator: 'is', value: noteId }
         ],
     };
     const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
     const url = `${API_ENDPOINT}/table/${WARRANTY_DETAIL_TBL_ID}/record?filter=${filterQuery}&fieldKeyType=dbFieldName`;
     const response = await apiRequest(url, 'GET', cookieHeader);
-    return response.records?.length || 0;
+    const records = response.records || [];
+    return records.reduce((sum: number, record: any) => sum + (record.fields.scanned || 0), 0);
 }
 
 async function countTotalWarrantyDetails(noteId: string, cookieHeader: string | null): Promise<number> {
@@ -167,6 +167,7 @@ export async function POST(request: NextRequest) {
                 fields: {
                     series: seriesNumber,
                     dot: exportDetailRecord.fields.dot,
+                    scanned: 1,
                 }
             }],
             fieldKeyType: "dbFieldName"

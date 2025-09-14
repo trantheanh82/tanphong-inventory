@@ -100,7 +100,7 @@ function ScanningComponent() {
           dot: item.fields.dot,
           series: item.fields.series,
           quantity: item.fields.quantity || 1,
-          scanned: item.fields.series ? 1 : 0, // For warranty, scanned is 1 if series exists
+          scanned: item.fields.scanned || 0,
           tire_type: item.fields.tire_type
         }));
         setItems(scanItems);
@@ -457,5 +457,3 @@ export default function ScanningPage() {
         </Suspense>
     )
 }
-
-    

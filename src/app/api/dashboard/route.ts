@@ -32,16 +32,13 @@ async function fetchTableData(tableId: string, cookieHeader: string | null, take
     }
 }
 
-async function fetchWarrantyDetailsCount(noteId: string, cookieHeader: string | null): Promise<number> {
+async function fetchWarrantyDetails(noteId: string, cookieHeader: string | null): Promise<any[]> {
     const { API_ENDPOINT, WARRANTY_DETAIL_TBL_ID } = process.env;
-    if (!API_ENDPOINT || !WARRANTY_DETAIL_TBL_ID) return 0;
+    if (!API_ENDPOINT || !WARRANTY_DETAIL_TBL_ID) return [];
     
     const filterObject = {
         conjunction: 'and',
-        filterSet: [
-            { fieldId: 'warranty_note', operator: 'is', value: noteId },
-            { fieldId: 'series', operator: 'isNot', value: null }
-        ],
+        filterSet: [{ fieldId: 'warranty_note', operator: 'is', value: noteId }],
     };
     const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
     const url = `${API_ENDPOINT}/table/${WARRANTY_DETAIL_TBL_ID}/record?filter=${filterQuery}&fieldKeyType=dbFieldName`;
@@ -53,11 +50,11 @@ async function fetchWarrantyDetailsCount(noteId: string, cookieHeader: string | 
 
     try {
         const response = await fetch(url.toString(), { method: 'GET', headers });
-        if (!response.ok) return 0;
+        if (!response.ok) return [];
         const data = await response.json();
-        return data.records?.length || 0;
+        return data.records || [];
     } catch (error) {
-        return 0;
+        return [];
     }
 }
 
@@ -79,7 +76,8 @@ export async function GET(request: NextRequest) {
         ]);
 
         const warranties = await Promise.all(rawWarranties.map(async (warranty: any) => {
-            const scannedCount = await fetchWarrantyDetailsCount(warranty.id, cookieHeader);
+            const details = await fetchWarrantyDetails(warranty.id, cookieHeader);
+            const scannedCount = details.reduce((sum, detail) => sum + (detail.fields.scanned || 0), 0);
             return {
                 ...warranty,
                 fields: {
