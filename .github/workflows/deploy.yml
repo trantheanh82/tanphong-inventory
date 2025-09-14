@@ -34,7 +34,7 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
           script: |
-            cd /path/to/your/app/on/vps 
+            cd /home/tanphong/inventory 
             docker-compose pull tanphongapp
             docker-compose up -d --force-recreate tanphongapp
             echo "Deployment completed successfully!"
