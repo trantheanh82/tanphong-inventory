@@ -262,8 +262,7 @@ function ScanningComponent() {
         body: JSON.stringify({ noteId, ...scanPayload }),
       });
       
-      const responseText = await response.text();
-      const result = responseText ? JSON.parse(responseText) : {};
+      const result = await response.json();
 
       if (!response.ok) throw new Error(result.message || 'Quét bảo hành thất bại');
       
@@ -458,3 +457,5 @@ export default function ScanningPage() {
         </Suspense>
     )
 }
+
+    
