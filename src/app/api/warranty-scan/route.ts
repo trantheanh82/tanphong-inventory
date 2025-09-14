@@ -35,14 +35,17 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
     return responseText ? JSON.parse(responseText) : {};
 }
 
-async function searchRecordBySeries(series: string, cookieHeader: string | null) {
+async function searchRecordBySeries(series: string, noteId: number, cookieHeader: string | null) {
     if (!API_ENDPOINT || !EXPORT_DETAIL_TBL_ID) {
         throw new Error('Environment variables for API endpoint and table IDs are not set.');
     }
     
     const filterObject = {
         conjunction: 'and',
-        filterSet: [{ fieldId: 'series', operator: 'contains', value: series }],
+        filterSet: [
+            { fieldId: 'series', operator: 'contains', value: series },
+            { fieldId: 'warranty_note', operator: 'is', value: noteId },
+        ],
     };
     const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
     const url = `${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record?filter=${filterQuery}&fieldKeyType=dbFieldName`;
@@ -170,7 +173,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Rule 4: Validate the series exists in export records
-        const exportDetailRecord = await searchRecordBySeries(seriesNumber, cookieHeader);
+        const exportDetailRecord = await searchRecordBySeries(seriesNumber, noteId, cookieHeader);
         if (!exportDetailRecord) {
             return NextResponse.json({ success: false, message: `Không tìm thấy series trên hệ thống: ${seriesNumber}` }, { status: 404 });
         }
