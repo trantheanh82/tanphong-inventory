@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Camera, CheckCircle, LoaderCircle, Scan, Zap, ZapOff, Send, ScanSearch, PlusCircle } from 'lucide-react';
+import { ArrowLeft, Camera, CheckCircle, LoaderCircle, Scan, Zap, ZapOff, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useScanningStore, ScanItem } from '@/store/scanning-store';
@@ -25,16 +25,13 @@ function ScanningComponent() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
 
-  const [scanMode, setScanMode] = useState<'dot' | 'series'>('dot');
-
   const noteId = searchParams.get('noteId');
   const noteType = searchParams.get('type') as 'import' | 'export' | 'warranty';
 
   const {
     items,
     setItems,
-    incrementScanCount,
-    addSeriesToItem,
+    addOrUpdateItem,
     checkAllScanned,
     reset,
     getTotalProgress,
@@ -162,9 +159,9 @@ function ScanningComponent() {
     const videoWidth = video.videoWidth;
     const videoHeight = video.videoHeight;
     
-    const isSeriesScan = scanMode === 'series' || noteType === 'warranty';
+    const isSeriesScan = noteType === 'warranty' || noteType === 'export';
     const overlayWidthPercent = 0.95; 
-    const overlayHeightPercent = isSeriesScan ? 0.30 : 0.50;
+    const overlayHeightPercent = isSeriesScan ? 0.40 : 0.50;
 
     const cropWidth = videoWidth * overlayWidthPercent;
     const cropHeight = videoHeight * overlayHeightPercent;
@@ -180,78 +177,46 @@ function ScanningComponent() {
     return canvas.toDataURL('image/jpeg', 0.8);
   }
 
-  const handleGenericScan = async (imageDataUri: string) => {
-      const endpoint = noteType === 'export' ? '/api/export-scan' : '/api/scan';
-      const body = noteType === 'export' 
-        ? { noteId, imageDataUri, scanType: scanMode }
-        : { noteId, noteType, imageDataUri };
+  const handleScanResponse = (result: any) => {
+    if (result.success) {
+        if (result.warning) {
+            toast({ title: "Cảnh báo", description: result.message, className: "bg-yellow-100 border-yellow-500 text-yellow-800" });
+        } else {
+            toast({ title: "Thành công", description: result.message });
+        }
+        
+        // Refetch data to update the UI state from the source of truth
+        const fetchNoteDetails = async () => {
+            const response = await fetch(`/api/note-detail?type=${noteType}&noteId=${noteId}`);
+            const data = await response.json();
+            const scanItems: ScanItem[] = data.map((item: any) => ({
+              id: item.id, dot: item.fields.dot, series: item.fields.series,
+              quantity: item.fields.quantity || 1, scanned: item.fields.scanned || 0,
+              tire_type: item.fields.tire_type
+            }));
+            setItems(scanItems);
 
-      try {
-          const response = await fetch(endpoint, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(body),
-          });
+            const allScanned = scanItems.every(item => {
+                const isDomestic = item.tire_type === 'Nội địa';
+                const scannedCount = item.scanned || 0;
+                const requiredQuantity = item.quantity;
+                const seriesCount = item.series ? item.series.split(',').map((s:string) => s.trim()).length : 0;
+                if(noteType !== 'export') return scannedCount >= requiredQuantity;
+                if (isDomestic) return scannedCount >= requiredQuantity;
+                return scannedCount >= requiredQuantity && seriesCount >= requiredQuantity;
+            });
+            if (allScanned) {
+                toast({ title: "Hoàn tất", description: "Bạn đã quét đủ số lượng cho tất cả các mục.", className: "bg-green-500 text-white" });
+                setTimeout(() => router.push(`/listing?type=${noteType}`), 1000);
+            }
+        };
+        fetchNoteDetails();
 
-          const result = await response.json();
-          if (!response.ok) throw new Error(result.message || "Quét thất bại");
-
-          if (result.success) {
-              if (result.warning) {
-                  toast({ title: "Cảnh báo", description: result.message, className: "bg-yellow-100 border-yellow-500 text-yellow-800" });
-              } else {
-                  toast({ title: "Thành công", description: result.message });
-              }
-              
-              if(result.dot) incrementScanCount(result.dot);
-              if(result.dot && result.series) addSeriesToItem(result.dot, result.series);
-
-              if (checkAllScanned()) {
-                  toast({ title: "Hoàn tất", description: "Bạn đã quét đủ số lượng cho tất cả các mục.", className: "bg-green-500 text-white" });
-                  setTimeout(() => router.push(`/listing?type=${noteType}`), 1000);
-              }
-          } else {
-              toast({ variant: 'destructive', title: "Thất bại", description: result.message });
-          }
-      } catch (error: any) {
-          toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
-      }
+    } else {
+        toast({ variant: 'destructive', title: "Thất bại", description: result.message });
+    }
   }
   
-  const handleWarrantyScan = async (scanPayload: { imageDataUri?: string; seriesNumber?: string }) => {
-    try {
-      const response = await fetch('/api/warranty-scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ noteId, ...scanPayload }),
-      });
-      
-      const result = await response.json();
-
-      if (!response.ok) throw new Error(result.message || 'Quét bảo hành thất bại');
-      
-      if (result.success) {
-        if (result.warning) {
-          toast({ title: "Thông tin", description: result.message });
-        } else {
-          toast({ title: 'Thành công', description: result.message });
-          updateItemWithScan(result.updatedRecordId, result.series, result.dot);
-        }
-        
-        setManualInputValue(""); // Clear input on success
-        
-        if (result.isCompleted) {
-          toast({ title: 'Hoàn tất', description: 'Đã scan đủ số lượng cho phiếu bảo hành.', className: 'bg-green-500 text-white' });
-          setTimeout(() => router.push(`/listing?type=${noteType}`), 1000);
-        }
-      } else {
-        toast({ variant: 'destructive', title: 'Thất bại', description: result.message });
-      }
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
-    }
-  };
-
   const handleScan = async () => {
     if (isSubmitting) return;
 
@@ -263,13 +228,59 @@ function ScanningComponent() {
         return;
     }
     
-    if (noteType === 'warranty') {
-      await handleWarrantyScan({ imageDataUri });
-    } else {
-      await handleGenericScan(imageDataUri);
+    let endpoint = '/api/scan';
+    let body: any = { noteId, noteType, imageDataUri };
+
+    if (noteType === 'export') {
+      endpoint = '/api/export-scan';
+      body = { noteId, imageDataUri };
+    } else if (noteType === 'warranty') {
+        await handleWarrantyScan({ imageDataUri });
+        setIsSubmitting(false);
+        return;
+    }
+
+    try {
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        const result = await response.json();
+        handleScanResponse(result);
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
     }
 
     setIsSubmitting(false);
+  };
+  
+  const handleWarrantyScan = async (scanPayload: { imageDataUri?: string; seriesNumber?: string }) => {
+    try {
+      const response = await fetch('/api/warranty-scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ noteId, ...scanPayload }),
+      });
+      const result = await response.json();
+
+      if (!response.ok) throw new Error(result.message || 'Quét bảo hành thất bại');
+      
+      if (result.success) {
+        toast({ title: 'Thành công', description: result.message });
+        setManualInputValue("");
+        updateItemWithScan(result.updatedRecordId, result.series, result.dot);
+        
+        if (result.isCompleted) {
+          toast({ title: 'Hoàn tất', description: 'Đã scan đủ số lượng cho phiếu bảo hành.', className: 'bg-green-500 text-white' });
+          setTimeout(() => router.push(`/listing?type=${noteType}`), 1000);
+        }
+      } else {
+        toast({ variant: 'destructive', title: 'Thất bại', description: result.message });
+      }
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
+    }
   };
 
   const handleManualSubmit = async (e: React.FormEvent) => {
@@ -289,49 +300,8 @@ function ScanningComponent() {
   const getPageTitle = () => {
       if (noteType === 'warranty') return 'Quét Series Bảo Hành';
       if (noteType === 'import') return 'Quét DOT Nhập Kho';
-      if (noteType === 'export') {
-        return scanMode === 'dot' ? 'Quét DOT Xuất Kho' : 'Quét Series Xuất Kho'
-      }
+      if (noteType === 'export') return 'Quét DOT & Series';
       return 'Quét Mã';
-  }
-
-  const renderScanButtons = () => {
-    if (noteType === 'export') {
-      return (
-        <div className='flex justify-center items-center gap-4'>
-            <Button
-              onClick={() => {
-                handleScan();
-              }}
-              disabled={isSubmitting || hasCameraPermission !== true}
-              className="h-20 w-20 bg-blue-600 text-white rounded-full text-xl font-bold flex flex-col items-center justify-center hover:bg-blue-700 disabled:bg-gray-500 shadow-lg"
-            >
-              {isSubmitting ? <LoaderCircle className="w-8 h-8 animate-spin" /> : (scanMode === 'dot' ? <Camera className='w-8 h-8' /> : <ScanSearch className='w-8 h-8' />)}
-              <span className='text-xs mt-1'>{scanMode === 'dot' ? "DOT" : "Series"}</span>
-            </Button>
-            <Button 
-                variant="outline" 
-                className='bg-white/20 text-white border-white/50' 
-                onClick={() => setScanMode(prev => prev === 'dot' ? 'series' : 'dot')}>
-                {scanMode === 'dot' ? "Quét Series" : "Quét DOT"}
-            </Button>
-        </div>
-      )
-    }
-
-    return (
-        <Button
-            onClick={handleScan}
-            disabled={isSubmitting || hasCameraPermission !== true}
-            className="h-20 w-20 bg-blue-600 text-white rounded-full text-xl font-bold flex items-center justify-center gap-3 hover:bg-blue-700 disabled:bg-gray-500 shadow-lg"
-        >
-            {isSubmitting ? (
-            <LoaderCircle className="w-10 h-10 animate-spin" />
-            ) : (
-                noteType === 'warranty' ? <Scan className="w-10 h-10" /> : <Camera className="w-10 h-10" />
-            )}
-        </Button>
-    )
   }
 
   return (
@@ -355,7 +325,7 @@ function ScanningComponent() {
              {/* Scanning box overlay */}
              <div className={cn(
                 "absolute border-4 border-dashed border-white/50 rounded-lg animate-pulse",
-                scanMode === 'series' || noteType === 'warranty' ? "w-[95%] h-[30%]" : "w-[95%] h-[50%]"
+                noteType === 'export' || noteType === 'warranty' ? "w-[95%] h-[40%]" : "w-[95%] h-[50%]"
              )}></div>
 
              {hasCameraPermission === false && (
@@ -405,7 +375,7 @@ function ScanningComponent() {
                     {items.length > 0 ? items.map(item => (
                         <div key={item.id} className={cn(
                             "p-2 rounded-lg border transition-all",
-                            item.scanned === item.quantity ? "bg-green-500/10 border-green-500/30" : "bg-gray-700/20 border-gray-600/50",
+                            item.scanned >= item.quantity ? "bg-green-500/10 border-green-500/30" : "bg-gray-700/20 border-gray-600/50",
                             )}>
                             <div className="flex justify-between items-center">
                                 <p className="font-semibold text-xs text-white">
@@ -414,15 +384,15 @@ function ScanningComponent() {
                                 <div className="flex items-center gap-2">
                                 <span className={cn(
                                     "font-bold text-sm",
-                                    item.scanned === item.quantity ? 'text-green-400' : 'text-yellow-400'
+                                    item.scanned >= item.quantity ? 'text-green-400' : 'text-yellow-400'
                                     )}>
                                     {item.scanned}/{item.quantity}
                                 </span>
-                                {item.scanned === item.quantity && <CheckCircle className="w-3 h-3 text-green-400" />}
+                                {item.scanned >= item.quantity && <CheckCircle className="w-3 h-3 text-green-400" />}
                                 </div>
                             </div>
                             <Progress value={(item.scanned / item.quantity) * 100} className="h-1 mt-1.5 bg-gray-700" />
-                            {noteType !== 'warranty' && item.series && <p className="text-xs text-gray-400 mt-1 truncate">Series: {item.series || '-'}</p>}
+                            {item.tire_type === 'Nước ngoài' && <p className="text-xs text-gray-400 mt-1 truncate">Series: {item.series || '-'}</p>}
                         </div>
                     )) : (
                         <div className="text-center text-gray-400 text-xs py-3">Chưa có dữ liệu...</div>
@@ -434,7 +404,17 @@ function ScanningComponent() {
       </main>
 
       <footer className="p-4 flex justify-center sticky bottom-0 z-20">
-        {renderScanButtons()}
+        <Button
+            onClick={handleScan}
+            disabled={isSubmitting || hasCameraPermission !== true}
+            className="h-20 w-20 bg-blue-600 text-white rounded-full text-xl font-bold flex items-center justify-center gap-3 hover:bg-blue-700 disabled:bg-gray-500 shadow-lg"
+        >
+            {isSubmitting ? (
+            <LoaderCircle className="w-10 h-10 animate-spin" />
+            ) : (
+                noteType === 'warranty' || noteType === 'export' ? <Scan className="w-10 h-10" /> : <Camera className="w-10 h-10" />
+            )}
+        </Button>
       </footer>
     </div>
   );
