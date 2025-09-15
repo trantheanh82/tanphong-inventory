@@ -4,6 +4,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { recognizeTireInfo } from '@/ai/flows/export-scan-flow';
+import { recognizeDotNumber } from '@/ai/flows/scan-flow';
+import { recognizeSeriesNumber } from '@/ai/flows/warranty-scan-flow';
 
 const { API_ENDPOINT, EXPORT_TBL_ID, EXPORT_DETAIL_TBL_ID } = process.env;
 
@@ -56,12 +58,12 @@ async function updateNoteStatusIfCompleted(noteId: string, cookieHeader: string 
         const isDomestic = item.fields.tire_type === 'Nội địa';
         const scannedCount = item.fields.scanned || 0;
         const requiredQuantity = item.fields.quantity;
-        const seriesCount = item.fields.series ? item.fields.series.split(',').map((s:string) => s.trim()).length : 0;
+        const seriesCount = item.fields.series ? item.fields.series.split(',').map((s:string) => s.trim()).filter(Boolean).length : 0;
         
         if (isDomestic) {
             return scannedCount >= requiredQuantity;
         } else { // Nước ngoài
-            return scannedCount >= requiredQuantity && seriesCount >= requiredQuantity;
+            return seriesCount >= requiredQuantity;
         }
     });
 
@@ -75,49 +77,59 @@ async function updateNoteStatusIfCompleted(noteId: string, cookieHeader: string 
     }
 }
 
-async function processScan(noteId: string, imageDataUri: string, cookieHeader: string) {
-    const recognizedInfo = await recognizeTireInfo(imageDataUri);
+async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot' | 'series' | 'both', cookieHeader: string) {
+    let dotNumber: string | undefined;
+    let seriesNumber: string | undefined;
 
-    if (!recognizedInfo || (!recognizedInfo.dotNumber && !recognizedInfo.seriesNumber)) {
-        return NextResponse.json({ success: false, message: "Không nhận dạng được DOT hoặc Series. Vui lòng thử lại." }, { status: 400 });
+    if (scanMode === 'dot') {
+        dotNumber = await recognizeDotNumber(imageDataUri);
+    } else if (scanMode === 'series') {
+        seriesNumber = await recognizeSeriesNumber(imageDataUri);
+    } else { // 'both'
+        const recognizedInfo = await recognizeTireInfo(imageDataUri);
+        dotNumber = recognizedInfo?.dotNumber;
+        seriesNumber = recognizedInfo?.seriesNumber;
     }
-
-    const { dotNumber, seriesNumber } = recognizedInfo;
+    
+    if (!dotNumber && !seriesNumber) {
+        return NextResponse.json({ success: false, message: "Không nhận dạng được thông tin. Vui lòng thử lại." }, { status: 400 });
+    }
 
     const detailsResponse = await fetchNoteDetails(EXPORT_DETAIL_TBL_ID!, noteId, 'export_note', cookieHeader);
     const details = detailsResponse.records;
-
+    
     let targetItem: any = null;
     let updateType: 'dot' | 'series' | null = null;
     
-    // Prioritize series number for lookup
+    // Prioritize series number for lookup if it was scanned
     if (seriesNumber) {
-        // Check for duplicate series in THIS note
         for (const item of details) {
             if (item.fields.series && item.fields.series.split(',').map((s: string) => s.trim()).includes(seriesNumber)) {
                 return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã được quét cho phiếu này.` }, { status: 409 });
             }
         }
         
-        // Find a foreign tire that needs this series
         targetItem = details.find((item: any) => {
             if (item.fields.tire_type !== 'Nước ngoài' || !item.fields.quantity) return false;
-            const seriesCount = item.fields.series ? item.fields.series.split(',').length : 0;
+            const seriesCount = item.fields.series ? item.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean).length : 0;
             return seriesCount < item.fields.quantity;
         });
 
         if(targetItem) updateType = 'series';
     }
     
-    // If no series match, or no series found, try DOT
+    // If no series match, or series wasn't scanned, try DOT
     if (!targetItem && dotNumber) {
         const valueToScan = dotNumber.slice(-2);
-        targetItem = details.find((item: any) => String(item.fields.dot) === valueToScan);
+        targetItem = details.find((item: any) => String(item.fields.dot) === valueToScan && item.fields.tire_type === 'Nội địa');
         if(targetItem) updateType = 'dot';
     }
 
     if (!targetItem) {
-        return NextResponse.json({ success: false, message: `Không tìm thấy lốp phù hợp cho thông tin đã quét (DOT: ${dotNumber || 'N/A'}, Series: ${seriesNumber || 'N/A'}).` }, { status: 404 });
+        let msg = `Không tìm thấy lốp phù hợp cho thông tin đã quét.`;
+        if (dotNumber) msg += ` DOT: ${dotNumber}`;
+        if (seriesNumber) msg += ` Series: ${seriesNumber}`;
+        return NextResponse.json({ success: false, message: msg }, { status: 404 });
     }
 
     // --- Process the update ---
@@ -135,16 +147,19 @@ async function processScan(noteId: string, imageDataUri: string, cookieHeader: s
         const newScannedCount = currentScanned + 1;
         fieldsToUpdate.scanned = newScannedCount;
         
-        if (newScannedCount >= totalQuantity) fieldsToUpdate.status = 'Đã scan đủ';
-        
-        message = targetItem.fields.tire_type === 'Nước ngoài'
-            ? `DOT ${targetItem.fields.dot} hợp lệ. Hãy quét tiếp series cho lốp này.`
-            : `Đã ghi nhận DOT ${targetItem.fields.dot} (${newScannedCount}/${totalQuantity})`;
+        message = `Đã ghi nhận DOT ${targetItem.fields.dot} (${newScannedCount}/${totalQuantity})`;
 
     } else if (updateType === 'series' && seriesNumber) {
-        const newSeries = targetItem.fields.series ? `${targetItem.fields.series}, ${seriesNumber}` : seriesNumber;
+        const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+        
+        if (currentSeries.length >= targetItem.fields.quantity) {
+             return NextResponse.json({ success: true, warning: true, message: `Đã quét đủ series cho DOT ${targetItem.fields.dot}.`});
+        }
+
+        const newSeries = [...currentSeries, seriesNumber].join(', ');
         fieldsToUpdate.series = newSeries;
-        message = `Đã ghi nhận Series ${seriesNumber} cho DOT ${targetItem.fields.dot}.`;
+        const newSeriesCount = currentSeries.length + 1;
+        message = `Đã ghi nhận Series ${seriesNumber} cho DOT ${targetItem.fields.dot}. (${newSeriesCount}/${targetItem.fields.quantity})`;
     }
 
     if (Object.keys(fieldsToUpdate).length > 0) {
@@ -155,6 +170,10 @@ async function processScan(noteId: string, imageDataUri: string, cookieHeader: s
         await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
         await updateNoteStatusIfCompleted(noteId, cookieHeader);
     } else {
+        // This might happen if e.g. a DOT for a "Nước ngoài" tire was scanned but series was expected.
+        if (dotNumber && !seriesNumber && targetItem.fields.tire_type === 'Nước ngoài') {
+             return NextResponse.json({ success: false, message: `Lốp nước ngoài yêu cầu quét Series. Vui lòng chọn chế độ quét "Series" hoặc "Cả hai".` }, { status: 400 });
+        }
         return NextResponse.json({ success: false, message: "Không có thông tin gì để cập nhật." }, { status: 400 });
     }
     
@@ -165,9 +184,9 @@ async function processScan(noteId: string, imageDataUri: string, cookieHeader: s
 
 export async function POST(request: NextRequest) {
     const cookieHeader = cookies().toString();
-    const { noteId, imageDataUri } = await request.json();
+    const { noteId, imageDataUri, scanMode } = await request.json();
 
-    if (!noteId || !imageDataUri) {
+    if (!noteId || !imageDataUri || !scanMode) {
         return NextResponse.json({ message: 'Missing required parameters.' }, { status: 400 });
     }
     
@@ -176,9 +195,11 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-       return await processScan(noteId, imageDataUri, cookieHeader);
+       return await processScan(noteId, imageDataUri, scanMode, cookieHeader);
     } catch (error: any) {
         console.error('Error processing export scan:', error);
         return NextResponse.json({ message: error.message || 'An internal server error occurred.' }, { status: 500 });
     }
 }
+
+    

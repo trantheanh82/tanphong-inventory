@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useEffect, useState, useRef, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Camera, CheckCircle, LoaderCircle, Scan, Zap, ZapOff, Send } from 'lucide-react';
+import { ArrowLeft, Camera, CheckCircle, LoaderCircle, Scan, Zap, ZapOff, Send, ScanText, Combine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useScanningStore, ScanItem } from '@/store/scanning-store';
@@ -12,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
+type ScanMode = 'dot' | 'series' | 'both';
 
 function ScanningComponent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -198,13 +200,15 @@ function ScanningComponent() {
 
             const allScanned = scanItems.every(item => {
                 const isDomestic = item.tire_type === 'Nội địa';
-                const scannedCount = item.scanned || 0;
-                const requiredQuantity = item.quantity;
-                const seriesCount = item.series ? item.series.split(',').map((s:string) => s.trim()).length : 0;
-                if(noteType !== 'export') return scannedCount >= requiredQuantity;
-                if (isDomestic) return scannedCount >= requiredQuantity;
-                return scannedCount >= requiredQuantity && seriesCount >= requiredQuantity;
+                const seriesCount = item.series ? item.series.split(',').map((s:string) => s.trim()).filter(Boolean).length : 0;
+                
+                if (noteType === 'export') {
+                    if (isDomestic) return (item.scanned || 0) >= item.quantity;
+                    return seriesCount >= item.quantity;
+                }
+                return (item.scanned || 0) >= item.quantity;
             });
+
             if (allScanned) {
                 toast({ title: "Hoàn tất", description: "Bạn đã quét đủ số lượng cho tất cả các mục.", className: "bg-green-500 text-white" });
                 setTimeout(() => router.push(`/listing?type=${noteType}`), 1000);
@@ -217,7 +221,7 @@ function ScanningComponent() {
     }
   }
   
-  const handleScan = async () => {
+  const handleScan = async (scanMode: ScanMode) => {
     if (isSubmitting) return;
 
     setIsSubmitting(true);
@@ -233,7 +237,7 @@ function ScanningComponent() {
 
     if (noteType === 'export') {
       endpoint = '/api/export-scan';
-      body = { noteId, imageDataUri };
+      body = { noteId, imageDataUri, scanMode };
     } else if (noteType === 'warranty') {
         await handleWarrantyScan({ imageDataUri });
         setIsSubmitting(false);
@@ -290,8 +294,16 @@ function ScanningComponent() {
     
     if (noteType === 'warranty') {
         await handleWarrantyScan({ seriesNumber: manualInputValue });
-    } else {
-        toast({ variant: 'destructive', title: 'Chưa hỗ trợ', description: 'Chức năng nhập tay chỉ dành cho bảo hành.' });
+    } else if (noteType === 'import') {
+        // Manual Scan for Import
+        const response = await fetch('/api/manual-scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ noteId, noteType, valueToScan: manualInputValue })
+        });
+        const result = await response.json();
+        handleScanResponse(result);
+        setManualInputValue("");
     }
     
     setIsSubmitting(false);
@@ -300,8 +312,43 @@ function ScanningComponent() {
   const getPageTitle = () => {
       if (noteType === 'warranty') return 'Quét Series Bảo Hành';
       if (noteType === 'import') return 'Quét DOT Nhập Kho';
-      if (noteType === 'export') return 'Quét DOT & Series';
+      if (noteType === 'export') return 'Quét Lốp Xuất Kho';
       return 'Quét Mã';
+  }
+
+  const renderScanButtons = () => {
+    if (noteType === 'export') {
+      return (
+        <div className="flex justify-center gap-4">
+          <Button onClick={() => handleScan('dot')} disabled={isSubmitting || hasCameraPermission !== true} className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex-col h-auto p-3">
+            <Camera className="w-8 h-8" />
+            <span className="text-xs mt-1">Scan DOT</span>
+          </Button>
+          <Button onClick={() => handleScan('series')} disabled={isSubmitting || hasCameraPermission !== true} className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex-col h-auto p-3">
+            <ScanText className="w-8 h-8" />
+            <span className="text-xs mt-1">Scan Series</span>
+          </Button>
+          <Button onClick={() => handleScan('both')} disabled={isSubmitting || hasCameraPermission !== true} className="bg-green-600 hover:bg-green-700 text-white rounded-lg flex-col h-auto p-3">
+            <Combine className="w-8 h-8" />
+            <span className="text-xs mt-1">Cả hai</span>
+          </Button>
+        </div>
+      );
+    }
+    // Default single button for import and warranty
+    return (
+        <Button
+            onClick={() => handleScan('dot')} // 'dot' is a placeholder, warranty has its own logic
+            disabled={isSubmitting || hasCameraPermission !== true}
+            className="h-20 w-20 bg-blue-600 text-white rounded-full text-xl font-bold flex items-center justify-center gap-3 hover:bg-blue-700 disabled:bg-gray-500 shadow-lg"
+        >
+            {isSubmitting ? (
+            <LoaderCircle className="w-10 h-10 animate-spin" />
+            ) : (
+                noteType === 'warranty' ? <Scan className="w-10 h-10" /> : <Camera className="w-10 h-10" />
+            )}
+        </Button>
+    );
   }
 
   return (
@@ -346,10 +393,10 @@ function ScanningComponent() {
         </div>
 
         <div className='p-4 space-y-4'>
-            {noteType === 'warranty' && (
+            {(noteType === 'warranty' || noteType === 'import') && (
                 <form onSubmit={handleManualSubmit} className="flex gap-2">
                     <Input 
-                        placeholder='Hoặc nhập tay số series...'
+                        placeholder={noteType === 'warranty' ? 'Hoặc nhập tay số series...' : 'Hoặc nhập tay DOT (2 số)...'}
                         value={manualInputValue}
                         onChange={(e) => setManualInputValue(e.target.value.toUpperCase())}
                         className='bg-white/20 text-white placeholder:text-gray-300 border-white/30'
@@ -392,7 +439,7 @@ function ScanningComponent() {
                                 </div>
                             </div>
                             <Progress value={(item.scanned / item.quantity) * 100} className="h-1 mt-1.5 bg-gray-700" />
-                            {item.tire_type === 'Nước ngoài' && <p className="text-xs text-gray-400 mt-1 truncate">Series: {item.series || '-'}</p>}
+                            {noteType === 'export' && item.tire_type === 'Nước ngoài' && <p className="text-xs text-gray-400 mt-1 truncate">Series: {item.series || '-'}</p>}
                         </div>
                     )) : (
                         <div className="text-center text-gray-400 text-xs py-3">Chưa có dữ liệu...</div>
@@ -404,17 +451,7 @@ function ScanningComponent() {
       </main>
 
       <footer className="p-4 flex justify-center sticky bottom-0 z-20">
-        <Button
-            onClick={handleScan}
-            disabled={isSubmitting || hasCameraPermission !== true}
-            className="h-20 w-20 bg-blue-600 text-white rounded-full text-xl font-bold flex items-center justify-center gap-3 hover:bg-blue-700 disabled:bg-gray-500 shadow-lg"
-        >
-            {isSubmitting ? (
-            <LoaderCircle className="w-10 h-10 animate-spin" />
-            ) : (
-                noteType === 'warranty' || noteType === 'export' ? <Scan className="w-10 h-10" /> : <Camera className="w-10 h-10" />
-            )}
-        </Button>
+        {renderScanButtons()}
       </footer>
     </div>
   );
@@ -427,3 +464,5 @@ export default function ScanningPage() {
         </Suspense>
     )
 }
+
+    
