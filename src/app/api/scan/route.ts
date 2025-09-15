@@ -1,4 +1,3 @@
-
 'use server';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -44,12 +43,12 @@ async function fetchNoteDetails(tableId: string, noteId: string, filterField: st
     return apiRequest(url, 'GET', cookieHeader);
 }
 
-async function updateNoteStatusIfCompleted(noteType: 'import' | 'export', noteId: string, cookieHeader: string | null) {
-    const { IMPORT_TBL_ID, EXPORT_TBL_ID, IMPORT_DETAIL_TBL_ID, EXPORT_DETAIL_TBL_ID } = process.env;
+async function updateNoteStatusIfCompleted(noteType: 'import', noteId: string, cookieHeader: string | null) {
+    const { IMPORT_TBL_ID, IMPORT_DETAIL_TBL_ID } = process.env;
     
-    const detailTableId = noteType === 'import' ? IMPORT_DETAIL_TBL_ID : EXPORT_DETAIL_TBL_ID;
-    const noteTableId = noteType === 'import' ? IMPORT_TBL_ID : EXPORT_TBL_ID;
-    const noteLinkField = noteType === 'import' ? 'import_note' : 'export_note';
+    const detailTableId = IMPORT_DETAIL_TBL_ID
+    const noteTableId = IMPORT_TBL_ID;
+    const noteLinkField = 'import_note';
 
     if (!detailTableId || !noteTableId) return;
 
@@ -75,6 +74,10 @@ export async function POST(request: NextRequest) {
     const cookieHeader = cookies().toString();
     const { noteId, noteType, imageDataUri } = await request.json();
 
+    if (noteType === 'export') {
+        return NextResponse.json({ message: 'Please use the new /api/export-scan endpoint for exports.' }, { status: 400 });
+    }
+
     if (!noteId || !noteType || !imageDataUri) {
         return NextResponse.json({ message: 'Missing required parameters.' }, { status: 400 });
     }
@@ -94,7 +97,7 @@ export async function POST(request: NextRequest) {
 
     const valueToScan = recognizedDot.slice(-2); // Use last 2 digits for matching
 
-    const { IMPORT_DETAIL_TBL_ID, EXPORT_DETAIL_TBL_ID } = process.env;
+    const { IMPORT_DETAIL_TBL_ID } = process.env;
 
     let detailTableId: string | undefined;
     let noteLinkField: string | undefined;
@@ -104,11 +107,6 @@ export async function POST(request: NextRequest) {
         case 'import':
             detailTableId = IMPORT_DETAIL_TBL_ID;
             noteLinkField = 'import_note';
-            dotField = 'dot';
-            break;
-        case 'export':
-            detailTableId = EXPORT_DETAIL_TBL_ID;
-            noteLinkField = 'export_note';
             dotField = 'dot';
             break;
         case 'warranty':
@@ -147,16 +145,6 @@ export async function POST(request: NextRequest) {
                 dot: valueToScan,
                 isCompleted: true,
                 warning: true
-            });
-        }
-        
-        // For export of "Nước ngoài" tires, require a series scan next
-        if (noteType === 'export' && targetItem.fields.tire_type === 'Nước ngoài') {
-            return NextResponse.json({
-                success: true,
-                seriesScanRequired: true,
-                dot: valueToScan,
-                message: `DOT ${valueToScan} hợp lệ. Vui lòng quét series lốp.`
             });
         }
         

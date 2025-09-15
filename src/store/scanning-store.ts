@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 
 export interface ScanItem {
@@ -12,13 +11,11 @@ export interface ScanItem {
 
 interface ScanningState {
   items: ScanItem[];
-  activeSeriesScan: string | null; // Holds the DOT that needs a series scan
   setItems: (items: ScanItem[]) => void;
   addOrUpdateItem: (item: ScanItem) => void;
   incrementScanCount: (id: string) => void;
   updateItemWithScan: (recordId: string, series: string, dot: string) => void;
   addSeriesToItem: (dot: string, series: string) => void;
-  setActiveSeriesScan: (dot: string | null) => void;
   checkAllScanned: () => boolean;
   getTotalProgress: () => { totalScanned: number; totalQuantity: number };
   reset: () => void;
@@ -26,7 +23,6 @@ interface ScanningState {
 
 export const useScanningStore = create<ScanningState>((set, get) => ({
   items: [],
-  activeSeriesScan: null,
   setItems: (items) => set({ items }),
 
   addOrUpdateItem: (newItem) => {
@@ -69,18 +65,23 @@ export const useScanningStore = create<ScanningState>((set, get) => ({
   },
 
   addSeriesToItem: (dot, series) => {
-    set((state) => ({
-      items: state.items.map((item) => {
-        if (String(item.dot) === String(dot)) {
-          const newSeries = item.series ? `${item.series}, ${series}` : series;
-          return { ...item, series: newSeries };
+    set((state) => {
+      let itemUpdated = false;
+      const updatedItems = state.items.map((item) => {
+        if (item.tire_type === 'Nước ngoài' && String(item.dot) === String(dot) && !itemUpdated) {
+          // Find the first unscanned series slot for this DOT and fill it
+          const existingSeries = item.series ? item.series.split(', ') : [];
+          if (existingSeries.length < item.quantity) {
+              const newSeries = item.series ? `${item.series}, ${series}` : series;
+              itemUpdated = true;
+              return { ...item, series: newSeries };
+          }
         }
         return item;
-      }),
-    }));
+      });
+      return { items: updatedItems };
+    });
   },
-
-  setActiveSeriesScan: (dot) => set({ activeSeriesScan: dot }),
 
   checkAllScanned: () => {
     const { items } = get();
@@ -95,5 +96,5 @@ export const useScanningStore = create<ScanningState>((set, get) => ({
     return { totalScanned, totalQuantity };
   },
   
-  reset: () => set({ items: [], activeSeriesScan: null }),
+  reset: () => set({ items: [] }),
 }));
