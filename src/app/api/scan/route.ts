@@ -86,6 +86,9 @@ export async function POST(request: NextRequest) {
     let recognizedDot: string | undefined;
     try {
         recognizedDot = await recognizeDotNumber(imageDataUri);
+        if (!recognizedDot || !/^\d{4}$/.test(recognizedDot)) {
+             return NextResponse.json({ success: false, message: "Không nhận dạng được DOT. Vui lòng thử lại." }, { status: 400 });
+        }
     } catch (aiError) {
         console.error("AI recognition error:", aiError);
         return NextResponse.json({ success: false, message: 'AI processing failed. Please try again.' }, { status: 500 });

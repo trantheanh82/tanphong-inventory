@@ -80,15 +80,28 @@ async function updateNoteStatusIfCompleted(noteId: string, cookieHeader: string 
 async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot' | 'series' | 'both', cookieHeader: string) {
     let dotNumber: string | undefined;
     let seriesNumber: string | undefined;
+    let fullDotNumber: string | undefined;
 
-    if (scanMode === 'dot') {
-        dotNumber = await recognizeDotNumber(imageDataUri);
-    } else if (scanMode === 'series') {
-        seriesNumber = await recognizeSeriesNumber(imageDataUri);
-    } else { // 'both'
-        const recognizedInfo = await recognizeTireInfo(imageDataUri);
-        dotNumber = recognizedInfo?.dotNumber;
-        seriesNumber = recognizedInfo?.seriesNumber;
+    try {
+        if (scanMode === 'dot') {
+            const recognizedDot = await recognizeDotNumber(imageDataUri);
+            if (recognizedDot && /^\d{4}$/.test(recognizedDot)) {
+                dotNumber = recognizedDot.slice(-2);
+                fullDotNumber = recognizedDot;
+            }
+        } else if (scanMode === 'series') {
+            seriesNumber = await recognizeSeriesNumber(imageDataUri);
+        } else { // 'both'
+            const recognizedInfo = await recognizeTireInfo(imageDataUri);
+            if (recognizedInfo?.dotNumber && /^\d{4}$/.test(recognizedInfo.dotNumber)) {
+                dotNumber = recognizedInfo.dotNumber.slice(-2);
+                fullDotNumber = recognizedInfo.dotNumber;
+            }
+            seriesNumber = recognizedInfo?.seriesNumber;
+        }
+    } catch (aiError) {
+        console.error("AI recognition error:", aiError);
+        return NextResponse.json({ success: false, message: 'AI processing failed. Please try again.' }, { status: 500 });
     }
     
     if (!dotNumber && !seriesNumber) {
@@ -101,8 +114,9 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
     let targetItem: any = null;
     let updateType: 'dot' | 'series' | null = null;
     
-    // Prioritize series number for lookup if it was scanned
+    // Logic to find the target item
     if (seriesNumber) {
+        // Rule: Series can't be scanned twice for the same note
         for (const item of details) {
             if (item.fields.series && item.fields.series.split(',').map((s: string) => s.trim()).includes(seriesNumber)) {
                 return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã được quét cho phiếu này.` }, { status: 409 });
@@ -110,24 +124,30 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
         }
         
         targetItem = details.find((item: any) => {
-            if (item.fields.tire_type !== 'Nước ngoài' || !item.fields.quantity) return false;
             const seriesCount = item.fields.series ? item.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean).length : 0;
-            return seriesCount < item.fields.quantity;
+            const quantityNeeded = item.fields.quantity || 0;
+            return item.fields.tire_type === 'Nước ngoài' && seriesCount < quantityNeeded;
         });
 
-        if(targetItem) updateType = 'series';
+        if (targetItem) {
+            updateType = 'series';
+        }
     }
     
-    // If no series match, or series wasn't scanned, try DOT
     if (!targetItem && dotNumber) {
-        const valueToScan = dotNumber.slice(-2);
-        targetItem = details.find((item: any) => String(item.fields.dot) === valueToScan && item.fields.tire_type === 'Nội địa');
-        if(targetItem) updateType = 'dot';
+        targetItem = details.find((item: any) => {
+            const scannedCount = item.fields.scanned || 0;
+            const quantityNeeded = item.fields.quantity || 0;
+            return String(item.fields.dot) === dotNumber && item.fields.tire_type === 'Nội địa' && scannedCount < quantityNeeded;
+        });
+        if(targetItem) {
+            updateType = 'dot';
+        }
     }
 
     if (!targetItem) {
-        let msg = `Không tìm thấy lốp phù hợp cho thông tin đã quét.`;
-        if (dotNumber) msg += ` DOT: ${dotNumber}`;
+        let msg = `Không tìm thấy lốp phù hợp hoặc đã quét đủ số lượng.`;
+         if (fullDotNumber) msg += ` DOT: ${fullDotNumber}`;
         if (seriesNumber) msg += ` Series: ${seriesNumber}`;
         return NextResponse.json({ success: false, message: msg }, { status: 404 });
     }
@@ -140,26 +160,18 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
         const currentScanned = targetItem.fields.scanned || 0;
         const totalQuantity = targetItem.fields.quantity;
         
-        if (currentScanned >= totalQuantity) {
-            return NextResponse.json({ success: true, warning: true, message: `Đã quét đủ số lượng cho DOT ${targetItem.fields.dot}.`});
-        }
-        
         const newScannedCount = currentScanned + 1;
         fieldsToUpdate.scanned = newScannedCount;
         
-        message = `Đã ghi nhận DOT ${targetItem.fields.dot} (${newScannedCount}/${totalQuantity})`;
+        message = `Đã ghi nhận DOT ${targetItem.fields.dot} (từ ${fullDotNumber}). (${newScannedCount}/${totalQuantity})`;
 
     } else if (updateType === 'series' && seriesNumber) {
         const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
         
-        if (currentSeries.length >= targetItem.fields.quantity) {
-             return NextResponse.json({ success: true, warning: true, message: `Đã quét đủ series cho DOT ${targetItem.fields.dot}.`});
-        }
-
         const newSeries = [...currentSeries, seriesNumber].join(', ');
         fieldsToUpdate.series = newSeries;
         const newSeriesCount = currentSeries.length + 1;
-        message = `Đã ghi nhận Series ${seriesNumber} cho DOT ${targetItem.fields.dot}. (${newSeriesCount}/${targetItem.fields.quantity})`;
+        message = `Đã ghi nhận Series ${seriesNumber}. (${newSeriesCount}/${targetItem.fields.quantity})`;
     }
 
     if (Object.keys(fieldsToUpdate).length > 0) {
@@ -170,7 +182,6 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
         await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
         await updateNoteStatusIfCompleted(noteId, cookieHeader);
     } else {
-        // This might happen if e.g. a DOT for a "Nước ngoài" tire was scanned but series was expected.
         if (dotNumber && !seriesNumber && targetItem.fields.tire_type === 'Nước ngoài') {
              return NextResponse.json({ success: false, message: `Lốp nước ngoài yêu cầu quét Series. Vui lòng chọn chế độ quét "Series" hoặc "Cả hai".` }, { status: 400 });
         }
@@ -201,5 +212,3 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: error.message || 'An internal server error occurred.' }, { status: 500 });
     }
 }
-
-    
