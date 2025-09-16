@@ -78,9 +78,9 @@ async function updateNoteStatusIfCompleted(noteId: string, cookieHeader: string 
 }
 
 async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot' | 'series' | 'both', cookieHeader: string) {
-    let dotNumber: string | undefined;
+    let dotNumber: string | undefined; // This will be the 2-digit DOT
     let seriesNumber: string | undefined;
-    let fullDotNumber: string | undefined;
+    let fullDotNumber: string | undefined; // This will be the 4-digit DOT
 
     try {
         if (scanMode === 'dot') {
@@ -118,7 +118,8 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
     if (seriesNumber) {
         // Rule: Series can't be scanned twice for the same note
         for (const item of details) {
-            if (item.fields.series && item.fields.series.split(',').map((s: string) => s.trim()).includes(seriesNumber)) {
+            const existingSeries = item.fields.series ? item.fields.series.split(',').map((s: string) => s.trim()) : [];
+            if (existingSeries.includes(seriesNumber)) {
                 return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã được quét cho phiếu này.` }, { status: 409 });
             }
         }
@@ -134,10 +135,12 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
         }
     }
     
+    // If a series match wasn't found (or wasn't scanned), and a DOT number was scanned, try to match by DOT.
     if (!targetItem && dotNumber) {
         targetItem = details.find((item: any) => {
             const scannedCount = item.fields.scanned || 0;
             const quantityNeeded = item.fields.quantity || 0;
+            // This is the corrected comparison:
             return String(item.fields.dot) === dotNumber && item.fields.tire_type === 'Nội địa' && scannedCount < quantityNeeded;
         });
         if(targetItem) {
