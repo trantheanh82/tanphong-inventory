@@ -142,6 +142,7 @@ export async function POST(request: NextRequest) {
                 scanned: currentScanned,
                 total: totalQuantity,
                 dot: valueToScan,
+                fullDotNumber: fullRecognizedDot,
                 isCompleted: true,
                 warning: true
             });
@@ -181,6 +182,7 @@ export async function POST(request: NextRequest) {
             scanned: newScannedCount,
             total: totalQuantity,
             dot: valueToScan,
+            fullDotNumber: fullRecognizedDot,
             isCompleted: isItemCompleted,
         });
 

@@ -1,4 +1,3 @@
-
 'use server';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -158,23 +157,22 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
     // --- Process the update ---
     const fieldsToUpdate: any = {};
     let message = "";
+    let newCount = 0;
     
     if (updateType === 'dot') {
         const currentScanned = targetItem.fields.scanned || 0;
-        const totalQuantity = targetItem.fields.quantity;
+        newCount = currentScanned + 1;
+        fieldsToUpdate.scanned = newCount;
         
-        const newScannedCount = currentScanned + 1;
-        fieldsToUpdate.scanned = newScannedCount;
-        
-        message = `Đã ghi nhận DOT ${targetItem.fields.dot} (từ lốp ${fullDotNumber}). (${newScannedCount}/${totalQuantity})`;
+        message = `Đã ghi nhận DOT ${targetItem.fields.dot} (từ lốp ${fullDotNumber}). (${newCount}/${targetItem.fields.quantity})`;
 
     } else if (updateType === 'series' && seriesNumber) {
         const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
         
         const newSeries = [...currentSeries, seriesNumber].join(', ');
         fieldsToUpdate.series = newSeries;
-        const newSeriesCount = currentSeries.length + 1;
-        message = `Đã ghi nhận Series ${seriesNumber}. (${newSeriesCount}/${targetItem.fields.quantity})`;
+        newCount = currentSeries.length + 1;
+        message = `Đã ghi nhận Series ${seriesNumber}. (${newCount}/${targetItem.fields.quantity})`;
     }
 
     if (Object.keys(fieldsToUpdate).length > 0) {
@@ -192,7 +190,12 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
     }
     
     return NextResponse.json({
-        success: true, message, dot: targetItem.fields.dot, series: seriesNumber,
+        success: true, message, 
+        dot: targetItem.fields.dot, 
+        fullDotNumber: fullDotNumber,
+        series: seriesNumber,
+        scanned: newCount,
+        total: targetItem.fields.quantity,
     });
 }
 
