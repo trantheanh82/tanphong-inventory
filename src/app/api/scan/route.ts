@@ -1,3 +1,4 @@
+
 'use server';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, message: 'AI processing failed. Please try again.' }, { status: 500 });
     }
     
-    const valueToScan = fullRecognizedDot.slice(-2); // Use last 2 digits for matching
+    const valueToScan = fullRecognizedDot.slice(-2); // CORRECT: Use last 2 digits for matching
 
     const { IMPORT_DETAIL_TBL_ID } = process.env;
 

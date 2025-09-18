@@ -1,3 +1,4 @@
+
 'use server';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -86,7 +87,7 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
             const recognizedDot = await recognizeDotNumber(imageDataUri);
             if (recognizedDot && /^\d{4}$/.test(recognizedDot)) {
                 fullDotNumber = recognizedDot;
-                twoDigitDot = recognizedDot.slice(-2);
+                twoDigitDot = recognizedDot.slice(-2); // CORRECT: Use last 2 digits
             }
         } else if (scanMode === 'series') {
             seriesNumber = await recognizeSeriesNumber(imageDataUri);
@@ -94,7 +95,7 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
             const recognizedInfo = await recognizeTireInfo(imageDataUri);
             if (recognizedInfo?.dotNumber && /^\d{4}$/.test(recognizedInfo.dotNumber)) {
                 fullDotNumber = recognizedInfo.dotNumber;
-                twoDigitDot = recognizedInfo.dotNumber.slice(-2);
+                twoDigitDot = recognizedInfo.dotNumber.slice(-2); // CORRECT: Use last 2 digits
             }
             seriesNumber = recognizedInfo?.seriesNumber;
         }
@@ -139,7 +140,6 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
         targetItem = details.find((item: any) => {
             const scannedCount = item.fields.scanned || 0;
             const quantityNeeded = item.fields.quantity || 0;
-            // Ensure types are the same for comparison
             return String(item.fields.dot) === twoDigitDot && item.fields.tire_type === 'Nội địa' && scannedCount < quantityNeeded;
         });
         if(targetItem) {
@@ -149,7 +149,7 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
 
     if (!targetItem) {
         let msg = `Không tìm thấy lốp phù hợp hoặc đã quét đủ số lượng.`;
-        if (fullDotNumber) msg += ` DOT quét được: ${fullDotNumber} (sử dụng ${twoDigitDot}).`;
+        if (fullDotNumber && twoDigitDot) msg += ` DOT quét được: ${fullDotNumber} (sử dụng ${twoDigitDot}).`;
         if (seriesNumber) msg += ` Series quét được: ${seriesNumber}.`;
         return NextResponse.json({ success: false, message: msg }, { status: 404 });
     }
@@ -159,12 +159,12 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
     let message = "";
     let newCount = 0;
     
-    if (updateType === 'dot') {
+    if (updateType === 'dot' && twoDigitDot) {
         const currentScanned = targetItem.fields.scanned || 0;
         newCount = currentScanned + 1;
         fieldsToUpdate.scanned = newCount;
         
-        message = `Đã ghi nhận DOT ${targetItem.fields.dot} (từ lốp ${fullDotNumber}). (${newCount}/${targetItem.fields.quantity})`;
+        message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}). (${newCount}/${targetItem.fields.quantity})`;
 
     } else if (updateType === 'series' && seriesNumber) {
         const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
@@ -191,7 +191,7 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
     
     return NextResponse.json({
         success: true, message, 
-        dot: targetItem.fields.dot, 
+        dot: twoDigitDot,
         fullDotNumber: fullDotNumber,
         series: seriesNumber,
         scanned: newCount,
