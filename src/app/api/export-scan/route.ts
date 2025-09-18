@@ -54,18 +54,7 @@ async function updateNoteStatusIfCompleted(noteId: string, cookieHeader: string 
 
     if (!allDetails || allDetails.length === 0) return;
 
-    const allScanned = allDetails.every((item: any) => {
-        const isDomestic = item.fields.tire_type === 'Nội địa';
-        const scannedCount = item.fields.scanned || 0;
-        const requiredQuantity = item.fields.quantity;
-        const seriesCount = item.fields.series ? item.fields.series.split(',').map((s:string) => s.trim()).filter(Boolean).length : 0;
-        
-        if (isDomestic) {
-            return scannedCount >= requiredQuantity;
-        } else { // Nước ngoài
-            return seriesCount >= requiredQuantity;
-        }
-    });
+    const allScanned = allDetails.every((item: any) => (item.fields.scanned || 0) >= item.fields.quantity);
 
     if (allScanned) {
         const updatePayload = {
@@ -84,21 +73,19 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
 
     try {
         if (scanMode === 'dot') {
-            const recognizedDot = await recognizeDotNumber(imageDataUri);
-            if (recognizedDot) {
-                fullDotNumber = recognizedDot;
-                twoDigitDot = recognizedDot.slice(-2);
-            }
+            fullDotNumber = await recognizeDotNumber(imageDataUri);
         } else if (scanMode === 'series') {
             seriesNumber = await recognizeSeriesNumber(imageDataUri);
         } else { // 'both'
             const recognizedInfo = await recognizeTireInfo(imageDataUri);
-            if (recognizedInfo?.dotNumber) {
-                fullDotNumber = recognizedInfo.dotNumber;
-                twoDigitDot = recognizedInfo.dotNumber.slice(-2);
-            }
+            fullDotNumber = recognizedInfo?.dotNumber;
             seriesNumber = recognizedInfo?.seriesNumber;
         }
+
+        if (fullDotNumber) {
+            twoDigitDot = fullDotNumber.slice(-2);
+        }
+
     } catch (aiError) {
         console.error("AI recognition error:", aiError);
         return NextResponse.json({ success: false, message: 'AI processing failed. Please try again.' }, { status: 500 });
@@ -112,11 +99,12 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
     const details = detailsResponse.records;
     
     let targetItem: any = null;
-    let updateType: 'dot' | 'series' | null = null;
     
-    // Logic to find the target item
+    // --- Logic to find the target item ---
+
+    // Rule 1: Prioritize matching International tires by Series if a series was scanned
     if (seriesNumber) {
-        // Rule: Series can't be scanned twice for the same note
+        // Check for duplicates first
         for (const item of details) {
             const existingSeries = item.fields.series ? item.fields.series.split(',').map((s: string) => s.trim()) : [];
             if (existingSeries.includes(seriesNumber)) {
@@ -124,28 +112,21 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
             }
         }
         
+        // Find an international tire that needs a series scan
         targetItem = details.find((item: any) => {
             const seriesCount = item.fields.series ? item.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean).length : 0;
             const quantityNeeded = item.fields.quantity || 0;
             return item.fields.tire_type === 'Nước ngoài' && seriesCount < quantityNeeded;
         });
-
-        if (targetItem) {
-            updateType = 'series';
-        }
     }
     
-    // If a series match wasn't found (or wasn't the primary scan) and a DOT was scanned, try to match by DOT.
+    // Rule 2: If no series match was made (or no series was scanned), try to match ANY tire by DOT.
     if (!targetItem && twoDigitDot) {
         targetItem = details.find((item: any) => {
             const scannedCount = item.fields.scanned || 0;
             const quantityNeeded = item.fields.quantity || 0;
-            // CORRECTED LOGIC: Check for dot match regardless of tire type, and that it still needs scanning.
             return String(item.fields.dot) === twoDigitDot && scannedCount < quantityNeeded;
         });
-        if(targetItem) {
-            updateType = 'dot';
-        }
     }
 
     if (!targetItem) {
@@ -159,29 +140,36 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
     const fieldsToUpdate: any = {};
     let message = "";
     let newCount = 0;
+    const currentScanned = targetItem.fields.scanned || 0;
     
-    if (updateType === 'dot' && fullDotNumber && twoDigitDot) {
-        // For both domestic and international, a DOT scan increments 'scanned'
-        const currentScanned = targetItem.fields.scanned || 0;
-        newCount = currentScanned + 1;
-        fieldsToUpdate.scanned = newCount;
-        
-        message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}). (${newCount}/${targetItem.fields.quantity})`;
-
-    } else if (updateType === 'series' && seriesNumber) {
-        // Series updates only apply to international tires
+    // Always increment 'scanned' count if we have a target item.
+    newCount = currentScanned + 1;
+    fieldsToUpdate.scanned = newCount;
+    
+    // If a series was scanned and the target is an International tire, update the series field.
+    if (seriesNumber && targetItem.fields.tire_type === 'Nước ngoài') {
         const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-        
         const newSeries = [...currentSeries, seriesNumber].join(', ');
         fieldsToUpdate.series = newSeries;
-        newCount = currentSeries.length + 1;
 
-        // Also increment the main 'scanned' count when a series is successfully added
-        const currentScanned = targetItem.fields.scanned || 0;
-        fieldsToUpdate.scanned = currentScanned + 1;
-        
-        message = `Đã ghi nhận Series ${seriesNumber}. (${newCount}/${targetItem.fields.quantity})`;
+        if (twoDigitDot) {
+             message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}) và Series ${seriesNumber}. (${newCount}/${targetItem.fields.quantity})`;
+        } else {
+             message = `Đã ghi nhận Series ${seriesNumber}. DOT không tìm thấy. (${newCount}/${targetItem.fields.quantity})`;
+        }
+    } else if (twoDigitDot) { // If only DOT was matched/relevant
+        if (seriesNumber) {
+            message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}). Series ${seriesNumber} không áp dụng cho lốp nội địa. (${newCount}/${targetItem.fields.quantity})`;
+        } else {
+            message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}). (${newCount}/${targetItem.fields.quantity})`;
+        }
+    } else {
+        // This case should ideally not be hit if we have a targetItem, but as a fallback.
+        if (seriesNumber) {
+             message = `Đã ghi nhận Series ${seriesNumber}. (${newCount}/${targetItem.fields.quantity})`;
+        }
     }
+
 
     if (Object.keys(fieldsToUpdate).length > 0) {
         const updatePayload = {
@@ -191,9 +179,6 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
         await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
         await updateNoteStatusIfCompleted(noteId, cookieHeader);
     } else {
-        if (twoDigitDot && !seriesNumber && targetItem.fields.tire_type === 'Nước ngoài') {
-             return NextResponse.json({ success: false, message: `Lốp nước ngoài yêu cầu quét Series. Vui lòng chọn chế độ quét "Series" hoặc "Cả hai".` }, { status: 400 });
-        }
         return NextResponse.json({ success: false, message: "Không có thông tin gì để cập nhật." }, { status: 400 });
     }
     
