@@ -83,22 +83,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 1: Recognize DOT from image
-    let recognizedDot: string | undefined;
+    let fullRecognizedDot: string | undefined;
     try {
-        recognizedDot = await recognizeDotNumber(imageDataUri);
-        if (!recognizedDot || !/^\d{4}$/.test(recognizedDot)) {
-             return NextResponse.json({ success: false, message: "Không nhận dạng được DOT. Vui lòng thử lại." }, { status: 400 });
+        fullRecognizedDot = await recognizeDotNumber(imageDataUri);
+        if (!fullRecognizedDot || !/^\d{4}$/.test(fullRecognizedDot)) {
+             return NextResponse.json({ success: false, message: "Không nhận dạng được DOT 4 chữ số hợp lệ từ lốp xe. Vui lòng thử lại." }, { status: 400 });
         }
     } catch (aiError) {
         console.error("AI recognition error:", aiError);
         return NextResponse.json({ success: false, message: 'AI processing failed. Please try again.' }, { status: 500 });
     }
     
-    if (!recognizedDot) {
-        return NextResponse.json({ success: false, message: "Không nhận dạng được DOT. Vui lòng thử lại." }, { status: 400 });
-    }
-
-    const valueToScan = recognizedDot.slice(-2); // Use last 2 digits for matching
+    const valueToScan = fullRecognizedDot.slice(-2); // Use last 2 digits for matching
 
     const { IMPORT_DETAIL_TBL_ID } = process.env;
 
@@ -133,7 +129,7 @@ export async function POST(request: NextRequest) {
         const targetItem = details.find((item: any) => String(item.fields[dotField!]) === valueToScan);
 
         if (!targetItem) {
-            return NextResponse.json({ success: false, message: `DOT **${valueToScan} (từ ${recognizedDot}) không có trong phiếu.` }, { status: 404 });
+            return NextResponse.json({ success: false, message: `DOT **${valueToScan}** (từ lốp ${fullRecognizedDot}) không có trong phiếu.` }, { status: 404 });
         }
 
         const currentScanned = targetItem.fields.scanned || 0;
@@ -174,7 +170,7 @@ export async function POST(request: NextRequest) {
             await updateNoteStatusIfCompleted(noteType, noteId, cookieHeader);
         }
         
-        let overallMessage = `Đã ghi nhận DOT ${valueToScan} (${newScannedCount}/${totalQuantity})`;
+        let overallMessage = `Đã ghi nhận DOT ${valueToScan} (từ ${fullRecognizedDot}). (${newScannedCount}/${totalQuantity})`;
         if (isItemCompleted) {
             overallMessage = `Bạn đã quét đủ số lượng cho DOT ${valueToScan} (${newScannedCount}/${totalQuantity})`;
         }

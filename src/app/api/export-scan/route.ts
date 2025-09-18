@@ -105,7 +105,7 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
     }
     
     if (!dotNumber && !seriesNumber) {
-        return NextResponse.json({ success: false, message: "Không nhận dạng được thông tin. Vui lòng thử lại." }, { status: 400 });
+        return NextResponse.json({ success: false, message: "Không nhận dạng được thông tin lốp xe. Vui lòng thử lại." }, { status: 400 });
     }
 
     const detailsResponse = await fetchNoteDetails(EXPORT_DETAIL_TBL_ID!, noteId, 'export_note', cookieHeader);
@@ -140,7 +140,6 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
         targetItem = details.find((item: any) => {
             const scannedCount = item.fields.scanned || 0;
             const quantityNeeded = item.fields.quantity || 0;
-            // This is the corrected comparison:
             return String(item.fields.dot) === dotNumber && item.fields.tire_type === 'Nội địa' && scannedCount < quantityNeeded;
         });
         if(targetItem) {
@@ -150,8 +149,8 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
 
     if (!targetItem) {
         let msg = `Không tìm thấy lốp phù hợp hoặc đã quét đủ số lượng.`;
-         if (fullDotNumber) msg += ` DOT: ${fullDotNumber}`;
-        if (seriesNumber) msg += ` Series: ${seriesNumber}`;
+        if (fullDotNumber) msg += ` DOT quét được: ${fullDotNumber}.`;
+        if (seriesNumber) msg += ` Series quét được: ${seriesNumber}.`;
         return NextResponse.json({ success: false, message: msg }, { status: 404 });
     }
 
@@ -166,7 +165,7 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
         const newScannedCount = currentScanned + 1;
         fieldsToUpdate.scanned = newScannedCount;
         
-        message = `Đã ghi nhận DOT ${targetItem.fields.dot} (từ ${fullDotNumber}). (${newScannedCount}/${totalQuantity})`;
+        message = `Đã ghi nhận DOT ${targetItem.fields.dot} (từ lốp ${fullDotNumber}). (${newScannedCount}/${totalQuantity})`;
 
     } else if (updateType === 'series' && seriesNumber) {
         const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
