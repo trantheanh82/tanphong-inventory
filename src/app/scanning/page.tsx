@@ -4,6 +4,7 @@
 import { useEffect, useState, useRef, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Camera, CheckCircle, LoaderCircle, Scan, Zap, ZapOff, Send, ScanText, Combine } from 'lucide-react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useScanningStore, ScanItem } from '@/store/scanning-store';
@@ -11,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { cn } from '@/lib/utils';
 
 type ScanMode = 'dot' | 'series' | 'both';
@@ -26,6 +28,8 @@ function ScanningComponent() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
+
+  const [devCapture, setDevCapture] = useState<{image: string, mode: ScanMode} | null>(null);
 
   const noteId = searchParams.get('noteId');
   const noteType = searchParams.get('type') as 'import' | 'export' | 'warranty';
@@ -220,18 +224,11 @@ function ScanningComponent() {
         toast({ variant: 'destructive', title: "Thất bại", description: result.message });
     }
   }
-  
-  const handleScan = async (scanMode: ScanMode) => {
-    if (isSubmitting) return;
 
+  const proceedWithScan = async (imageDataUri: string, scanMode: ScanMode) => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
-    const imageDataUri = captureImage();
-    if (!imageDataUri) {
-        toast({ variant: 'destructive', title: "Lỗi", description: "Không thể xử lý hình ảnh." });
-        setIsSubmitting(false);
-        return;
-    }
-    
+
     let endpoint = '/api/scan';
     let body: any = { noteId, noteType, imageDataUri };
 
@@ -239,24 +236,40 @@ function ScanningComponent() {
       endpoint = '/api/export-scan';
       body = { noteId, imageDataUri, scanMode };
     } else if (noteType === 'warranty') {
-        await handleWarrantyScan({ imageDataUri });
-        setIsSubmitting(false);
-        return;
+      await handleWarrantyScan({ imageDataUri });
+      setIsSubmitting(false);
+      return;
     }
 
     try {
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
-        const result = await response.json();
-        handleScanResponse(result);
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const result = await response.json();
+      handleScanResponse(result);
     } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
+      toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
     }
 
     setIsSubmitting(false);
+  };
+  
+  const handleScan = async (scanMode: ScanMode) => {
+    if (isSubmitting) return;
+
+    const imageDataUri = captureImage();
+    if (!imageDataUri) {
+        toast({ variant: 'destructive', title: "Lỗi", description: "Không thể xử lý hình ảnh." });
+        return;
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+        setDevCapture({ image: imageDataUri, mode: scanMode });
+    } else {
+        await proceedWithScan(imageDataUri, scanMode);
+    }
   };
   
   const handleWarrantyScan = async (scanPayload: { imageDataUri?: string; seriesNumber?: string }) => {
@@ -350,6 +363,13 @@ function ScanningComponent() {
         </Button>
     );
   }
+
+  const handleDevSend = () => {
+    if (devCapture) {
+      proceedWithScan(devCapture.image, devCapture.mode);
+      setDevCapture(null);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-gray-900">
@@ -453,6 +473,26 @@ function ScanningComponent() {
       <footer className="p-4 flex justify-center sticky bottom-0 z-20">
         {renderScanButtons()}
       </footer>
+
+      {process.env.NODE_ENV === 'development' && devCapture && (
+        <Dialog open={!!devCapture} onOpenChange={() => setDevCapture(null)}>
+          <DialogContent className="bg-white/80 backdrop-blur-md rounded-xl shadow-lg border-white/50 text-gray-800">
+            <DialogHeader>
+              <DialogTitle className="text-2xl text-[#333]">captureForDevelop Module</DialogTitle>
+              <DialogDescription>
+                This is the image that will be sent to the AI for processing.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="my-4">
+              <Image src={devCapture.image} alt="Captured for development" width={500} height={300} className="rounded-md" />
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setDevCapture(null)}>Hủy</Button>
+              <Button onClick={handleDevSend} className="bg-gray-800 hover:bg-gray-900 text-white">Gửi đến AI</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
@@ -464,5 +504,3 @@ export default function ScanningPage() {
         </Suspense>
     )
 }
-
-    
