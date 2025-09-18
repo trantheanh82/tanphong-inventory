@@ -170,9 +170,9 @@ export async function POST(request: NextRequest) {
             await updateNoteStatusIfCompleted(noteType, noteId, cookieHeader);
         }
         
-        let overallMessage = `Đã ghi nhận DOT ${valueToScan} (từ ${fullRecognizedDot}). (${newScannedCount}/${totalQuantity})`;
+        let overallMessage = `Đã ghi nhận DOT ${valueToScan} (từ lốp ${fullRecognizedDot}). (${newScannedCount}/${totalQuantity})`;
         if (isItemCompleted) {
-            overallMessage = `Bạn đã quét đủ số lượng cho DOT ${valueToScan} (${newScannedCount}/${totalQuantity})`;
+            overallMessage = `Bạn đã quét đủ số lượng cho DOT ${valueToScan} (từ lốp ${fullRecognizedDot}) (${newScannedCount}/${totalQuantity})`;
         }
 
         return NextResponse.json({
