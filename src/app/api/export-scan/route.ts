@@ -149,7 +149,7 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
 
     if (!targetItem) {
         let msg = `Không tìm thấy lốp phù hợp hoặc đã quét đủ số lượng.`;
-        if (fullDotNumber) msg += ` DOT quét được: ${fullDotNumber}.`;
+        if (fullDotNumber) msg += ` DOT quét được: ${fullDotNumber} (sử dụng ${dotNumber}).`;
         if (seriesNumber) msg += ` Series quét được: ${seriesNumber}.`;
         return NextResponse.json({ success: false, message: msg }, { status: 404 });
     }
