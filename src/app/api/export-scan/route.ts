@@ -78,24 +78,24 @@ async function updateNoteStatusIfCompleted(noteId: string, cookieHeader: string 
 }
 
 async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot' | 'series' | 'both', cookieHeader: string) {
-    let dotNumber: string | undefined; // This will be the 2-digit DOT
+    let twoDigitDot: string | undefined; // This will be the 2-digit DOT for matching
     let seriesNumber: string | undefined;
-    let fullDotNumber: string | undefined; // This will be the 4-digit DOT
+    let fullDotNumber: string | undefined; // This will be the 4-digit DOT for display
 
     try {
         if (scanMode === 'dot') {
             const recognizedDot = await recognizeDotNumber(imageDataUri);
             if (recognizedDot && /^\d{4}$/.test(recognizedDot)) {
-                dotNumber = recognizedDot.slice(-2);
                 fullDotNumber = recognizedDot;
+                twoDigitDot = recognizedDot.slice(-2);
             }
         } else if (scanMode === 'series') {
             seriesNumber = await recognizeSeriesNumber(imageDataUri);
         } else { // 'both'
             const recognizedInfo = await recognizeTireInfo(imageDataUri);
             if (recognizedInfo?.dotNumber && /^\d{4}$/.test(recognizedInfo.dotNumber)) {
-                dotNumber = recognizedInfo.dotNumber.slice(-2);
                 fullDotNumber = recognizedInfo.dotNumber;
+                twoDigitDot = recognizedInfo.dotNumber.slice(-2);
             }
             seriesNumber = recognizedInfo?.seriesNumber;
         }
@@ -104,7 +104,7 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
         return NextResponse.json({ success: false, message: 'AI processing failed. Please try again.' }, { status: 500 });
     }
     
-    if (!dotNumber && !seriesNumber) {
+    if (!twoDigitDot && !seriesNumber) {
         return NextResponse.json({ success: false, message: "Không nhận dạng được thông tin lốp xe. Vui lòng thử lại." }, { status: 400 });
     }
 
@@ -136,11 +136,12 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
     }
     
     // If a series match wasn't found (or wasn't scanned), and a DOT number was scanned, try to match by DOT.
-    if (!targetItem && dotNumber) {
+    if (!targetItem && twoDigitDot) {
         targetItem = details.find((item: any) => {
             const scannedCount = item.fields.scanned || 0;
             const quantityNeeded = item.fields.quantity || 0;
-            return String(item.fields.dot) === dotNumber && item.fields.tire_type === 'Nội địa' && scannedCount < quantityNeeded;
+            // Ensure types are the same for comparison
+            return String(item.fields.dot) === twoDigitDot && item.fields.tire_type === 'Nội địa' && scannedCount < quantityNeeded;
         });
         if(targetItem) {
             updateType = 'dot';
@@ -149,7 +150,7 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
 
     if (!targetItem) {
         let msg = `Không tìm thấy lốp phù hợp hoặc đã quét đủ số lượng.`;
-        if (fullDotNumber) msg += ` DOT quét được: ${fullDotNumber} (sử dụng ${dotNumber}).`;
+        if (fullDotNumber) msg += ` DOT quét được: ${fullDotNumber} (sử dụng ${twoDigitDot}).`;
         if (seriesNumber) msg += ` Series quét được: ${seriesNumber}.`;
         return NextResponse.json({ success: false, message: msg }, { status: 404 });
     }
@@ -184,7 +185,7 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
         await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
         await updateNoteStatusIfCompleted(noteId, cookieHeader);
     } else {
-        if (dotNumber && !seriesNumber && targetItem.fields.tire_type === 'Nước ngoài') {
+        if (twoDigitDot && !seriesNumber && targetItem.fields.tire_type === 'Nước ngoài') {
              return NextResponse.json({ success: false, message: `Lốp nước ngoài yêu cầu quét Series. Vui lòng chọn chế độ quét "Series" hoặc "Cả hai".` }, { status: 400 });
         }
         return NextResponse.json({ success: false, message: "Không có thông tin gì để cập nhật." }, { status: 400 });
