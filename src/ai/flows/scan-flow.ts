@@ -22,10 +22,13 @@ export async function recognizeDotNumber(
       input: { schema: z.object({ photoDataUri: z.string() }) },
       output: { schema: DotRecognitionSchema },
       prompt: `You are an expert tire inspector. Your task is to identify the 4-digit DOT number from the provided image of a tire.
-The DOT number is always a 4-digit number. It is often located inside an oval shape on the tire's sidewall.
-Analyze the image and return the 4-digit number you find.
+The DOT number is always a 4-digit number, often located inside an oval shape.
+The first two digits of the DOT number represent the week of manufacture and MUST be a number between 01 and 52.
+The last two digits represent the year.
+Analyze the image. If you find a valid 4-digit DOT number that meets this criteria, return it. Otherwise, do not return anything.
 Return your answer as a JSON object with a single key "dotNumber".
-Example: {"dotNumber": "4020"}
+Example of a valid DOT: {"dotNumber": "4020"} (40th week of 2020)
+Example of an invalid number you should ignore: "7023" (because 70 is not a valid week)
 
 Image to analyze: {{media url=photoDataUri}}`,
     });
@@ -33,19 +36,12 @@ Image to analyze: {{media url=photoDataUri}}`,
     const { output } = await recognizeDotPrompt({ photoDataUri });
 
     if (output && output.dotNumber && /^\d{4}$/.test(output.dotNumber)) {
-      return output.dotNumber;
+      const week = parseInt(output.dotNumber.substring(0, 2), 10);
+      if (week >= 1 && week <= 52) {
+        return output.dotNumber;
+      }
     }
-
-    // Fallback for cases where structured output might fail.
-    const llmResponse = await ai.generate({
-      prompt: `Find the 4-digit DOT number in this image of a tire. The number is often in an oval. Respond with only the 4-digit number. If you cannot find one, respond with "none". Image: ${photoDataUri}`,
-    });
-
-    const textResponse = llmResponse.text.trim();
-    if (/^\d{4}$/.test(textResponse)) {
-      return textResponse;
-    }
-
+    
     return undefined;
   } catch (error) {
     console.error('Error in recognizeDotNumber flow:', error);

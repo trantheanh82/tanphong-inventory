@@ -11,7 +11,7 @@ const TireInfoRecognitionSchema = z.object({
   dotNumber: z
     .string()
     .optional()
-    .describe('The 4-digit DOT number found in the image, if visible.'),
+    .describe('The 4-digit DOT number found in the image, if visible and valid.'),
   seriesNumber: z
     .string()
     .optional()
@@ -29,9 +29,9 @@ export async function recognizeTireInfo(
       input: { schema: z.object({ photoDataUri: z.string() }) },
       output: { schema: TireInfoRecognitionSchema },
       prompt: `You are an expert tire inspector. Your task is to identify the 4-digit DOT number and/or the alphanumeric series number from the provided image of a tire.
-- The DOT number is always a 4-digit number, often inside an oval.
+- The DOT number is always a 4-digit number. The first two digits MUST be a valid week (01-52). If it is not a valid week (e.g., '7021'), do not return it.
 - The series number is alphanumeric.
-Analyze the image and return any information you find. If you find both, return both. If you find only one, return only that one.
+Analyze the image and return any valid information you find. If you find both, return both. If you find only one, return only that one.
 Return your answer as a JSON object.
 
 Examples:
@@ -43,12 +43,20 @@ Image to analyze: {{media url=photoDataUri}}`,
     });
 
     const { output } = await recognizeTireInfoPrompt({ photoDataUri });
+    
+    if (output) {
+      // Final validation on the backend
+      if (output.dotNumber && /^\d{4}$/.test(output.dotNumber)) {
+        const week = parseInt(output.dotNumber.substring(0, 2), 10);
+        if (week < 1 || week > 52) {
+          // AI returned an invalid week, so we nullify it.
+          output.dotNumber = undefined;
+        }
+      }
 
-    if (output && (output.dotNumber || output.seriesNumber)) {
-      return {
-          dotNumber: output.dotNumber,
-          seriesNumber: output.seriesNumber,
-      };
+      if (output.dotNumber || output.seriesNumber) {
+        return output;
+      }
     }
     
     return undefined;
