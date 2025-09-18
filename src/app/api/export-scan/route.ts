@@ -4,8 +4,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { recognizeTireInfo } from '@/ai/flows/export-scan-flow';
-import { recognizeDotNumber } from '@/ai/flows/scan-flow';
-import { recognizeSeriesNumber } from '@/ai/flows/warranty-scan-flow';
 
 const { API_ENDPOINT, EXPORT_TBL_ID, EXPORT_DETAIL_TBL_ID } = process.env;
 
@@ -72,16 +70,10 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
     let fullDotNumber: string | undefined;
 
     try {
-        if (scanMode === 'dot') {
-            fullDotNumber = await recognizeDotNumber(imageDataUri);
-        } else if (scanMode === 'series') {
-            seriesNumber = await recognizeSeriesNumber(imageDataUri);
-        } else { // 'both'
-            const recognizedInfo = await recognizeTireInfo(imageDataUri);
-            fullDotNumber = recognizedInfo?.dotNumber;
-            seriesNumber = recognizedInfo?.seriesNumber;
-        }
-
+        const recognizedInfo = await recognizeTireInfo(imageDataUri);
+        fullDotNumber = recognizedInfo?.dotNumber;
+        seriesNumber = recognizedInfo?.seriesNumber;
+        
         if (fullDotNumber) {
             twoDigitDot = fullDotNumber.slice(-2);
         }
@@ -103,7 +95,7 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
     // --- Logic to find the target item ---
 
     // Rule 1: Prioritize matching International tires by Series if a series was scanned
-    if (seriesNumber) {
+    if (seriesNumber && (scanMode === 'series' || scanMode === 'both')) {
         // Check for duplicates first
         for (const item of details) {
             const existingSeries = item.fields.series ? item.fields.series.split(',').map((s: string) => s.trim()) : [];
@@ -112,7 +104,6 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
             }
         }
         
-        // Find an international tire that needs a series scan
         targetItem = details.find((item: any) => {
             const seriesCount = item.fields.series ? item.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean).length : 0;
             const quantityNeeded = item.fields.quantity || 0;
@@ -121,7 +112,7 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
     }
     
     // Rule 2: If no series match was made (or no series was scanned), try to match ANY tire by DOT.
-    if (!targetItem && twoDigitDot) {
+    if (!targetItem && twoDigitDot && (scanMode === 'dot' || scanMode === 'both')) {
         targetItem = details.find((item: any) => {
             const scannedCount = item.fields.scanned || 0;
             const quantityNeeded = item.fields.quantity || 0;
@@ -139,37 +130,37 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
     // --- Process the update ---
     const fieldsToUpdate: any = {};
     let message = "";
-    let newCount = 0;
     const currentScanned = targetItem.fields.scanned || 0;
+    const totalQuantity = targetItem.fields.quantity;
+    const newCount = currentScanned + 1;
     
-    // Always increment 'scanned' count if we have a target item.
-    newCount = currentScanned + 1;
     fieldsToUpdate.scanned = newCount;
     
-    // If a series was scanned and the target is an International tire, update the series field.
+    if (newCount >= totalQuantity) {
+        fieldsToUpdate.status = 'Đã scan đủ';
+    }
+
     if (seriesNumber && targetItem.fields.tire_type === 'Nước ngoài') {
         const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
         const newSeries = [...currentSeries, seriesNumber].join(', ');
         fieldsToUpdate.series = newSeries;
-
+        message = `Đã ghi nhận Series ${seriesNumber}. (${newCount}/${totalQuantity})`;
         if (twoDigitDot) {
-             message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}) và Series ${seriesNumber}. (${newCount}/${targetItem.fields.quantity})`;
-        } else {
-             message = `Đã ghi nhận Series ${seriesNumber}. DOT không tìm thấy. (${newCount}/${targetItem.fields.quantity})`;
+             message = `Đã ghi nhận DOT ${twoDigitDot} (từ ${fullDotNumber}) và Series ${seriesNumber}. (${newCount}/${totalQuantity})`;
         }
-    } else if (twoDigitDot) { // If only DOT was matched/relevant
-        if (seriesNumber) {
-            message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}). Series ${seriesNumber} không áp dụng cho lốp nội địa. (${newCount}/${targetItem.fields.quantity})`;
-        } else {
-            message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}). (${newCount}/${targetItem.fields.quantity})`;
+    } else if (twoDigitDot) {
+        message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}). (${newCount}/${totalQuantity})`;
+        if (seriesNumber && targetItem.fields.tire_type !== 'Nước ngoài') {
+            message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}). Series ${seriesNumber} không áp dụng cho lốp nội địa. (${newCount}/${totalQuantity})`;
         }
     } else {
-        // This case should ideally not be hit if we have a targetItem, but as a fallback.
-        if (seriesNumber) {
-             message = `Đã ghi nhận Series ${seriesNumber}. (${newCount}/${targetItem.fields.quantity})`;
+         if (seriesNumber) {
+             message = `Series ${seriesNumber} không áp dụng cho lốp này, nhưng đã ghi nhận số lượng. (${newCount}/${totalQuantity})`;
+        } else {
+            // This case should not be possible if we found a targetItem. Fallback.
+            return NextResponse.json({ success: false, message: "Không thể xác định thông tin để cập nhật." }, { status: 400 });
         }
     }
-
 
     if (Object.keys(fieldsToUpdate).length > 0) {
         const updatePayload = {
@@ -178,8 +169,6 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
         };
         await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
         await updateNoteStatusIfCompleted(noteId, cookieHeader);
-    } else {
-        return NextResponse.json({ success: false, message: "Không có thông tin gì để cập nhật." }, { status: 400 });
     }
     
     return NextResponse.json({
