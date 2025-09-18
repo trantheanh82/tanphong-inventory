@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Camera, CheckCircle, LoaderCircle, Scan, Zap, ZapOff, Send, ScanText, Combine, Check, X } from 'lucide-react';
+import { ArrowLeft, Camera, CheckCircle, LoaderCircle, Scan, Zap, ZapOff, Send, ScanText, Combine, AlertTriangle } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -41,8 +41,6 @@ function ScanningComponent() {
   const trackRef = useRef<MediaStreamTrack | null>(null);
 
   const [devCapture, setDevCapture] = useState<{image: string, mode: ScanMode} | null>(null);
-  const [scanResult, setScanResult] = useState<ScanResultData | null>(null);
-
 
   const noteId = searchParams.get('noteId');
   const noteType = searchParams.get('type') as 'import' | 'export' | 'warranty';
@@ -50,7 +48,6 @@ function ScanningComponent() {
   const {
     items,
     setItems,
-    addOrUpdateItem,
     checkAllScanned,
     reset,
     getTotalProgress,
@@ -198,7 +195,11 @@ function ScanningComponent() {
 
   const handleScanResponse = (result: ScanResultData) => {
     if (result.success) {
-        setScanResult(result);
+        toast({
+            title: result.warning ? 'Quét thành công (Đã đủ)' : 'Quét thành công',
+            description: result.message,
+            className: result.warning ? "bg-yellow-100 border-yellow-500 text-yellow-800" : "bg-green-100 border-green-500 text-green-800"
+        });
 
         // Refetch data to update the UI state from the source of truth
         const fetchNoteDetails = async () => {
@@ -293,7 +294,7 @@ function ScanningComponent() {
       if (!response.ok) throw new Error(result.message || 'Quét bảo hành thất bại');
       
       if (result.success) {
-        setScanResult(result);
+        toast({ title: 'Thành công', description: result.message, className: 'bg-green-100 border-green-500 text-green-800' });
         setManualInputValue("");
         updateItemWithScan(result.updatedRecordId, result.series, result.dot);
         
@@ -378,10 +379,6 @@ function ScanningComponent() {
       proceedWithScan(devCapture.image, devCapture.mode);
       setDevCapture(null);
     }
-  };
-
-  const closeResultDialog = () => {
-    setScanResult(null);
   };
 
   return (
@@ -486,52 +483,6 @@ function ScanningComponent() {
       <footer className="p-4 flex justify-center sticky bottom-0 z-20">
         {renderScanButtons()}
       </footer>
-
-      {scanResult && (
-        <Dialog open={!!scanResult} onOpenChange={(isOpen) => !isOpen && closeResultDialog()}>
-          <DialogContent className="bg-white/80 backdrop-blur-md rounded-xl shadow-lg border-white/50 text-gray-800">
-            <DialogHeader>
-              <DialogTitle className="text-2xl text-[#333] flex items-center">
-                 {scanResult.warning ? (
-                    <AlertTriangle className="w-8 h-8 text-yellow-500 mr-3" />
-                 ) : (
-                    <CheckCircle className="w-8 h-8 text-green-500 mr-3" />
-                 )}
-                 {scanResult.warning ? 'Quét Thành Công (Đã đủ)' : 'Quét Thành Công'}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 my-4 text-base">
-                {scanResult.fullDotNumber && (
-                    <div className="flex justify-between items-center bg-gray-100 p-3 rounded-lg">
-                        <span className="font-semibold text-gray-600">AI Scanned:</span>
-                        <span className="font-bold text-lg text-black">{scanResult.fullDotNumber}</span>
-                    </div>
-                )}
-                {scanResult.dot && (
-                    <div className="flex justify-between items-center bg-gray-100 p-3 rounded-lg">
-                        <span className="font-semibold text-gray-600">Matched Input:</span>
-                        <span className="font-bold text-lg text-black">{scanResult.dot}</span>
-                    </div>
-                )}
-                {scanResult.series && (
-                     <div className="flex justify-between items-center bg-gray-100 p-3 rounded-lg">
-                        <span className="font-semibold text-gray-600">AI Scanned Series:</span>
-                        <span className="font-bold text-lg text-black">{scanResult.series}</span>
-                    </div>
-                )}
-                <div className="flex justify-between items-center bg-gray-100 p-3 rounded-lg">
-                    <span className="font-semibold text-gray-600">Status:</span>
-                    <span className="font-bold text-lg text-black">{scanResult.scanned} / {scanResult.total}</span>
-                </div>
-            </div>
-            <DialogFooter>
-              <Button onClick={closeResultDialog} className="w-full bg-gray-800 hover:bg-gray-900 text-white">
-                OK
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
 
       {process.env.NODE_ENV === 'development' && devCapture && (
         <Dialog open={!!devCapture} onOpenChange={() => setDevCapture(null)}>
