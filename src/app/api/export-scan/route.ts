@@ -78,24 +78,24 @@ async function updateNoteStatusIfCompleted(noteId: string, cookieHeader: string 
 }
 
 async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot' | 'series' | 'both', cookieHeader: string) {
-    let twoDigitDot: string | undefined; // This will be the 2-digit DOT for matching
+    let twoDigitDot: string | undefined;
     let seriesNumber: string | undefined;
-    let fullDotNumber: string | undefined; // This will be the 4-digit DOT for display
+    let fullDotNumber: string | undefined;
 
     try {
         if (scanMode === 'dot') {
             const recognizedDot = await recognizeDotNumber(imageDataUri);
-            if (recognizedDot && /^\d{4}$/.test(recognizedDot)) {
+            if (recognizedDot) {
                 fullDotNumber = recognizedDot;
-                twoDigitDot = recognizedDot.slice(-2); // CORRECT: Use last 2 digits
+                twoDigitDot = recognizedDot.slice(-2);
             }
         } else if (scanMode === 'series') {
             seriesNumber = await recognizeSeriesNumber(imageDataUri);
         } else { // 'both'
             const recognizedInfo = await recognizeTireInfo(imageDataUri);
-            if (recognizedInfo?.dotNumber && /^\d{4}$/.test(recognizedInfo.dotNumber)) {
+            if (recognizedInfo?.dotNumber) {
                 fullDotNumber = recognizedInfo.dotNumber;
-                twoDigitDot = recognizedInfo.dotNumber.slice(-2); // CORRECT: Use last 2 digits
+                twoDigitDot = recognizedInfo.dotNumber.slice(-2);
             }
             seriesNumber = recognizedInfo?.seriesNumber;
         }
@@ -140,7 +140,8 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
         targetItem = details.find((item: any) => {
             const scannedCount = item.fields.scanned || 0;
             const quantityNeeded = item.fields.quantity || 0;
-            return String(item.fields.dot) === twoDigitDot && item.fields.tire_type === 'Nội địa' && scannedCount < quantityNeeded;
+            // THIS IS THE FIX: Ensure correct string comparison for 'Nội địa' and for the DOT number.
+            return item.fields.tire_type === 'Nội địa' && String(item.fields.dot) === twoDigitDot && scannedCount < quantityNeeded;
         });
         if(targetItem) {
             updateType = 'dot';
@@ -159,7 +160,7 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
     let message = "";
     let newCount = 0;
     
-    if (updateType === 'dot' && twoDigitDot) {
+    if (updateType === 'dot' && fullDotNumber && twoDigitDot) {
         const currentScanned = targetItem.fields.scanned || 0;
         newCount = currentScanned + 1;
         fieldsToUpdate.scanned = newCount;
