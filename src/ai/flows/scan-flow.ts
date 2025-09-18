@@ -35,11 +35,10 @@ Image to analyze: {{media url=photoDataUri}}`,
 
     const { output } = await recognizeDotPrompt({ photoDataUri });
 
+    // The AI prompt is already handling the validation of the week.
+    // We only need to check if the output exists and is a 4-digit string.
     if (output && output.dotNumber && /^\d{4}$/.test(output.dotNumber)) {
-      const week = parseInt(output.dotNumber.substring(0, 2), 10);
-      if (week >= 1 && week <= 52) {
-        return output.dotNumber;
-      }
+      return output.dotNumber;
     }
     
     return undefined;

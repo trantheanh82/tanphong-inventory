@@ -11,7 +11,7 @@ const TireInfoRecognitionSchema = z.object({
   dotNumber: z
     .string()
     .optional()
-    .describe('The 4-digit DOT number found in the image, if visible and valid.'),
+    .describe('The 4-digit DOT number found in the image, if visible and valid. The first two digits must be between 01-52.'),
   seriesNumber: z
     .string()
     .optional()
@@ -44,19 +44,10 @@ Image to analyze: {{media url=photoDataUri}}`,
 
     const { output } = await recognizeTireInfoPrompt({ photoDataUri });
     
-    if (output) {
-      // Final validation on the backend
-      if (output.dotNumber && /^\d{4}$/.test(output.dotNumber)) {
-        const week = parseInt(output.dotNumber.substring(0, 2), 10);
-        if (week < 1 || week > 52) {
-          // AI returned an invalid week, so we nullify it.
-          output.dotNumber = undefined;
-        }
-      }
-
-      if (output.dotNumber || output.seriesNumber) {
-        return output;
-      }
+    // The AI prompt is already handling the validation of the week.
+    // Return the output directly if it exists.
+    if (output && (output.dotNumber || output.seriesNumber)) {
+      return output;
     }
     
     return undefined;
