@@ -48,9 +48,8 @@ function ScanningComponent() {
   const {
     items,
     setItems,
-    checkAllScanned,
-    reset,
     getTotalProgress,
+    reset,
     updateItemWithScan,
   } = useScanningStore();
 
@@ -212,16 +211,7 @@ function ScanningComponent() {
             }));
             setItems(scanItems);
 
-            const allScanned = scanItems.every(item => {
-                const isDomestic = item.tire_type === 'Nội địa';
-                const seriesCount = item.series ? item.series.split(',').map((s:string) => s.trim()).filter(Boolean).length : 0;
-                
-                if (noteType === 'export') {
-                    if (isDomestic) return (item.scanned || 0) >= item.quantity;
-                    return seriesCount >= item.quantity;
-                }
-                return (item.scanned || 0) >= item.quantity;
-            });
+            const allScanned = scanItems.every(item => (item.scanned || 0) >= item.quantity);
 
             if (allScanned) {
                 toast({ title: "Hoàn tất", description: "Bạn đã quét đủ số lượng cho tất cả các mục.", className: "bg-green-500 text-white" });
