@@ -135,13 +135,13 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
         }
     }
     
-    // If a series match wasn't found (or wasn't scanned), and a DOT number was scanned, try to match by DOT.
+    // If a series match wasn't found (or wasn't the primary scan) and a DOT was scanned, try to match by DOT.
     if (!targetItem && twoDigitDot) {
         targetItem = details.find((item: any) => {
             const scannedCount = item.fields.scanned || 0;
             const quantityNeeded = item.fields.quantity || 0;
-            // THIS IS THE FIX: Ensure correct string comparison for 'Nội địa' and for the DOT number.
-            return item.fields.tire_type === 'Nội địa' && String(item.fields.dot) === twoDigitDot && scannedCount < quantityNeeded;
+            // CORRECTED LOGIC: Check for dot match regardless of tire type, and that it still needs scanning.
+            return String(item.fields.dot) === twoDigitDot && scannedCount < quantityNeeded;
         });
         if(targetItem) {
             updateType = 'dot';
@@ -161,6 +161,7 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
     let newCount = 0;
     
     if (updateType === 'dot' && fullDotNumber && twoDigitDot) {
+        // For both domestic and international, a DOT scan increments 'scanned'
         const currentScanned = targetItem.fields.scanned || 0;
         newCount = currentScanned + 1;
         fieldsToUpdate.scanned = newCount;
@@ -168,11 +169,17 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
         message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}). (${newCount}/${targetItem.fields.quantity})`;
 
     } else if (updateType === 'series' && seriesNumber) {
+        // Series updates only apply to international tires
         const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
         
         const newSeries = [...currentSeries, seriesNumber].join(', ');
         fieldsToUpdate.series = newSeries;
         newCount = currentSeries.length + 1;
+
+        // Also increment the main 'scanned' count when a series is successfully added
+        const currentScanned = targetItem.fields.scanned || 0;
+        fieldsToUpdate.scanned = currentScanned + 1;
+        
         message = `Đã ghi nhận Series ${seriesNumber}. (${newCount}/${targetItem.fields.quantity})`;
     }
 
