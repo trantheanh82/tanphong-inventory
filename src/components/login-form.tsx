@@ -15,24 +15,37 @@ import CryptoJS from 'crypto-js';
 export function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [apiResponse, setApiResponse] = useState<any>(null);
   const { toast } = useToast();
   const router = useRouter();
   
   useEffect(() => {
-    const rememberedEmail = localStorage.getItem('rememberedEmail');
-    if (rememberedEmail) {
-      setEmail(rememberedEmail);
-      setRememberMe(true);
+    const encryptedEmail = localStorage.getItem('authEmail');
+    const encryptedPassword = localStorage.getItem('authToken');
+    const remembered = localStorage.getItem('rememberMe') === 'true';
+    const secret = process.env.NEXT_PUBLIC_CRYPTO_SECRET || 'your-default-secret-key';
+
+    if (remembered && encryptedEmail && encryptedPassword) {
+      try {
+        const decryptedEmail = CryptoJS.AES.decrypt(encryptedEmail, secret).toString(CryptoJS.enc.Utf8);
+        const decryptedPassword = CryptoJS.AES.decrypt(encryptedPassword, secret).toString(CryptoJS.enc.Utf8);
+        if (decryptedEmail) setEmail(decryptedEmail);
+        if (decryptedPassword) setPassword(decryptedPassword);
+        setRememberMe(true);
+      } catch (error) {
+        console.error("Failed to decrypt credentials", error);
+        // Clear corrupted data
+        localStorage.removeItem('rememberMe');
+        localStorage.removeItem('authEmail');
+        localStorage.removeItem('authToken');
+      }
     }
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setApiResponse(null);
     const secret = process.env.NEXT_PUBLIC_CRYPTO_SECRET || 'your-default-secret-key';
 
     try {
@@ -51,14 +64,12 @@ export function LoginForm() {
             });
 
             if (rememberMe) {
-                localStorage.setItem('rememberedEmail', email);
                 localStorage.setItem('rememberMe', 'true');
                 const encryptedEmail = CryptoJS.AES.encrypt(email, secret).toString();
                 const encryptedPassword = CryptoJS.AES.encrypt(password, secret).toString();
                 localStorage.setItem('authEmail', encryptedEmail);
                 localStorage.setItem('authToken', encryptedPassword);
             } else {
-                localStorage.removeItem('rememberedEmail');
                 localStorage.removeItem('rememberMe');
                 localStorage.removeItem('authEmail');
                 localStorage.removeItem('authToken');
@@ -80,7 +91,6 @@ export function LoginForm() {
                 title: 'Đăng nhập thất bại',
                 description: result.message || 'Email hoặc mật khẩu không đúng.',
             });
-            setApiResponse({ success: false, data: result });
         }
     } catch (error) {
         console.error('Login error:', error);
@@ -89,7 +99,6 @@ export function LoginForm() {
             title: 'Lỗi đăng nhập',
             description: 'Đã có lỗi xảy ra. Vui lòng thử lại.',
         });
-        setApiResponse({ success: false, data: { message: 'An unexpected error occurred.'} });
     }
     
     setIsLoading(false);
