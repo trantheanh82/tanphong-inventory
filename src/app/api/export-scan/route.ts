@@ -80,6 +80,14 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
             const recognizedInfo = await recognizeTireInfo(imageDataUri);
             fullDotNumber = recognizedInfo?.dotNumber;
             seriesNumber = recognizedInfo?.seriesNumber;
+
+            if (scanMode === 'dot' && !fullDotNumber) {
+                return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hợp lệ.' }, { status: 400 });
+            }
+            if (scanMode === 'series' && !seriesNumber) {
+                return NextResponse.json({ success: false, message: 'Không nhận dạng được Series.' }, { status: 400 });
+            }
+
         } catch (aiError) {
             console.error("AI recognition error:", aiError);
             return NextResponse.json({ success: false, message: 'AI processing failed. Please try again.' }, { status: 500 });
@@ -113,16 +121,17 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     }
 
     // --- Step 3: Find the target item to update ---
-    if (scanMode === 'both' && twoDigitDot && seriesNumber) {
-        targetItem = details.find((item: any) =>
-            String(item.fields.dot) === twoDigitDot &&
+    if (scanMode === 'both') {
+         targetItem = details.find((item: any) =>
+            twoDigitDot && String(item.fields.dot) === twoDigitDot &&
             (item.fields.scanned || 0) < item.fields.quantity
         );
         if (targetItem) {
              message = `Đã ghi nhận DOT ${twoDigitDot} (từ ${fullDotNumber}) và Series ${seriesNumber}.`;
         }
     } else if (scanMode === 'series' && seriesNumber) {
-        targetItem = details.find((item: any) => 
+        targetItem = details.find((item: any) =>
+            item.fields.tire_type === 'Nước ngoài' &&
             (item.fields.scanned || 0) < item.fields.quantity
         );
          if (targetItem) {
@@ -202,3 +211,5 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: error.message || 'An internal server error occurred.' }, { status: 500 });
     }
 }
+
+    

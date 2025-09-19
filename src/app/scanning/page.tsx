@@ -4,7 +4,6 @@
 import { useEffect, useState, useRef, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Camera, CheckCircle, LoaderCircle, Scan, Zap, ZapOff, Send, ScanText, Combine, AlertTriangle, X } from 'lucide-react';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useScanningStore, ScanItem } from '@/store/scanning-store';
@@ -89,6 +88,25 @@ function ScanningComponent() {
     }
   };
 
+  const fetchNoteDetails = useCallback(async () => {
+    if (!noteId || !noteType) return;
+    try {
+      const response = await fetch(`/api/note-detail?type=${noteType}&noteId=${noteId}`);
+      if (!response.ok) throw new Error('Failed to fetch note details');
+      const data = await response.json();
+      const scanItems: ScanItem[] = data.map((item: any) => ({
+        id: item.id, dot: item.fields.dot, series: item.fields.series,
+        quantity: item.fields.quantity || 1, scanned: item.fields.scanned || 0,
+        tire_type: item.fields.tire_type
+      }));
+      setItems(scanItems);
+    } catch (error) {
+      console.error(error);
+      toast({ variant: 'destructive', title: 'Lỗi', description: 'Không thể tải chi tiết phiếu.' });
+    }
+  }, [noteId, noteType, setItems, toast]);
+
+
   // Fetch note details
   useEffect(() => {
     if (!noteId || !noteType) {
@@ -100,30 +118,8 @@ function ScanningComponent() {
       router.back();
       return;
     }
-
-    const fetchNoteDetails = async () => {
-      try {
-        const response = await fetch(`/api/note-detail?type=${noteType}&noteId=${noteId}`);
-        if (!response.ok) throw new Error('Failed to fetch note details');
-        const data = await response.json();
-
-        const scanItems: ScanItem[] = data.map((item: any) => ({
-          id: item.id,
-          dot: item.fields.dot,
-          series: item.fields.series,
-          quantity: item.fields.quantity || 1,
-          scanned: item.fields.scanned || 0,
-          tire_type: item.fields.tire_type
-        }));
-        setItems(scanItems);
-      } catch (error) {
-        console.error(error);
-        toast({ variant: 'destructive', title: 'Lỗi', description: 'Không thể tải chi tiết phiếu.' });
-      }
-    };
-
     fetchNoteDetails();
-  }, [noteId, noteType, router, toast, setItems]);
+  }, [noteId, noteType, router, toast, fetchNoteDetails]);
   
   // Get camera permission
   useEffect(() => {
@@ -205,16 +201,10 @@ function ScanningComponent() {
         });
 
         // Refetch data to update the UI state from the source of truth
-        const response = await fetch(`/api/note-detail?type=${noteType}&noteId=${noteId}`);
-        const data = await response.json();
-        const scanItems: ScanItem[] = data.map((item: any) => ({
-          id: item.id, dot: item.fields.dot, series: item.fields.series,
-          quantity: item.fields.quantity || 1, scanned: item.fields.scanned || 0,
-          tire_type: item.fields.tire_type
-        }));
-        setItems(scanItems);
+        await fetchNoteDetails();
 
-        const allScanned = scanItems.every(item => (item.scanned || 0) >= item.quantity);
+        const latestItems = useScanningStore.getState().items;
+        const allScanned = latestItems.every(item => (item.scanned || 0) >= item.quantity);
 
         if (allScanned) {
             toast({ title: "Hoàn tất", description: "Bạn đã quét đủ số lượng cho tất cả các mục.", className: "bg-green-500 text-white" });
@@ -268,7 +258,7 @@ function ScanningComponent() {
     
     await proceedWithScan(imageDataUri, scanMode);
   };
-
+  
     const handleDialogScan = async (scanFor: 'dot' | 'series') => {
         if (isSubmitting) return;
         setIsSubmitting(true);
@@ -282,22 +272,41 @@ function ScanningComponent() {
         }
 
         try {
-            const result = await recognizeTireInfo(imageDataUri);
-            if (scanFor === 'dot' && result?.dotNumber) {
-                setBothScanData(prev => ({ ...prev, dot: result.dotNumber! }));
-                toast({ title: 'Thành công', description: `Đã nhận dạng DOT: ${result.dotNumber}` });
-            } else if (scanFor === 'series' && result?.seriesNumber) {
-                setBothScanData(prev => ({ ...prev, series: result.seriesNumber! }));
-                toast({ title: 'Thành công', description: `Đã nhận dạng Series: ${result.seriesNumber}` });
+            const recognizedInfo = await recognizeTireInfo(imageDataUri);
+
+            // If we scanned a DOT
+            if (scanFor === 'dot' && recognizedInfo?.dotNumber) {
+                setBothScanData(prev => ({ ...prev, dot: recognizedInfo.dotNumber! }));
+                setIsScanningForDialog(null); // Hide camera, show dialog
+                
+                // If series is already there, submit both
+                if (bothScanData.series) {
+                    await handleBothScansSubmit(recognizedInfo.dotNumber, bothScanData.series);
+                } else {
+                    toast({ title: 'Info', description: 'Đã scan DOT, hãy scan Series.' });
+                }
+
+            // If we scanned a Series
+            } else if (scanFor === 'series' && recognizedInfo?.seriesNumber) {
+                setBothScanData(prev => ({ ...prev, series: recognizedInfo.seriesNumber! }));
+                setIsScanningForDialog(null);
+                
+                // If DOT is already there, submit both
+                if (bothScanData.dot) {
+                    await handleBothScansSubmit(bothScanData.dot, recognizedInfo.seriesNumber);
+                } else {
+                    toast({ title: 'Info', description: 'Quét Series thành công, hãy quét DOT.' });
+                }
             } else {
-                toast({ variant: 'destructive', title: 'Không tìm thấy', description: `Không nhận dạng được ${scanFor} từ ảnh.` });
+                 toast({ variant: 'destructive', title: 'Không tìm thấy', description: `Không nhận dạng được ${scanFor} từ ảnh.` });
+                 setIsScanningForDialog(null);
             }
         } catch (error) {
             console.error(error);
             toast({ variant: 'destructive', title: 'Lỗi AI', description: `Quá trình quét ${scanFor} thất bại.` });
+            setIsScanningForDialog(null);
         } finally {
             setIsSubmitting(false);
-            setIsScanningForDialog(null); // Hide camera overlay, show dialog content
         }
     };
   
@@ -363,13 +372,13 @@ function ScanningComponent() {
     setIsBothScanDialogOpen(true);
   };
 
-  const handleBothScansSubmit = async () => {
-        if (!bothScanData.dot || !bothScanData.series) {
+    const handleBothScansSubmit = async (dot: string, series: string) => {
+        if (!dot || !series) {
             toast({ variant: 'destructive', title: 'Thiếu thông tin', description: 'Cần quét cả DOT và Series.' });
             return;
         }
         setIsSubmitting(true);
-        setIsBothScanDialogOpen(false);
+        setIsBothScanDialogOpen(false); // Close dialog on submit
 
         try {
             const response = await fetch('/api/export-scan', {
@@ -378,17 +387,17 @@ function ScanningComponent() {
                 body: JSON.stringify({
                     noteId,
                     scanMode: 'both',
-                    dotNumber: bothScanData.dot,
-                    seriesNumber: bothScanData.series,
+                    dotNumber: dot,
+                    seriesNumber: series,
                 }),
             });
             const result = await response.json();
             await handleScanResponse(result);
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
+        } finally {
+             setIsSubmitting(false);
         }
-
-        setIsSubmitting(false);
     };
 
 
@@ -433,40 +442,39 @@ function ScanningComponent() {
             <DialogHeader>
                 <DialogTitle className="text-2xl text-[#333]">Quét DOT và Series</DialogTitle>
                 <DialogDescription>
-                    Lần lượt quét mã DOT và mã Series của lốp xe.
+                    Lần lượt quét mã DOT và mã Series của lốp xe. Hệ thống sẽ tự động gửi khi cả hai đã được quét.
                 </DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-4">
                 {/* DOT SCANNER */}
                 <div className="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
-                    <div>
-                        <p className="font-semibold text-gray-800">Mã DOT</p>
-                        <p className="text-sm text-gray-600">{bothScanData.dot || 'Chưa có'}</p>
+                    <div className="flex items-center gap-2">
+                        {bothScanData.dot && <CheckCircle className='w-5 h-5 text-green-600'/>}
+                        <div>
+                            <p className="font-semibold text-gray-800">Mã DOT</p>
+                            <p className="text-sm text-gray-600">{bothScanData.dot || 'Chưa có'}</p>
+                        </div>
                     </div>
-                    <Button onClick={() => setIsScanningForDialog('dot')} disabled={isSubmitting} size="icon">
+                    <Button onClick={() => setIsScanningForDialog('dot')} disabled={isSubmitting || !!bothScanData.dot} size="icon">
                         <Camera className="w-5 h-5"/>
                     </Button>
                 </div>
                 {/* SERIES SCANNER */}
                 <div className="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
-                    <div>
-                        <p className="font-semibold text-gray-800">Mã Series</p>
-                        <p className="text-sm text-gray-600">{bothScanData.series || 'Chưa có'}</p>
+                    <div className="flex items-center gap-2">
+                        {bothScanData.series && <CheckCircle className='w-5 h-5 text-green-600'/>}
+                        <div>
+                            <p className="font-semibold text-gray-800">Mã Series</p>
+                            <p className="text-sm text-gray-600">{bothScanData.series || 'Chưa có'}</p>
+                        </div>
                     </div>
-                    <Button onClick={() => setIsScanningForDialog('series')} disabled={isSubmitting} size="icon">
+                    <Button onClick={() => setIsScanningForDialog('series')} disabled={isSubmitting || !!bothScanData.series} size="icon">
                         <ScanText className="w-5 h-5"/>
                     </Button>
                 </div>
             </div>
             <DialogFooter>
-                <Button variant="ghost" onClick={() => setIsBothScanDialogOpen(false)}>Hủy</Button>
-                <Button 
-                    onClick={handleBothScansSubmit}
-                    disabled={isSubmitting || !bothScanData.dot || !bothScanData.series}
-                    className="bg-gray-800 hover:bg-gray-900 text-white"
-                >
-                    {isSubmitting ? "Đang gửi..." : "Gửi"}
-                </Button>
+                <Button variant="ghost" onClick={() => setIsBothScanDialogOpen(false)}>Đóng</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
@@ -493,18 +501,22 @@ function ScanningComponent() {
              
              {isScanningForDialog ? (
                 // Full screen overlay when scanning for dialog
-                <div className="absolute inset-0 z-30 flex flex-col items-center justify-end bg-black/70">
-                    <p className='text-white text-lg mb-4 animate-pulse'>Đang quét {isScanningForDialog === 'dot' ? 'DOT' : 'Series'}...</p>
+                <div className="absolute inset-0 z-30 flex flex-col items-center justify-end bg-black/70 p-8">
+                    <div className={cn("relative w-full aspect-[4/3] max-w-md border-4 border-dashed border-white/50 rounded-lg animate-pulse",
+                        isScanningForDialog === 'series' ? "h-[40%]" : "h-[50%]")}>
+                    </div>
+                    <p className='text-white text-lg my-4 animate-pulse'>Căn chỉnh {isScanningForDialog === 'dot' ? 'DOT' : 'Series'} vào trong khung...</p>
                     <Button
                         onClick={() => handleDialogScan(isScanningForDialog)}
                         disabled={isSubmitting}
-                        className="h-20 w-20 bg-blue-600 text-white rounded-full mb-8 shadow-lg"
+                        className="h-20 w-20 bg-blue-600 text-white rounded-full shadow-lg"
                     >
                          {isSubmitting ? <LoaderCircle className="w-10 h-10 animate-spin" /> : <Camera className="w-10 h-10" />}
                     </Button>
                      <Button
                         variant="ghost"
-                        className='absolute top-4 right-4 text-white'
+                        size="icon"
+                        className='absolute top-4 right-4 text-white bg-black/30'
                         onClick={() => setIsScanningForDialog(null)}
                     >
                         <X className="w-6 h-6" />
@@ -512,8 +524,9 @@ function ScanningComponent() {
                 </div>
             ) : (
                 <div className={cn(
-                    "absolute border-4 border-dashed border-white/50 rounded-lg animate-pulse",
-                    noteType === 'export' || noteType === 'warranty' ? "w-[95%] h-[40%]" : "w-[95%] h-[50%]"
+                    "absolute border-4 border-dashed border-white/50 rounded-lg",
+                    "w-[95%]",
+                    noteType === 'export' || noteType === 'warranty' ? "h-[40%]" : "h-[50%]"
                 )}></div>
             )}
 
@@ -609,3 +622,5 @@ export default function ScanningPage() {
         </Suspense>
     )
 }
+
+    
