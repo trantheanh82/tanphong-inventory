@@ -64,23 +64,32 @@ async function updateNoteStatusIfCompleted(noteId: string, cookieHeader: string 
     }
 }
 
-async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot' | 'series' | 'both', cookieHeader: string) {
+async function processScan(noteId: string, cookieHeader: string, payload: { imageDataUri?: string; scanMode: ScanMode; dotNumber?: string; seriesNumber?: string }) {
+    const { imageDataUri, scanMode, dotNumber: payloadDot, seriesNumber: payloadSeries } = payload;
+    
     let twoDigitDot: string | undefined;
     let seriesNumber: string | undefined;
     let fullDotNumber: string | undefined;
 
-    try {
-        const recognizedInfo = await recognizeTireInfo(imageDataUri);
-        fullDotNumber = recognizedInfo?.dotNumber;
-        seriesNumber = recognizedInfo?.seriesNumber;
-        
-        if (fullDotNumber) {
-            twoDigitDot = fullDotNumber.slice(-2);
+    // --- Step 1: Get DOT and Series info ---
+    if (scanMode === 'both' && payloadDot && payloadSeries) {
+        fullDotNumber = payloadDot;
+        seriesNumber = payloadSeries;
+    } else if (imageDataUri) {
+        try {
+            const recognizedInfo = await recognizeTireInfo(imageDataUri);
+            fullDotNumber = recognizedInfo?.dotNumber;
+            seriesNumber = recognizedInfo?.seriesNumber;
+        } catch (aiError) {
+            console.error("AI recognition error:", aiError);
+            return NextResponse.json({ success: false, message: 'AI processing failed. Please try again.' }, { status: 500 });
         }
+    } else {
+        return NextResponse.json({ success: false, message: "Không có thông tin để quét." }, { status: 400 });
+    }
 
-    } catch (aiError) {
-        console.error("AI recognition error:", aiError);
-        return NextResponse.json({ success: false, message: 'AI processing failed. Please try again.' }, { status: 500 });
+    if (fullDotNumber) {
+        twoDigitDot = fullDotNumber.slice(-2);
     }
     
     if (!twoDigitDot && !seriesNumber) {
@@ -91,33 +100,43 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
     const details = detailsResponse.records;
     
     let targetItem: any = null;
+    let message = "";
     
-    // --- Logic to find the target item ---
-
-    // Rule 1: Prioritize matching International tires by Series if a series was scanned
-    if (seriesNumber && (scanMode === 'series' || scanMode === 'both')) {
-        // Check for duplicates first
+    // --- Step 2: Check for duplicate series ---
+    if (seriesNumber) {
         for (const item of details) {
             const existingSeries = item.fields.series ? item.fields.series.split(',').map((s: string) => s.trim()) : [];
             if (existingSeries.includes(seriesNumber)) {
                 return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã được quét cho phiếu này.` }, { status: 409 });
             }
         }
-        
-        targetItem = details.find((item: any) => {
-            const seriesCount = item.fields.series ? item.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean).length : 0;
-            const quantityNeeded = item.fields.quantity || 0;
-            return item.fields.tire_type === 'Nước ngoài' && seriesCount < quantityNeeded;
-        });
     }
-    
-    // Rule 2: If no series match was made (or no series was scanned), try to match ANY tire by DOT.
-    if (!targetItem && twoDigitDot && (scanMode === 'dot' || scanMode === 'both')) {
-        targetItem = details.find((item: any) => {
-            const scannedCount = item.fields.scanned || 0;
-            const quantityNeeded = item.fields.quantity || 0;
-            return String(item.fields.dot) === twoDigitDot && scannedCount < quantityNeeded;
-        });
+
+    // --- Step 3: Find the target item to update ---
+    if (scanMode === 'both' && twoDigitDot && seriesNumber) {
+        targetItem = details.find((item: any) =>
+            String(item.fields.dot) === twoDigitDot &&
+            (item.fields.scanned || 0) < item.fields.quantity
+        );
+        if (targetItem) {
+             message = `Đã ghi nhận DOT ${twoDigitDot} (từ ${fullDotNumber}) và Series ${seriesNumber}.`;
+        }
+    } else if (scanMode === 'series' && seriesNumber) {
+        targetItem = details.find((item: any) => 
+            item.fields.tire_type === 'Nước ngoài' &&
+            (item.fields.scanned || 0) < item.fields.quantity
+        );
+         if (targetItem) {
+            message = `Đã ghi nhận Series ${seriesNumber}.`;
+        }
+    } else if (scanMode === 'dot' && twoDigitDot) {
+        targetItem = details.find((item: any) => 
+            String(item.fields.dot) === twoDigitDot &&
+            (item.fields.scanned || 0) < item.fields.quantity
+        );
+        if (targetItem) {
+            message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}).`;
+        }
     }
 
     if (!targetItem) {
@@ -127,9 +146,8 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
         return NextResponse.json({ success: false, message: msg }, { status: 404 });
     }
 
-    // --- Process the update ---
+    // --- Step 4: Process the update ---
     const fieldsToUpdate: any = {};
-    let message = "";
     const currentScanned = targetItem.fields.scanned || 0;
     const totalQuantity = targetItem.fields.quantity;
     const newCount = currentScanned + 1;
@@ -140,36 +158,20 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
         fieldsToUpdate.status = 'Đã scan đủ';
     }
 
-    if (seriesNumber && targetItem.fields.tire_type === 'Nước ngoài') {
+    if (seriesNumber) {
         const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
         const newSeries = [...currentSeries, seriesNumber].join(', ');
         fieldsToUpdate.series = newSeries;
-        message = `Đã ghi nhận Series ${seriesNumber}. (${newCount}/${totalQuantity})`;
-        if (twoDigitDot) {
-             message = `Đã ghi nhận DOT ${twoDigitDot} (từ ${fullDotNumber}) và Series ${seriesNumber}. (${newCount}/${totalQuantity})`;
-        }
-    } else if (twoDigitDot) {
-        message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}). (${newCount}/${totalQuantity})`;
-        if (seriesNumber && targetItem.fields.tire_type !== 'Nước ngoài') {
-            message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}). Series ${seriesNumber} không áp dụng cho lốp nội địa. (${newCount}/${totalQuantity})`;
-        }
-    } else {
-         if (seriesNumber) {
-             message = `Series ${seriesNumber} không áp dụng cho lốp này, nhưng đã ghi nhận số lượng. (${newCount}/${totalQuantity})`;
-        } else {
-            // This case should not be possible if we found a targetItem. Fallback.
-            return NextResponse.json({ success: false, message: "Không thể xác định thông tin để cập nhật." }, { status: 400 });
-        }
     }
+    
+    message += ` (${newCount}/${totalQuantity})`;
 
-    if (Object.keys(fieldsToUpdate).length > 0) {
-        const updatePayload = {
-            records: [{ id: targetItem.id, fields: fieldsToUpdate }],
-            fieldKeyType: "dbFieldName"
-        };
-        await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
-        await updateNoteStatusIfCompleted(noteId, cookieHeader);
-    }
+    const updatePayload = {
+        records: [{ id: targetItem.id, fields: fieldsToUpdate }],
+        fieldKeyType: "dbFieldName"
+    };
+    await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
+    await updateNoteStatusIfCompleted(noteId, cookieHeader);
     
     return NextResponse.json({
         success: true, message, 
@@ -183,9 +185,10 @@ async function processScan(noteId: string, imageDataUri: string, scanMode: 'dot'
 
 export async function POST(request: NextRequest) {
     const cookieHeader = cookies().toString();
-    const { noteId, imageDataUri, scanMode } = await request.json();
+    const body = await request.json();
 
-    if (!noteId || !imageDataUri || !scanMode) {
+    const { noteId, scanMode } = body;
+    if (!noteId || !scanMode) {
         return NextResponse.json({ message: 'Missing required parameters.' }, { status: 400 });
     }
     
@@ -194,7 +197,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-       return await processScan(noteId, imageDataUri, scanMode, cookieHeader);
+       return await processScan(noteId, cookieHeader, body);
     } catch (error: any) {
         console.error('Error processing export scan:', error);
         return NextResponse.json({ message: error.message || 'An internal server error occurred.' }, { status: 500 });
