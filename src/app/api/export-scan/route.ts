@@ -131,7 +131,6 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         }
     } else if (scanMode === 'series' && seriesNumber) {
         targetItem = details.find((item: any) =>
-            item.fields.tire_type === 'Nước ngoài' &&
             (item.fields.scanned || 0) < item.fields.quantity
         );
          if (targetItem) {
@@ -211,5 +210,3 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: error.message || 'An internal server error occurred.' }, { status: 500 });
     }
 }
-
-    

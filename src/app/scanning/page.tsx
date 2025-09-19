@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { cn } from '@/lib/utils';
 import { recognizeTireInfo } from '@/ai/flows/export-scan-flow';
 
-type ScanMode = 'dot' | 'series' | 'both';
+type ActiveScanMode = 'dot' | 'series' | 'both' | 'none';
 
 interface ScanResultData {
   success: boolean;
@@ -41,9 +41,10 @@ function ScanningComponent() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
 
-  const [isBothScanDialogOpen, setIsBothScanDialogOpen] = useState(false);
-  const [bothScanData, setBothScanData] = useState<{ dot: string | null; series: string | null }>({ dot: null, series: null });
-  const [isScanningForDialog, setIsScanningForDialog] = useState< 'dot' | 'series' | null>(null);
+  // State for the new "Both" scan flow
+  const [activeScanMode, setActiveScanMode] = useState<ActiveScanMode>('none');
+  const [scannedDotForBoth, setScannedDotForBoth] = useState<string | null>(null);
+  const [scannedSeriesForBoth, setScannedSeriesForBoth] = useState<string | null>(null);
 
   const noteId = searchParams.get('noteId');
   const noteType = searchParams.get('type') as 'import' | 'export' | 'warranty';
@@ -56,7 +57,6 @@ function ScanningComponent() {
     updateItemWithScan,
   } = useScanningStore();
 
-  // Reset store on component unmount
   useEffect(() => {
     return () => {
       reset();
@@ -107,7 +107,6 @@ function ScanningComponent() {
   }, [noteId, noteType, setItems, toast]);
 
 
-  // Fetch note details
   useEffect(() => {
     if (!noteId || !noteType) {
       toast({
@@ -121,7 +120,6 @@ function ScanningComponent() {
     fetchNoteDetails();
   }, [noteId, noteType, router, toast, fetchNoteDetails]);
   
-  // Get camera permission
   useEffect(() => {
     let stream: MediaStream | null = null;
     
@@ -200,7 +198,6 @@ function ScanningComponent() {
             className: result.warning ? "bg-yellow-100 border-yellow-500 text-yellow-800" : "bg-green-100 border-green-500 text-green-800"
         });
 
-        // Refetch data to update the UI state from the source of truth
         await fetchNoteDetails();
 
         const latestItems = useScanningStore.getState().items;
@@ -216,10 +213,29 @@ function ScanningComponent() {
     }
   }
 
-  const proceedWithScan = async (imageDataUri: string, scanMode: ScanMode) => {
-    if (isSubmitting) return;
+  const handleCapture = async () => {
+    if (isSubmitting || hasCameraPermission !== true) return;
     setIsSubmitting(true);
+    
+    const imageDataUri = captureImage();
+    if (!imageDataUri) {
+        toast({ variant: 'destructive', title: "Lỗi", description: "Không thể xử lý hình ảnh." });
+        setIsSubmitting(false);
+        return;
+    }
 
+    if (activeScanMode === 'both') {
+      await handleBothModeScan(imageDataUri);
+    } else {
+      await handleSimpleScan(activeScanMode, imageDataUri);
+    }
+
+    setIsSubmitting(false);
+  };
+  
+  const handleSimpleScan = async (scanMode: ActiveScanMode, imageDataUri: string) => {
+    if (scanMode === 'none') return;
+    
     let endpoint = '/api/scan';
     let body: any = { noteId, noteType, imageDataUri };
 
@@ -228,10 +244,9 @@ function ScanningComponent() {
       body = { noteId, imageDataUri, scanMode };
     } else if (noteType === 'warranty') {
       await handleWarrantyScan({ imageDataUri });
-      setIsSubmitting(false);
       return;
     }
-
+    
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -243,72 +258,60 @@ function ScanningComponent() {
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
     }
-
-    setIsSubmitting(false);
   };
-  
-  const handleSimpleScan = async (scanMode: 'dot' | 'series') => {
-    if (isSubmitting) return;
 
-    const imageDataUri = captureImage();
-    if (!imageDataUri) {
-        toast({ variant: 'destructive', title: "Lỗi", description: "Không thể xử lý hình ảnh." });
-        return;
+  const handleBothModeScan = async (imageDataUri: string) => {
+    try {
+      const recognizedInfo = await recognizeTireInfo(imageDataUri);
+
+      const foundDot = recognizedInfo?.dotNumber;
+      const foundSeries = recognizedInfo?.seriesNumber;
+      
+      let newDot = scannedDotForBoth;
+      let newSeries = scannedSeriesForBoth;
+
+      if (foundDot && !newDot) {
+        newDot = foundDot;
+        setScannedDotForBoth(newDot);
+      }
+      if (foundSeries && !newSeries) {
+        newSeries = foundSeries;
+        setScannedSeriesForBoth(newSeries);
+      }
+
+      if (newDot && newSeries) {
+        // Both are now available, submit
+        toast({ title: 'Đã có đủ thông tin', description: `DOT: ${newDot}, Series: ${newSeries}. Đang xử lý...` });
+        const response = await fetch('/api/export-scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                noteId,
+                scanMode: 'both',
+                dotNumber: newDot,
+                seriesNumber: newSeries,
+            }),
+        });
+        const result = await response.json();
+        await handleScanResponse(result);
+        
+        // Reset for next scan
+        setScannedDotForBoth(null);
+        setScannedSeriesForBoth(null);
+        setActiveScanMode('none');
+
+      } else if (newDot) {
+        toast({ title: 'Thông tin', description: `Đã nhận DOT: ${newDot}. Hãy quét Series.` });
+      } else if (newSeries) {
+         toast({ title: 'Thông tin', description: `Đã nhận Series: ${newSeries}. Hãy quét DOT.` });
+      } else {
+        toast({ variant: 'destructive', title: 'Không tìm thấy', description: 'Không nhận dạng được DOT hay Series. Vui lòng thử lại.' });
+      }
+    } catch (aiError) {
+        console.error("AI recognition error:", aiError);
+        toast({ variant: 'destructive', title: 'Lỗi AI', description: 'AI processing failed. Please try again.' });
     }
-    
-    await proceedWithScan(imageDataUri, scanMode);
   };
-  
-    const handleDialogScan = async (scanFor: 'dot' | 'series') => {
-        if (isSubmitting) return;
-        setIsSubmitting(true);
-        toast({ title: 'Đang quét...', description: `Vui lòng đợi trong khi AI phân tích ${scanFor}.` });
-
-        const imageDataUri = captureImage();
-        if (!imageDataUri) {
-            toast({ variant: 'destructive', title: "Lỗi", description: "Không thể xử lý hình ảnh." });
-            setIsSubmitting(false);
-            return;
-        }
-
-        try {
-            const recognizedInfo = await recognizeTireInfo(imageDataUri);
-
-            // If we scanned a DOT
-            if (scanFor === 'dot' && recognizedInfo?.dotNumber) {
-                setBothScanData(prev => ({ ...prev, dot: recognizedInfo.dotNumber! }));
-                setIsScanningForDialog(null); // Hide camera, show dialog
-                
-                // If series is already there, submit both
-                if (bothScanData.series) {
-                    await handleBothScansSubmit(recognizedInfo.dotNumber, bothScanData.series);
-                } else {
-                    toast({ title: 'Info', description: 'Đã scan DOT, hãy scan Series.' });
-                }
-
-            // If we scanned a Series
-            } else if (scanFor === 'series' && recognizedInfo?.seriesNumber) {
-                setBothScanData(prev => ({ ...prev, series: recognizedInfo.seriesNumber! }));
-                setIsScanningForDialog(null);
-                
-                // If DOT is already there, submit both
-                if (bothScanData.dot) {
-                    await handleBothScansSubmit(bothScanData.dot, recognizedInfo.seriesNumber);
-                } else {
-                    toast({ title: 'Info', description: 'Quét Series thành công, hãy quét DOT.' });
-                }
-            } else {
-                 toast({ variant: 'destructive', title: 'Không tìm thấy', description: `Không nhận dạng được ${scanFor} từ ảnh.` });
-                 setIsScanningForDialog(null);
-            }
-        } catch (error) {
-            console.error(error);
-            toast({ variant: 'destructive', title: 'Lỗi AI', description: `Quá trình quét ${scanFor} thất bại.` });
-            setIsScanningForDialog(null);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
   
   const handleWarrantyScan = async (scanPayload: { imageDataUri?: string; seriesNumber?: string }) => {
     try {
@@ -346,7 +349,6 @@ function ScanningComponent() {
     if (noteType === 'warranty') {
         await handleWarrantyScan({ seriesNumber: manualInputValue });
     } else if (noteType === 'import') {
-        // Manual Scan for Import
         const response = await fetch('/api/manual-scan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -361,124 +363,70 @@ function ScanningComponent() {
   };
 
   const getPageTitle = () => {
-      if (noteType === 'warranty') return 'Quét Series Bảo Hành';
-      if (noteType === 'import') return 'Quét DOT Nhập Kho';
+      if (activeScanMode === 'both') return 'Quét DOT & Series';
+      if (noteType === 'warranty' || activeScanMode === 'series') return 'Quét Series';
+      if (noteType === 'import' || activeScanMode === 'dot') return 'Quét DOT';
       if (noteType === 'export') return 'Quét Lốp Xuất Kho';
       return 'Quét Mã';
   }
 
-  const handleOpenBothScanDialog = () => {
-    setBothScanData({ dot: null, series: null });
-    setIsBothScanDialogOpen(true);
+  const handleModeButtonClick = (mode: ActiveScanMode) => {
+    setActiveScanMode(mode);
+    setScannedDotForBoth(null);
+    setScannedSeriesForBoth(null);
+    if (mode === 'both') {
+      toast({ title: "Chế độ quét đôi", description: "Hãy quét DOT và Series." });
+    }
   };
 
-    const handleBothScansSubmit = async (dot: string, series: string) => {
-        if (!dot || !series) {
-            toast({ variant: 'destructive', title: 'Thiếu thông tin', description: 'Cần quét cả DOT và Series.' });
-            return;
-        }
-        setIsSubmitting(true);
-        setIsBothScanDialogOpen(false); // Close dialog on submit
-
-        try {
-            const response = await fetch('/api/export-scan', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    noteId,
-                    scanMode: 'both',
-                    dotNumber: dot,
-                    seriesNumber: series,
-                }),
-            });
-            const result = await response.json();
-            await handleScanResponse(result);
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
-        } finally {
-             setIsSubmitting(false);
-        }
-    };
-
-
   const renderMainScanButtons = () => {
+    if (activeScanMode !== 'none' || noteType === 'import' || noteType === 'warranty') {
+        const isCaptureDisabled = isSubmitting || hasCameraPermission !== true || activeScanMode === 'none';
+        return (
+            <div className="flex flex-col items-center gap-4">
+                {activeScanMode === 'both' && (
+                    <div className="text-white text-sm bg-black/30 px-3 py-1 rounded-full">
+                       {scannedDotForBoth ? `DOT: ${scannedDotForBoth}`: '...'} | {scannedSeriesForBoth ? `Series: ${scannedSeriesForBoth}` : '...'}
+                    </div>
+                )}
+                 <Button
+                    onClick={handleCapture}
+                    disabled={isCaptureDisabled}
+                    className="h-20 w-20 bg-blue-600 text-white rounded-full text-xl font-bold flex items-center justify-center gap-3 hover:bg-blue-700 disabled:bg-gray-500 shadow-lg"
+                >
+                    {isSubmitting ? (
+                        <LoaderCircle className="w-10 h-10 animate-spin" />
+                    ) : (
+                        <Camera className="w-10 h-10" />
+                    )}
+                </Button>
+                {activeScanMode !== 'none' && (
+                     <Button variant="ghost" size="sm" className='text-white' onClick={() => setActiveScanMode('none')}>Quay lại</Button>
+                )}
+            </div>
+        );
+    }
+    
     if (noteType === 'export') {
       return (
         <div className="flex justify-center gap-4">
-          <Button onClick={() => handleSimpleScan('dot')} disabled={isSubmitting || hasCameraPermission !== true} className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex-col h-auto p-3">
+          <Button onClick={() => handleModeButtonClick('dot')} className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex-col h-auto p-3">
             <Camera className="w-8 h-8" />
             <span className="text-xs mt-1">Scan DOT</span>
           </Button>
-          <Button onClick={() => handleSimpleScan('series')} disabled={isSubmitting || hasCameraPermission !== true} className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex-col h-auto p-3">
+          <Button onClick={() => handleModeButtonClick('series')} className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex-col h-auto p-3">
             <ScanText className="w-8 h-8" />
             <span className="text-xs mt-1">Scan Series</span>
           </Button>
-          <Button onClick={handleOpenBothScanDialog} disabled={isSubmitting || hasCameraPermission !== true} className="bg-green-600 hover:bg-green-700 text-white rounded-lg flex-col h-auto p-3">
+          <Button onClick={() => handleModeButtonClick('both')} className="bg-green-600 hover:bg-green-700 text-white rounded-lg flex-col h-auto p-3">
             <Combine className="w-8 h-8" />
             <span className="text-xs mt-1">Cả hai</span>
           </Button>
         </div>
       );
     }
-    // Default single button for import and warranty
-    return (
-        <Button
-            onClick={() => handleSimpleScan('dot')} // 'dot' is placeholder, warranty has own logic
-            disabled={isSubmitting || hasCameraPermission !== true}
-            className="h-20 w-20 bg-blue-600 text-white rounded-full text-xl font-bold flex items-center justify-center gap-3 hover:bg-blue-700 disabled:bg-gray-500 shadow-lg"
-        >
-            {isSubmitting ? (
-            <LoaderCircle className="w-10 h-10 animate-spin" />
-            ) : (
-                noteType === 'warranty' ? <Scan className="w-10 h-10" /> : <Camera className="w-10 h-10" />
-            )}
-        </Button>
-    );
   }
 
-  const renderBothScanDialog = () => (
-    <Dialog open={isBothScanDialogOpen} onOpenChange={setIsBothScanDialogOpen}>
-        <DialogContent className="bg-white/80 backdrop-blur-md rounded-xl shadow-lg border-white/50 text-gray-800">
-            <DialogHeader>
-                <DialogTitle className="text-2xl text-[#333]">Quét DOT và Series</DialogTitle>
-                <DialogDescription>
-                    Lần lượt quét mã DOT và mã Series của lốp xe. Hệ thống sẽ tự động gửi khi cả hai đã được quét.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="py-4 space-y-4">
-                {/* DOT SCANNER */}
-                <div className="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
-                    <div className="flex items-center gap-2">
-                        {bothScanData.dot && <CheckCircle className='w-5 h-5 text-green-600'/>}
-                        <div>
-                            <p className="font-semibold text-gray-800">Mã DOT</p>
-                            <p className="text-sm text-gray-600">{bothScanData.dot || 'Chưa có'}</p>
-                        </div>
-                    </div>
-                    <Button onClick={() => setIsScanningForDialog('dot')} disabled={isSubmitting || !!bothScanData.dot} size="icon">
-                        <Camera className="w-5 h-5"/>
-                    </Button>
-                </div>
-                {/* SERIES SCANNER */}
-                <div className="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
-                    <div className="flex items-center gap-2">
-                        {bothScanData.series && <CheckCircle className='w-5 h-5 text-green-600'/>}
-                        <div>
-                            <p className="font-semibold text-gray-800">Mã Series</p>
-                            <p className="text-sm text-gray-600">{bothScanData.series || 'Chưa có'}</p>
-                        </div>
-                    </div>
-                    <Button onClick={() => setIsScanningForDialog('series')} disabled={isSubmitting || !!bothScanData.series} size="icon">
-                        <ScanText className="w-5 h-5"/>
-                    </Button>
-                </div>
-            </div>
-            <DialogFooter>
-                <Button variant="ghost" onClick={() => setIsBothScanDialogOpen(false)}>Đóng</Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
-  );
 
   return (
     <div className="flex flex-col h-full bg-gray-900">
@@ -499,37 +447,11 @@ function ScanningComponent() {
              <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
              <div className="absolute inset-0 bg-black/40"></div>
              
-             {isScanningForDialog ? (
-                // Full screen overlay when scanning for dialog
-                <div className="absolute inset-0 z-30 flex flex-col items-center justify-end bg-black/70 p-8">
-                    <div className={cn("relative w-full aspect-[4/3] max-w-md border-4 border-dashed border-white/50 rounded-lg animate-pulse",
-                        isScanningForDialog === 'series' ? "h-[40%]" : "h-[50%]")}>
-                    </div>
-                    <p className='text-white text-lg my-4 animate-pulse'>Căn chỉnh {isScanningForDialog === 'dot' ? 'DOT' : 'Series'} vào trong khung...</p>
-                    <Button
-                        onClick={() => handleDialogScan(isScanningForDialog)}
-                        disabled={isSubmitting}
-                        className="h-20 w-20 bg-blue-600 text-white rounded-full shadow-lg"
-                    >
-                         {isSubmitting ? <LoaderCircle className="w-10 h-10 animate-spin" /> : <Camera className="w-10 h-10" />}
-                    </Button>
-                     <Button
-                        variant="ghost"
-                        size="icon"
-                        className='absolute top-4 right-4 text-white bg-black/30'
-                        onClick={() => setIsScanningForDialog(null)}
-                    >
-                        <X className="w-6 h-6" />
-                    </Button>
-                </div>
-            ) : (
-                <div className={cn(
-                    "absolute border-4 border-dashed border-white/50 rounded-lg",
-                    "w-[95%]",
-                    noteType === 'export' || noteType === 'warranty' ? "h-[40%]" : "h-[50%]"
-                )}></div>
-            )}
-
+             <div className={cn(
+                "absolute border-4 border-dashed border-white/50 rounded-lg",
+                "w-[95%]",
+                noteType === 'export' || noteType === 'warranty' ? "h-[40%]" : "h-[50%]"
+            )}></div>
 
              {hasCameraPermission === false && (
                 <div className="absolute inset-0 flex items-center justify-center p-4">
@@ -610,7 +532,6 @@ function ScanningComponent() {
         {renderMainScanButtons()}
       </footer>
 
-      {renderBothScanDialog()}
     </div>
   );
 }
@@ -622,5 +543,3 @@ export default function ScanningPage() {
         </Suspense>
     )
 }
-
-    
