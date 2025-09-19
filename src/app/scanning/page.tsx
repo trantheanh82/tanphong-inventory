@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useRef, Suspense, useCallback } from 'react';
@@ -381,7 +380,7 @@ function ScanningComponent() {
 
   const renderMainScanButtons = () => {
     if (activeScanMode !== 'none' || noteType === 'import' || noteType === 'warranty') {
-        const isCaptureDisabled = isSubmitting || hasCameraPermission !== true || activeScanMode === 'none';
+        const isCaptureDisabled = isSubmitting || hasCameraPermission !== true || activeScanMode === 'none' && noteType === 'export';
         return (
             <div className="flex flex-col items-center gap-4">
                 {activeScanMode === 'both' && (
@@ -400,6 +399,9 @@ function ScanningComponent() {
                         <Camera className="w-10 h-10" />
                     )}
                 </Button>
+                <span className="text-white font-semibold">
+                    {activeScanMode === 'none' && noteType === 'export' ? 'Chọn chế độ' : 'Quét'}
+                </span>
                 {activeScanMode !== 'none' && (
                      <Button variant="ghost" size="sm" className='text-white' onClick={() => setActiveScanMode('none')}>Quay lại</Button>
                 )}
@@ -425,6 +427,7 @@ function ScanningComponent() {
         </div>
       );
     }
+    return null;
   }
 
 
