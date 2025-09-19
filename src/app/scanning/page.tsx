@@ -196,7 +196,7 @@ function ScanningComponent() {
     return canvas.toDataURL('image/jpeg', 0.8);
   }
 
-  const handleScanResponse = (result: ScanResultData) => {
+  const handleScanResponse = async (result: ScanResultData) => {
     if (result.success) {
         toast({
             title: result.warning ? 'Quét thành công (Đã đủ)' : 'Quét thành công',
@@ -205,24 +205,21 @@ function ScanningComponent() {
         });
 
         // Refetch data to update the UI state from the source of truth
-        const fetchNoteDetails = async () => {
-            const response = await fetch(`/api/note-detail?type=${noteType}&noteId=${noteId}`);
-            const data = await response.json();
-            const scanItems: ScanItem[] = data.map((item: any) => ({
-              id: item.id, dot: item.fields.dot, series: item.fields.series,
-              quantity: item.fields.quantity || 1, scanned: item.fields.scanned || 0,
-              tire_type: item.fields.tire_type
-            }));
-            setItems(scanItems);
+        const response = await fetch(`/api/note-detail?type=${noteType}&noteId=${noteId}`);
+        const data = await response.json();
+        const scanItems: ScanItem[] = data.map((item: any) => ({
+          id: item.id, dot: item.fields.dot, series: item.fields.series,
+          quantity: item.fields.quantity || 1, scanned: item.fields.scanned || 0,
+          tire_type: item.fields.tire_type
+        }));
+        setItems(scanItems);
 
-            const allScanned = scanItems.every(item => (item.scanned || 0) >= item.quantity);
+        const allScanned = scanItems.every(item => (item.scanned || 0) >= item.quantity);
 
-            if (allScanned) {
-                toast({ title: "Hoàn tất", description: "Bạn đã quét đủ số lượng cho tất cả các mục.", className: "bg-green-500 text-white" });
-                setTimeout(() => router.push(`/listing?type=${noteType}`), 2000);
-            }
-        };
-        fetchNoteDetails();
+        if (allScanned) {
+            toast({ title: "Hoàn tất", description: "Bạn đã quét đủ số lượng cho tất cả các mục.", className: "bg-green-500 text-white" });
+            setTimeout(() => router.push(`/listing?type=${noteType}`), 2000);
+        }
 
     } else {
         toast({ variant: 'destructive', title: "Thất bại", description: result.message });
@@ -252,7 +249,7 @@ function ScanningComponent() {
         body: JSON.stringify(body),
       });
       const result = await response.json();
-      handleScanResponse(result);
+      await handleScanResponse(result);
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
     }
@@ -347,7 +344,7 @@ function ScanningComponent() {
             body: JSON.stringify({ noteId, noteType, valueToScan: manualInputValue })
         });
         const result = await response.json();
-        handleScanResponse(result);
+        await handleScanResponse(result);
         setManualInputValue("");
     }
     
@@ -386,7 +383,7 @@ function ScanningComponent() {
                 }),
             });
             const result = await response.json();
-            handleScanResponse(result);
+            await handleScanResponse(result);
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
         }

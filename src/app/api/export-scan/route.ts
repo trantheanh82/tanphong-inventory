@@ -123,7 +123,6 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         }
     } else if (scanMode === 'series' && seriesNumber) {
         targetItem = details.find((item: any) => 
-            item.fields.tire_type === 'Nước ngoài' &&
             (item.fields.scanned || 0) < item.fields.quantity
         );
          if (targetItem) {
