@@ -174,7 +174,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     }
     
     const totalItemsInNote = details.length;
-    message += ` (${newCount}/${totalItemsInNote})`;
+    message += ` (${newCount}/${totalQuantity})`;
 
     const updatePayload = {
         records: [{ id: targetItem.id, fields: fieldsToUpdate }],
