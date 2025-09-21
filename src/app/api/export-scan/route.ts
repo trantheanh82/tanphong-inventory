@@ -129,22 +129,20 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         if (targetItem) {
              message = `Đã ghi nhận DOT ${twoDigitDot} (từ ${fullDotNumber}) và Series ${seriesNumber}.`;
         }
-    } else if (scanMode === 'series' && seriesNumber) {
-        targetItem = details.find((item: any) =>
-            (item.fields.scanned || 0) < item.fields.quantity
-        );
-         if (targetItem) {
+    } else if (scanMode === 'series') {
+        // Find the first available item to add a series to
+        targetItem = details.find((item: any) => (item.fields.scanned || 0) < item.fields.quantity);
+        if (targetItem) {
             message = `Đã ghi nhận Series ${seriesNumber}.`;
         }
-    } else if (scanMode === 'dot' && twoDigitDot) {
-        targetItem = details.find((item: any) => 
-            String(item.fields.dot) === twoDigitDot &&
-            (item.fields.scanned || 0) < item.fields.quantity
-        );
+    } else if (scanMode === 'dot') {
+        // Find the first available item to add a DOT to
+        targetItem = details.find((item: any) => (item.fields.scanned || 0) < item.fields.quantity);
         if (targetItem) {
             message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}).`;
         }
     }
+
 
     if (!targetItem) {
         let msg = `Không tìm thấy lốp phù hợp hoặc đã quét đủ số lượng.`;
@@ -165,13 +163,17 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         fieldsToUpdate.status = 'Đã scan đủ';
     }
 
-    if (seriesNumber) {
+    if (seriesNumber && (scanMode === 'series' || scanMode === 'both')) {
         const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
         const newSeries = [...currentSeries, seriesNumber].join(', ');
         fieldsToUpdate.series = newSeries;
     }
     
-    message += ` (${newCount}/${totalQuantity})`;
+    if (twoDigitDot && (scanMode === 'dot' || scanMode === 'both')) {
+        fieldsToUpdate.dot = twoDigitDot;
+    }
+    
+    message += ` (${newCount}/${details.length})`;
 
     const updatePayload = {
         records: [{ id: targetItem.id, fields: fieldsToUpdate }],
