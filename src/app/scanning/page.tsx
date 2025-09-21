@@ -178,9 +178,8 @@ function ScanningComponent() {
     const videoWidth = video.videoWidth;
     const videoHeight = video.videoHeight;
     
-    const isSeriesScan = noteType === 'warranty' || activeScanMode === 'series' || activeScanMode === 'both';
-    const overlayWidthPercent = 0.95; 
-    const overlayHeightPercent = isSeriesScan ? 0.40 : 0.50;
+    const overlayWidthPercent = 0.80; // 80% width
+    const overlayHeightPercent = 0.20; // 20% height
 
     const cropWidth = videoWidth * overlayWidthPercent;
     const cropHeight = videoHeight * overlayHeightPercent;
@@ -221,14 +220,14 @@ function ScanningComponent() {
 
   const handleCapture = async () => {
     if (isSubmitting || hasCameraPermission !== true) return;
-    setIsSubmitting(true);
     
     const imageDataUri = captureImage();
     if (!imageDataUri) {
         toast({ variant: 'destructive', title: "Lỗi", description: "Không thể xử lý hình ảnh." });
-        setIsSubmitting(false);
         return;
     }
+    
+    setIsSubmitting(true);
 
     if (activeScanMode === 'both') {
       await handleBothModeScan(imageDataUri);
@@ -458,11 +457,7 @@ function ScanningComponent() {
              <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
              <div className="absolute inset-0 bg-black/40"></div>
              
-             <div className={cn(
-                "absolute border-4 border-dashed border-white/50 rounded-lg",
-                "w-[95%]",
-                noteType === 'warranty' || activeScanMode === 'series' || activeScanMode === 'both' ? "h-[40%]" : "h-[50%]"
-            )}></div>
+             <div className="absolute border-4 border-dashed border-white/50 rounded-lg w-[80%] h-[20%]"></div>
 
              {hasCameraPermission === false && (
                 <div className="absolute inset-0 flex items-center justify-center p-4">
