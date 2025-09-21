@@ -115,7 +115,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         for (const item of details) {
             const existingSeries = item.fields.series ? item.fields.series.split(',').map((s: string) => s.trim()) : [];
             if (item.fields.series && existingSeries.includes(seriesNumber)) {
-                return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã được quét cho phiếu này.` }, { status: 409 });
+                return NextResponse.json({ success: false, message: `Series đã có trong phiếu xuất, hãy quét series khác` }, { status: 409 });
             }
         }
     }
