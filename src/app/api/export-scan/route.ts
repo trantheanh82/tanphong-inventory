@@ -64,7 +64,7 @@ async function updateNoteStatusIfCompleted(noteId: string, cookieHeader: string 
     }
 }
 
-async function processScan(noteId: string, cookieHeader: string, payload: { imageDataUri?: string; scanMode: ScanMode; dotNumber?: string; seriesNumber?: string }) {
+async function processScan(noteId: string, cookieHeader: string, payload: { imageDataUri?: string; scanMode: 'dot' | 'series' | 'both'; dotNumber?: string; seriesNumber?: string }) {
     const { imageDataUri, scanMode, dotNumber: payloadDot, seriesNumber: payloadSeries } = payload;
     
     let twoDigitDot: string | undefined;
@@ -173,7 +173,8 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         fieldsToUpdate.dot = twoDigitDot;
     }
     
-    message += ` (${newCount}/${details.length})`;
+    const totalItemsInNote = details.length;
+    message += ` (${newCount}/${totalItemsInNote})`;
 
     const updatePayload = {
         records: [{ id: targetItem.id, fields: fieldsToUpdate }],
@@ -212,3 +213,5 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: error.message || 'An internal server error occurred.' }, { status: 500 });
     }
 }
+
+    
