@@ -170,7 +170,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     }
     
     if (twoDigitDot && (scanMode === 'dot' || scanMode === 'both')) {
-        fieldsToUpdate.dot = twoDigitDot;
+        fieldsToUpdate.dot = parseInt(twoDigitDot, 10);
     }
     
     const totalItemsInNote = details.length;
