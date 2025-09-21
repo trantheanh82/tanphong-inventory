@@ -122,23 +122,26 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
 
     // --- Step 3: Find the target item to update ---
     if (scanMode === 'both') {
-         targetItem = details.find((item: any) =>
-            twoDigitDot && String(item.fields.dot) === twoDigitDot &&
-            (item.fields.scanned || 0) < item.fields.quantity
-        );
-        if (targetItem) {
-             message = `Đã ghi nhận DOT ${twoDigitDot} (từ ${fullDotNumber}) và Series ${seriesNumber}.`;
+         // Find the first available item to add a dot and series to
+        targetItem = details.find((item: any) => (item.fields.scanned || 0) < item.fields.quantity);
+        if (targetItem && twoDigitDot && seriesNumber) {
+             message = `Đã ghi nhận DOT ${twoDigitDot} và Series ${seriesNumber}.`;
+        } else if (!targetItem) {
+             // This case is handled later
+        } else {
+            // This case means we have a target item, but didn't get both dot and series from the scan
+            return NextResponse.json({ success: false, message: "Quét thiếu thông tin. Cần cả DOT và Series." }, { status: 400 });
         }
     } else if (scanMode === 'series') {
         // Find the first available item to add a series to
         targetItem = details.find((item: any) => (item.fields.scanned || 0) < item.fields.quantity);
-        if (targetItem) {
+        if (targetItem && seriesNumber) {
             message = `Đã ghi nhận Series ${seriesNumber}.`;
         }
     } else if (scanMode === 'dot') {
         // Find the first available item to add a DOT to
         targetItem = details.find((item: any) => (item.fields.scanned || 0) < item.fields.quantity);
-        if (targetItem) {
+        if (targetItem && twoDigitDot) {
             message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}).`;
         }
     }
