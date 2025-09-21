@@ -100,7 +100,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         twoDigitDot = fullDotNumber.slice(-2);
     }
     
-    if (!twoDigitDot && !seriesNumber) {
+    if (scanMode !== 'both' && !twoDigitDot && !seriesNumber) {
         return NextResponse.json({ success: false, message: "Không nhận dạng được thông tin lốp xe. Vui lòng thử lại." }, { status: 400 });
     }
 
@@ -114,70 +114,52 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     if (seriesNumber) {
         for (const item of details) {
             const existingSeries = item.fields.series ? item.fields.series.split(',').map((s: string) => s.trim()) : [];
-            if (existingSeries.includes(seriesNumber)) {
+            if (item.fields.series && existingSeries.includes(seriesNumber)) {
                 return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã được quét cho phiếu này.` }, { status: 409 });
             }
         }
     }
 
     // --- Step 3: Find the target item to update ---
-    if (scanMode === 'both') {
-         // Find the first available item to add a dot and series to
-        targetItem = details.find((item: any) => (item.fields.scanned || 0) < item.fields.quantity);
-        if (targetItem && twoDigitDot && seriesNumber) {
-             message = `Đã ghi nhận DOT ${twoDigitDot} và Series ${seriesNumber}.`;
-        } else if (!targetItem) {
-             // This case is handled later
-        } else {
-            // This case means we have a target item, but didn't get both dot and series from the scan
-            return NextResponse.json({ success: false, message: "Quét thiếu thông tin. Cần cả DOT và Series." }, { status: 400 });
-        }
-    } else if (scanMode === 'series') {
-        // Find the first available item to add a series to
-        targetItem = details.find((item: any) => (item.fields.scanned || 0) < item.fields.quantity);
-        if (targetItem && seriesNumber) {
-            message = `Đã ghi nhận Series ${seriesNumber}.`;
-        }
-    } else if (scanMode === 'dot') {
-        // Find the first available item to add a DOT to
-        targetItem = details.find((item: any) => (item.fields.scanned || 0) < item.fields.quantity);
-        if (targetItem && twoDigitDot) {
-            message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}).`;
-        }
-    }
-
-
+    targetItem = details.find((item: any) => (item.fields.scanned || 0) < item.fields.quantity);
+    
     if (!targetItem) {
-        let msg = `Không tìm thấy lốp phù hợp hoặc đã quét đủ số lượng.`;
-        if (fullDotNumber && twoDigitDot) msg += ` DOT quét được: ${fullDotNumber} (sử dụng ${twoDigitDot}).`;
-        if (seriesNumber) msg += ` Series quét được: ${seriesNumber}.`;
-        return NextResponse.json({ success: false, message: msg }, { status: 404 });
+        return NextResponse.json({ success: false, message: `Đã quét đủ số lượng cho phiếu này.` }, { status: 404 });
     }
 
-    // --- Step 4: Process the update ---
+    // --- Step 4: Prepare fields for update based on scan mode ---
     const fieldsToUpdate: any = {};
-    const currentScanned = targetItem.fields.scanned || 0;
-    const totalQuantity = targetItem.fields.quantity;
-    const newCount = currentScanned + 1;
-    
+    const newCount = (targetItem.fields.scanned || 0) + 1;
     fieldsToUpdate.scanned = newCount;
-    
-    if (newCount >= totalQuantity) {
+    if (newCount >= targetItem.fields.quantity) {
         fieldsToUpdate.status = 'Đã scan đủ';
     }
-
-    if (seriesNumber && (scanMode === 'series' || scanMode === 'both')) {
-        const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-        const newSeries = [...currentSeries, seriesNumber].join(', ');
-        fieldsToUpdate.series = newSeries;
-    }
     
-    if (twoDigitDot && (scanMode === 'dot' || scanMode === 'both')) {
+    if (scanMode === 'both') {
+        if (!twoDigitDot || !seriesNumber) {
+            return NextResponse.json({ success: false, message: "Quét thiếu thông tin. Cần cả DOT và Series." }, { status: 400 });
+        }
         fieldsToUpdate.dot = parseInt(twoDigitDot, 10);
+        fieldsToUpdate.series = seriesNumber;
+        message = `Đã ghi nhận DOT ${twoDigitDot} và Series ${seriesNumber}.`;
+
+    } else if (scanMode === 'series') {
+        if (!seriesNumber) {
+            return NextResponse.json({ success: false, message: 'Không nhận dạng được Series.' }, { status: 400 });
+        }
+        const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+        fieldsToUpdate.series = [...currentSeries, seriesNumber].join(', ');
+        message = `Đã ghi nhận Series ${seriesNumber}.`;
+
+    } else if (scanMode === 'dot') {
+        if (!twoDigitDot) {
+            return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hợp lệ.' }, { status: 400 });
+        }
+        fieldsToUpdate.dot = parseInt(twoDigitDot, 10);
+        message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}).`;
     }
     
-    const totalItemsInNote = details.length;
-    message += ` (${newCount}/${totalQuantity})`;
+    message += ` (${newCount}/${targetItem.fields.quantity})`;
 
     const updatePayload = {
         records: [{ id: targetItem.id, fields: fieldsToUpdate }],
