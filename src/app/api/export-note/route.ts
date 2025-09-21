@@ -43,15 +43,15 @@ export async function POST(request: NextRequest) {
     const cookieHeader = cookies().toString();
 
     try {
-        const { name, items } = await request.json();
+        const { name, quantity } = await request.json();
 
-        if (!name || !items || !Array.isArray(items) || items.length === 0) {
-            return NextResponse.json({ message: 'Invalid request body.' }, { status: 400 });
+        if (!name || !quantity || quantity < 1) {
+            return NextResponse.json({ message: 'Invalid request body. Name and a positive quantity are required.' }, { status: 400 });
         }
 
         // 1. Create Export Note
         const createNotePayload = {
-            records: [{ fields: { name: name } }],
+            records: [{ fields: { name: name, total_quantity: quantity } }],
             fieldKeyType: "dbFieldName"
         };
         const createNoteUrl = `${API_ENDPOINT}/table/${EXPORT_TBL_ID}/record`;
@@ -64,16 +64,14 @@ export async function POST(request: NextRequest) {
         }
         const exportNoteId = noteRecord.id;
 
-        // 2. Create Export Note Details
-        const detailRecords = items.map((item: any) => ({
+        // 2. Create Export Note Details based on quantity
+        const detailRecords = Array.from({ length: quantity }, () => ({
             fields: {
                 export_note: { id: exportNoteId },
-                dot: parseInt(item.dot, 10),
-                quantity: item.quantity,
-                tire_type: item.tire_type,
-                ...(item.series && { series: item.series })
+                quantity: 1, // Each record represents one tire
             }
         }));
+
 
         const createDetailsPayload = { 
             records: detailRecords,

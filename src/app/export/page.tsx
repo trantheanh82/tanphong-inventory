@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   name: z.string().min(1, { message: "Tên phiếu xuất là bắt buộc." }),
-  quantity: z.coerce.number().int().min(1, { message: "Phải có ít nhất một lốp xe." }),
+  quantity: z.coerce.number().int().min(1, { message: "Số lượng phải lớn hơn 0." }),
 });
 
 export default function ExportPage() {
@@ -39,7 +39,7 @@ export default function ExportPage() {
         },
     });
 
-    const { control, handleSubmit, setValue, watch, getValues } = form;
+    const { control, handleSubmit, setValue, getValues } = form;
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true);
@@ -120,6 +120,7 @@ export default function ExportPage() {
                                                     type="number"
                                                     onChange={(e) => {
                                                         const value = e.target.value;
+                                                        // Allow empty string for clearing, otherwise parse as number
                                                         field.onChange(value === '' ? '' : Number(value));
                                                     }}
                                                     className="bg-white/80 rounded-xl border-gray-300 text-black text-center font-bold text-lg w-24 focus:outline-none focus:ring-2 focus:ring-gray-800"
