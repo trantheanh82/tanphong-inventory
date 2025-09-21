@@ -39,9 +39,7 @@ export default function ExportPage() {
         },
     });
 
-    const { control, handleSubmit, setValue, watch } = form;
-    const quantity = watch('quantity');
-
+    const { control, handleSubmit, setValue, watch, getValues } = form;
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true);
@@ -76,7 +74,7 @@ export default function ExportPage() {
     }
     
     const handleQuantityChange = (amount: number) => {
-        const currentQuantity = quantity || 0;
+        const currentQuantity = getValues('quantity') || 0;
         const newQuantity = Math.max(1, currentQuantity + amount);
         setValue('quantity', newQuantity, { shouldValidate: true });
     };
@@ -120,8 +118,11 @@ export default function ExportPage() {
                                                 <Input 
                                                     {...field}
                                                     type="number"
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+                                                        field.onChange(value === '' ? '' : Number(value));
+                                                    }}
                                                     className="bg-white/80 rounded-xl border-gray-300 text-black text-center font-bold text-lg w-24 focus:outline-none focus:ring-2 focus:ring-gray-800"
-                                                    readOnly
                                                 />
                                                 <Button type="button" size="icon" variant="outline" onClick={() => handleQuantityChange(1)} className="bg-white/80 border-gray-300">
                                                     <PlusCircle className="w-5 h-5 text-gray-800"/>
