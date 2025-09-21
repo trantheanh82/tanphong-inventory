@@ -116,6 +116,13 @@ function ScanningComponent() {
       router.back();
       return;
     }
+    if (noteType === 'export') {
+      setActiveScanMode('none');
+    } else if (noteType === 'import') {
+      setActiveScanMode('dot');
+    } else if (noteType === 'warranty') {
+      setActiveScanMode('series');
+    }
     fetchNoteDetails();
   }, [noteId, noteType, router, toast, fetchNoteDetails]);
   
@@ -171,7 +178,7 @@ function ScanningComponent() {
     const videoWidth = video.videoWidth;
     const videoHeight = video.videoHeight;
     
-    const isSeriesScan = noteType === 'warranty' || noteType === 'export';
+    const isSeriesScan = noteType === 'warranty' || activeScanMode === 'series' || activeScanMode === 'both';
     const overlayWidthPercent = 0.95; 
     const overlayHeightPercent = isSeriesScan ? 0.40 : 0.50;
 
@@ -261,25 +268,32 @@ function ScanningComponent() {
 
   const handleBothModeScan = async (imageDataUri: string) => {
     try {
+      if (scannedDotForBoth && scannedSeriesForBoth) {
+        return; // Already submitted, wait for reset
+      }
+
       const recognizedInfo = await recognizeTireInfo(imageDataUri);
 
-      const foundDot = recognizedInfo?.dotNumber;
-      const foundSeries = recognizedInfo?.seriesNumber;
-      
       let newDot = scannedDotForBoth;
       let newSeries = scannedSeriesForBoth;
 
-      if (foundDot && !newDot) {
-        newDot = foundDot;
+      if (recognizedInfo?.dotNumber && !newDot) {
+        newDot = recognizedInfo.dotNumber;
         setScannedDotForBoth(newDot);
+        toast({ title: 'Thông tin', description: `Đã nhận DOT: ${newDot}. Hãy quét Series.` });
       }
-      if (foundSeries && !newSeries) {
-        newSeries = foundSeries;
+      if (recognizedInfo?.seriesNumber && !newSeries) {
+        newSeries = recognizedInfo.seriesNumber;
         setScannedSeriesForBoth(newSeries);
+        toast({ title: 'Thông tin', description: `Đã nhận Series: ${newSeries}. Hãy quét DOT.` });
+      }
+      
+      if (!recognizedInfo?.dotNumber && !recognizedInfo?.seriesNumber) {
+        toast({ variant: 'destructive', title: 'Không tìm thấy', description: 'Không nhận dạng được DOT hay Series. Vui lòng thử lại.' });
+        return;
       }
 
       if (newDot && newSeries) {
-        // Both are now available, submit
         toast({ title: 'Đã có đủ thông tin', description: `DOT: ${newDot}, Series: ${newSeries}. Đang xử lý...` });
         const response = await fetch('/api/export-scan', {
             method: 'POST',
@@ -297,15 +311,9 @@ function ScanningComponent() {
         // Reset for next scan
         setScannedDotForBoth(null);
         setScannedSeriesForBoth(null);
-        setActiveScanMode('none');
 
-      } else if (newDot) {
-        toast({ title: 'Thông tin', description: `Đã nhận DOT: ${newDot}. Hãy quét Series.` });
-      } else if (newSeries) {
-         toast({ title: 'Thông tin', description: `Đã nhận Series: ${newSeries}. Hãy quét DOT.` });
-      } else {
-        toast({ variant: 'destructive', title: 'Không tìm thấy', description: 'Không nhận dạng được DOT hay Series. Vui lòng thử lại.' });
       }
+
     } catch (aiError) {
         console.error("AI recognition error:", aiError);
         toast({ variant: 'destructive', title: 'Lỗi AI', description: 'AI processing failed. Please try again.' });
@@ -365,7 +373,7 @@ function ScanningComponent() {
       if (activeScanMode === 'both') return 'Quét DOT & Series';
       if (noteType === 'warranty' || activeScanMode === 'series') return 'Quét Series';
       if (noteType === 'import' || activeScanMode === 'dot') return 'Quét DOT';
-      if (noteType === 'export') return 'Quét Lốp Xuất Kho';
+      if (noteType === 'export') return 'Chọn Chế Độ Quét';
       return 'Quét Mã';
   }
 
@@ -379,8 +387,8 @@ function ScanningComponent() {
   };
 
   const renderMainScanButtons = () => {
-    if (activeScanMode !== 'none' || noteType === 'import' || noteType === 'warranty') {
-        const isCaptureDisabled = isSubmitting || hasCameraPermission !== true || activeScanMode === 'none' && noteType === 'export';
+    if (activeScanMode !== 'none') {
+        const isCaptureDisabled = isSubmitting || hasCameraPermission !== true;
         return (
             <div className="flex flex-col items-center gap-4">
                 {activeScanMode === 'both' && (
@@ -400,10 +408,10 @@ function ScanningComponent() {
                     )}
                 </Button>
                 <span className="text-white font-semibold">
-                    {activeScanMode === 'none' && noteType === 'export' ? 'Chọn chế độ' : 'Quét'}
+                    Quét
                 </span>
-                {activeScanMode !== 'none' && (
-                     <Button variant="ghost" size="sm" className='text-white' onClick={() => setActiveScanMode('none')}>Quay lại</Button>
+                {noteType === 'export' && (
+                     <Button variant="ghost" size="sm" className='text-white' onClick={() => setActiveScanMode('none')}>Chọn lại</Button>
                 )}
             </div>
         );
@@ -411,16 +419,16 @@ function ScanningComponent() {
     
     if (noteType === 'export') {
       return (
-        <div className="flex justify-center gap-4">
-          <Button onClick={() => handleModeButtonClick('dot')} className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex-col h-auto p-3">
+        <div className="flex justify-center gap-4 w-full">
+          <Button onClick={() => handleModeButtonClick('dot')} className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex-col h-auto p-3 flex-1">
             <Camera className="w-8 h-8" />
             <span className="text-xs mt-1">Scan DOT</span>
           </Button>
-          <Button onClick={() => handleModeButtonClick('series')} className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex-col h-auto p-3">
+          <Button onClick={() => handleModeButtonClick('series')} className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex-col h-auto p-3 flex-1">
             <ScanText className="w-8 h-8" />
             <span className="text-xs mt-1">Scan Series</span>
           </Button>
-          <Button onClick={() => handleModeButtonClick('both')} className="bg-green-600 hover:bg-green-700 text-white rounded-lg flex-col h-auto p-3">
+          <Button onClick={() => handleModeButtonClick('both')} className="bg-green-600 hover:bg-green-700 text-white rounded-lg flex-col h-auto p-3 flex-1">
             <Combine className="w-8 h-8" />
             <span className="text-xs mt-1">Cả hai</span>
           </Button>
@@ -453,7 +461,7 @@ function ScanningComponent() {
              <div className={cn(
                 "absolute border-4 border-dashed border-white/50 rounded-lg",
                 "w-[95%]",
-                noteType === 'export' || noteType === 'warranty' ? "h-[40%]" : "h-[50%]"
+                noteType === 'warranty' || activeScanMode === 'series' || activeScanMode === 'both' ? "h-[40%]" : "h-[50%]"
             )}></div>
 
              {hasCameraPermission === false && (
@@ -507,7 +515,7 @@ function ScanningComponent() {
                             )}>
                             <div className="flex justify-between items-center">
                                 <p className="font-semibold text-xs text-white">
-                                    {noteType === 'warranty' ? `Series: ${item.series || '...'}` : `DOT: ${item.dot}`}
+                                    {noteType === 'warranty' ? `Series: ${item.series || '...'}` : `DOT: ${item.dot !== undefined ? item.dot : '...'}`}
                                 </p>
                                 <div className="flex items-center gap-2">
                                 <span className={cn(
@@ -520,7 +528,7 @@ function ScanningComponent() {
                                 </div>
                             </div>
                             <Progress value={(item.scanned / item.quantity) * 100} className="h-1 mt-1.5 bg-gray-700" />
-                            {noteType === 'export' && item.tire_type === 'Nước ngoài' && <p className="text-xs text-gray-400 mt-1 truncate">Series: {item.series || '-'}</p>}
+                            {noteType === 'export' && <p className="text-xs text-gray-400 mt-1 truncate">Series: {item.series || '-'}</p>}
                         </div>
                     )) : (
                         <div className="text-center text-gray-400 text-xs py-3">Chưa có dữ liệu...</div>
