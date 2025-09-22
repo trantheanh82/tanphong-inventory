@@ -141,6 +141,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         }
         fieldsToUpdate.dot = parseInt(twoDigitDot, 10);
         fieldsToUpdate.series = seriesNumber;
+        fieldsToUpdate.tire_type = 'Nước ngoài';
         message = `Đã ghi nhận DOT ${twoDigitDot} và Series ${seriesNumber}.`;
 
     } else if (scanMode === 'series') {
@@ -149,6 +150,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         }
         const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
         fieldsToUpdate.series = [...currentSeries, seriesNumber].join(', ');
+        fieldsToUpdate.tire_type = 'Nước ngoài';
         message = `Đã ghi nhận Series ${seriesNumber}.`;
 
     } else if (scanMode === 'dot') {
@@ -156,6 +158,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
             return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hợp lệ.' }, { status: 400 });
         }
         fieldsToUpdate.dot = parseInt(twoDigitDot, 10);
+        fieldsToUpdate.tire_type = 'Nội địa';
         message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}).`;
     }
     
