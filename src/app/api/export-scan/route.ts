@@ -40,7 +40,7 @@ async function fetchNoteDetails(tableId: string, noteId: string, filterField: st
         filterSet: [{ fieldId: filterField, operator: 'is', value: noteId }],
     };
     const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
-    const url = `${API_ENDPOINT}/table/${tableId}/record?filter=${filterQuery}&fieldKeyType=dbFieldName`;
+    const url = `${API_ENDPOINT}/table/${tableId}/record?filter=${filterQuery}&fieldKeyType=dbFieldName&take=1000`;
     return apiRequest(url, 'GET', cookieHeader);
 }
 
@@ -64,8 +64,8 @@ async function updateNoteStatusIfCompleted(noteId: string, cookieHeader: string 
     }
 }
 
-async function processScan(noteId: string, cookieHeader: string, payload: { imageDataUri?: string; scanMode: 'dot' | 'series' | 'both'; dotNumber?: string; seriesNumber?: string }) {
-    const { imageDataUri, scanMode, dotNumber: payloadDot, seriesNumber: payloadSeries } = payload;
+async function processScan(noteId: string, cookieHeader: string, payload: { imageDataUri?: string; scanMode: 'dot' | 'series' | 'both'; dotNumber?: string; seriesNumber?: string, rescanRecordId?: string }) {
+    const { imageDataUri, scanMode, dotNumber: payloadDot, seriesNumber: payloadSeries, rescanRecordId } = payload;
     
     let twoDigitDot: string | undefined;
     let seriesNumber: string | undefined;
@@ -113,6 +113,10 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     // --- Step 2: Check for duplicate series ---
     if (seriesNumber) {
         for (const item of details) {
+            // When rescanning, ignore the record being rescanned from the duplicate check
+            if (rescanRecordId && item.id === rescanRecordId) {
+                continue;
+            }
             const existingSeries = item.fields.series ? item.fields.series.split(',').map((s: string) => s.trim()) : [];
             if (item.fields.series && existingSeries.includes(seriesNumber)) {
                 return NextResponse.json({ success: false, message: `Series đã có trong phiếu xuất, hãy quét series khác` }, { status: 409 });
@@ -121,18 +125,29 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     }
 
     // --- Step 3: Find the target item to update ---
-    targetItem = details.find((item: any) => (item.fields.scanned || 0) < item.fields.quantity);
-    
-    if (!targetItem) {
-        return NextResponse.json({ success: false, message: `Đã quét đủ số lượng cho phiếu này.` }, { status: 404 });
+    if (rescanRecordId) {
+        targetItem = details.find((item: any) => item.id === rescanRecordId);
+        if (!targetItem) {
+            return NextResponse.json({ success: false, message: "Không tìm thấy mục để quét lại." }, { status: 404 });
+        }
+    } else {
+        targetItem = details.find((item: any) => (item.fields.scanned || 0) < item.fields.quantity);
+        if (!targetItem) {
+            return NextResponse.json({ success: false, message: `Đã quét đủ số lượng cho phiếu này.` }, { status: 400 });
+        }
     }
 
     // --- Step 4: Prepare fields for update based on scan mode ---
     const fieldsToUpdate: any = {};
-    const newCount = (targetItem.fields.scanned || 0) + 1;
-    fieldsToUpdate.scanned = newCount;
-    if (newCount >= targetItem.fields.quantity) {
-        fieldsToUpdate.status = 'Đã scan đủ';
+    const isRescan = !!rescanRecordId;
+    const newCount = isRescan ? (targetItem.fields.scanned || 1) : (targetItem.fields.scanned || 0) + 1;
+
+    // Only update scanned count if it's a new scan, not a rescan
+    if (!isRescan) {
+        fieldsToUpdate.scanned = newCount;
+        if (newCount >= targetItem.fields.quantity) {
+            fieldsToUpdate.status = 'Đã scan đủ';
+        }
     }
     
     if (scanMode === 'both') {
@@ -142,16 +157,16 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         fieldsToUpdate.dot = parseInt(twoDigitDot, 10);
         fieldsToUpdate.series = seriesNumber;
         fieldsToUpdate.tire_type = 'Nước ngoài';
-        message = `Đã ghi nhận DOT ${twoDigitDot} và Series ${seriesNumber}.`;
+        message = isRescan ? `Đã cập nhật DOT ${twoDigitDot} và Series ${seriesNumber}.` : `Đã ghi nhận DOT ${twoDigitDot} và Series ${seriesNumber}.`;
 
     } else if (scanMode === 'series') {
         if (!seriesNumber) {
             return NextResponse.json({ success: false, message: 'Không nhận dạng được Series.' }, { status: 400 });
         }
-        const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-        fieldsToUpdate.series = [...currentSeries, seriesNumber].join(', ');
+        const currentSeries = targetItem.fields.series && !isRescan ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+        fieldsToUpdate.series = isRescan ? seriesNumber : [...currentSeries, seriesNumber].join(', ');
         fieldsToUpdate.tire_type = 'Nước ngoài';
-        message = `Đã ghi nhận Series ${seriesNumber}.`;
+        message = isRescan ? `Đã cập nhật Series ${seriesNumber}.` : `Đã ghi nhận Series ${seriesNumber}.`;
 
     } else if (scanMode === 'dot') {
         if (!twoDigitDot) {
@@ -159,17 +174,23 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         }
         fieldsToUpdate.dot = parseInt(twoDigitDot, 10);
         fieldsToUpdate.tire_type = 'Nội địa';
-        message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}).`;
+        message = isRescan ? `Đã cập nhật DOT ${twoDigitDot} (từ lốp ${fullDotNumber}).` : `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}).`;
     }
     
-    message += ` (${newCount}/${targetItem.fields.quantity})`;
+    if (!isRescan) {
+        message += ` (${newCount}/${targetItem.fields.quantity})`;
+    }
+
 
     const updatePayload = {
         records: [{ id: targetItem.id, fields: fieldsToUpdate }],
         fieldKeyType: "dbFieldName"
     };
     await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
-    await updateNoteStatusIfCompleted(noteId, cookieHeader);
+    
+    if (!isRescan) {
+        await updateNoteStatusIfCompleted(noteId, cookieHeader);
+    }
     
     return NextResponse.json({
         success: true, message, 

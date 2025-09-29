@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useEffect, useState, useRef, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Camera, CheckCircle, LoaderCircle, Scan, Zap, ZapOff, Send, ScanText, Combine, AlertTriangle, X } from 'lucide-react';
+import { ArrowLeft, Camera, CheckCircle, LoaderCircle, Scan, Zap, ZapOff, Send, ScanText, Combine, AlertTriangle, X, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useScanningStore, ScanItem } from '@/store/scanning-store';
@@ -44,6 +45,7 @@ function ScanningComponent() {
   const [activeScanMode, setActiveScanMode] = useState<ActiveScanMode>('none');
   const [scannedDotForBoth, setScannedDotForBoth] = useState<string | null>(null);
   const [scannedSeriesForBoth, setScannedSeriesForBoth] = useState<string | null>(null);
+  const [rescanningItemId, setRescanningItemId] = useState<string | null>(null);
 
   const noteId = searchParams.get('noteId');
   const noteType = searchParams.get('type') as 'import' | 'export' | 'warranty';
@@ -202,6 +204,8 @@ function ScanningComponent() {
             description: result.message,
             className: result.warning ? "bg-yellow-100 border-yellow-500 text-yellow-800" : "bg-green-100 border-green-500 text-green-800"
         });
+        
+        if (rescanningItemId) setRescanningItemId(null); // Exit rescan mode
 
         await fetchNoteDetails();
 
@@ -246,7 +250,7 @@ function ScanningComponent() {
 
     if (noteType === 'export') {
       endpoint = '/api/export-scan';
-      body = { noteId, imageDataUri, scanMode };
+      body = { noteId, imageDataUri, scanMode, rescanRecordId: rescanningItemId };
     } else if (noteType === 'warranty') {
       await handleWarrantyScan({ imageDataUri });
       return;
@@ -302,6 +306,7 @@ function ScanningComponent() {
                 scanMode: 'both',
                 dotNumber: newDot,
                 seriesNumber: newSeries,
+                rescanRecordId: rescanningItemId
             }),
         });
         const result = await response.json();
@@ -310,7 +315,6 @@ function ScanningComponent() {
         // Reset for next scan
         setScannedDotForBoth(null);
         setScannedSeriesForBoth(null);
-
       }
 
     } catch (aiError) {
@@ -363,12 +367,35 @@ function ScanningComponent() {
         const result = await response.json();
         await handleScanResponse(result);
         setManualInputValue("");
+    } else if (noteType === 'export') {
+        const response = await fetch('/api/export-scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                noteId,
+                scanMode: activeScanMode,
+                seriesNumber: manualInputValue,
+                rescanRecordId: rescanningItemId
+            }),
+        });
+        const result = await response.json();
+        await handleScanResponse(result);
+        setManualInputValue("");
     }
     
     setIsSubmitting(false);
   };
+  
+  const handleRescanClick = (itemId: string) => {
+    setRescanningItemId(itemId);
+    toast({
+        title: "Chế độ quét lại",
+        description: "Vui lòng quét series mới cho mục đã chọn."
+    });
+  };
 
   const getPageTitle = () => {
+      if (rescanningItemId) return 'Quét lại Series';
       if (activeScanMode === 'both') return 'Quét DOT & Series';
       if (noteType === 'warranty' || activeScanMode === 'series') return 'Quét Series';
       if (noteType === 'import' || activeScanMode === 'dot') return 'Quét DOT';
@@ -407,10 +434,13 @@ function ScanningComponent() {
                     )}
                 </Button>
                 <span className="text-white font-semibold">
-                    Quét
+                    {rescanningItemId ? 'Quét lại' : 'Quét'}
                 </span>
-                {noteType === 'export' && (
+                {noteType === 'export' && !rescanningItemId && (
                      <Button variant="ghost" size="sm" className='text-white' onClick={() => setActiveScanMode('none')}>Chọn lại</Button>
+                )}
+                {rescanningItemId && (
+                    <Button variant="ghost" size="sm" className="text-yellow-400" onClick={() => setRescanningItemId(null)}>Hủy quét lại</Button>
                 )}
             </div>
         );
@@ -477,10 +507,10 @@ function ScanningComponent() {
         </div>
 
         <div className='p-4 space-y-4'>
-            {(noteType === 'warranty' || noteType === 'import') && (
+            {(noteType === 'warranty' || noteType === 'import' || (noteType === 'export' && (activeScanMode === 'series' || activeScanMode === 'both'))) && (
                 <form onSubmit={handleManualSubmit} className="flex gap-2">
                     <Input 
-                        placeholder={noteType === 'warranty' ? 'Hoặc nhập tay số series...' : 'Hoặc nhập tay DOT (2 số)...'}
+                        placeholder={noteType === 'warranty' ? 'Hoặc nhập tay số series...' : noteType === 'import' ? 'Hoặc nhập tay DOT (2 số)...' : 'Hoặc nhập series...'}
                         value={manualInputValue}
                         onChange={(e) => setManualInputValue(e.target.value.toUpperCase())}
                         className='bg-white/20 text-white placeholder:text-gray-300 border-white/30'
@@ -489,6 +519,16 @@ function ScanningComponent() {
                         <Send className='w-5 h-5'/>
                     </Button>
                 </form>
+            )}
+            
+            {rescanningItemId && (
+                <Alert variant="default" className="bg-yellow-500/10 border-yellow-500/30 text-yellow-300">
+                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                    <AlertTitle>Chế độ quét lại</AlertTitle>
+                    <AlertDescription>
+                        Quét series mới để cập nhật cho mục đã chọn.
+                    </AlertDescription>
+                </Alert>
             )}
 
             <Card className="bg-white/10 backdrop-blur-sm shadow-lg rounded-xl border border-white/20">
@@ -506,24 +546,31 @@ function ScanningComponent() {
                     {items.length > 0 ? items.map(item => (
                         <div key={item.id} className={cn(
                             "p-2 rounded-lg border transition-all",
+                            rescanningItemId === item.id ? "bg-yellow-500/20 border-yellow-500" :
                             item.scanned >= item.quantity ? "bg-green-500/10 border-green-500/30" : "bg-gray-700/20 border-gray-600/50",
                             )}>
                             <div className="flex justify-between items-center">
-                                <p className="font-semibold text-xs text-white">
+                                <div className='flex-1 min-w-0'>
+                                <p className="font-semibold text-xs text-white truncate">
                                     {noteType === 'warranty' ? `Series: ${item.series || '...'}` : `DOT: ${item.dot !== undefined ? item.dot : '...'}`}
                                 </p>
-                                <div className="flex items-center gap-2">
-                                <span className={cn(
-                                    "font-bold text-sm",
-                                    item.scanned >= item.quantity ? 'text-green-400' : 'text-yellow-400'
-                                    )}>
-                                    {item.scanned}/{item.quantity}
-                                </span>
-                                {item.scanned >= item.quantity && <CheckCircle className="w-3 h-3 text-green-400" />}
+                                { (noteType === 'export' || noteType === 'warranty') && <p className="text-xs text-gray-400 mt-1 truncate">Series: {item.series || '-'}</p>}
+                                </div>
+                                <div className="flex items-center gap-2 pl-2">
+                                    {noteType === 'export' && (item.scanned > 0 || item.series) && activeScanMode === 'series' && (
+                                        <Button size="icon" variant="ghost" className="h-6 w-6 text-yellow-400" onClick={() => handleRescanClick(item.id)}>
+                                            <RefreshCw className="w-4 h-4"/>
+                                        </Button>
+                                    )}
+                                    <span className={cn(
+                                        "font-bold text-sm",
+                                        item.scanned >= item.quantity ? 'text-green-400' : 'text-yellow-400'
+                                        )}>
+                                        {item.scanned}/{item.quantity}
+                                    </span>
+                                    {item.scanned >= item.quantity && <CheckCircle className="w-3 h-3 text-green-400" />}
                                 </div>
                             </div>
-                            <Progress value={(item.scanned / item.quantity) * 100} className="h-1 mt-1.5 bg-gray-700" />
-                            {noteType === 'export' && <p className="text-xs text-gray-400 mt-1 truncate">Series: {item.series || '-'}</p>}
                         </div>
                     )) : (
                         <div className="text-center text-gray-400 text-xs py-3">Chưa có dữ liệu...</div>
