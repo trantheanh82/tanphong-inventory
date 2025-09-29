@@ -18,7 +18,8 @@ async function fetchNoteDetails(tableId: string, noteId: string, filterField: st
 
     const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
     const orderByQuery = encodeURIComponent(JSON.stringify([{ fieldId: 'createdAt', order: 'desc' }]));
-    const url = `${API_ENDPOINT}/table/${tableId}/record?filter=${filterQuery}&orderBy=${orderByQuery}&fieldKeyType=dbFieldName`;
+    const take = 1000;
+    const url = `${API_ENDPOINT}/table/${tableId}/record?filter=${filterQuery}&orderBy=${orderByQuery}&fieldKeyType=dbFieldName&take=${take}`;
 
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (cookieHeader) {
