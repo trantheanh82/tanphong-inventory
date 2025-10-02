@@ -22,17 +22,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 
 const dotTireSchema = z.object({
-  dot: z.string().min(2, "DOT must be at least 2 digits").max(4, "DOT can be at most 4 digits"),
-  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),
+  dot: z.string().min(2, "DOT phải có ít nhất 2 chữ số").max(4, "DOT có thể có tối đa 4 chữ số"),
+  quantity: z.coerce.number().int().positive("Số lượng phải là một số nguyên dương."),
 });
 
 const seriesTireSchema = z.object({
-  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),
+  quantity: z.coerce.number().int().positive("Số lượng phải là một số nguyên dương."),
 });
 
 const dotSeriesTireSchema = z.object({
-  dot: z.string().min(2, "DOT must be at least 2 digits").max(4, "DOT can be at most 4 digits"),
-  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),
+  dot: z.string().min(2, "DOT phải có ít nhất 2 chữ số").max(4, "DOT có thể có tối đa 4 chữ số"),
+  quantity: z.coerce.number().int().positive("Số lượng phải là một số nguyên dương."),
 });
 
 const formSchema = z.object({
@@ -195,7 +195,7 @@ export default function ExportPage() {
                                             className="text-[#333] hover:bg-transparent hover:text-[#333]"
                                         >
                                             <PlusCircle className="mr-2 h-4 w-4 text-[#333]" />
-                                            Thêm
+                                            <span className="text-[#333]">Thêm</span>
                                         </Button>
                                     </div>
                                 </div>
@@ -226,7 +226,7 @@ export default function ExportPage() {
                                             className="text-[#333] hover:bg-transparent hover:text-[#333]"
                                         >
                                             <PlusCircle className="mr-2 h-4 w-4 text-[#333]" />
-                                            Thêm
+                                            <span className="text-[#333]">Thêm</span>
                                         </Button>
                                     </div>
                                 </div>
@@ -262,7 +262,7 @@ export default function ExportPage() {
                                             className="text-[#333] hover:bg-transparent hover:text-[#333]"
                                         >
                                             <PlusCircle className="mr-2 h-4 w-4 text-[#333]" />
-                                            Thêm
+                                            <span className="text-[#333]">Thêm</span>
                                         </Button>
                                     </div>
                                 </div>
@@ -286,3 +286,5 @@ export default function ExportPage() {
         </div>
     );
 }
+
+    
