@@ -148,7 +148,7 @@ export default function ExportPage() {
                                                 name={`tires.${index}.dot`}
                                                 render={({ field }) => (
                                                     <FormItem className="flex-1">
-                                                        <FormLabel className="text-gray-800">DOT</FormLabel>
+                                                        <FormLabel className="text-gray-800">Lốp DOT</FormLabel>
                                                         <FormControl>
                                                             <Input placeholder="VD: 2423" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black"/>
                                                         </FormControl>
@@ -206,3 +206,5 @@ export default function ExportPage() {
         </div>
     );
 }
+
+    
