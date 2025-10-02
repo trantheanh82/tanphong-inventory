@@ -22,7 +22,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 
 const dotTireSchema = z.object({
-  dot: z.string().min(2, "DOT phải có ít nhất 2 chữ số").max(4, "DOT có thể có tối đa 4 chữ số"),
+  dot: z.string().min(1, "DOT là bắt buộc.").max(2, "DOT chỉ có 2 chữ số.").regex(/^\d{1,2}$/, "DOT chỉ được chứa số."),
   quantity: z.coerce.number().int().positive("Số lượng phải là một số nguyên dương."),
 });
 
@@ -31,7 +31,7 @@ const seriesTireSchema = z.object({
 });
 
 const dotSeriesTireSchema = z.object({
-  dot: z.string().min(2, "DOT phải có ít nhất 2 chữ số").max(4, "DOT có thể có tối đa 4 chữ số"),
+  dot: z.string().min(1, "DOT là bắt buộc.").max(2, "DOT chỉ có 2 chữ số.").regex(/^\d{1,2}$/, "DOT chỉ được chứa số."),
   quantity: z.coerce.number().int().positive("Số lượng phải là một số nguyên dương."),
 });
 
@@ -176,7 +176,7 @@ export default function ExportPage() {
                                                 <FormField
                                                     control={form.control}
                                                     name={`dotTires.${index}.dot`}
-                                                    render={({ field }) => <FormItem className="flex-1"><FormLabel className="text-[#333]">DOT</FormLabel><FormControl><Input placeholder="VD: 2423" {...field} className="text-black bg-white/80" /></FormControl><FormMessage /></FormItem>}
+                                                    render={({ field }) => <FormItem className="flex-1"><FormLabel className="text-[#333]">DOT (2 số cuối)</FormLabel><FormControl><Input placeholder="VD: 23" {...field} className="text-black bg-white/80" /></FormControl><FormMessage /></FormItem>}
                                                 />
                                                 <FormField
                                                     control={form.control}
@@ -243,7 +243,7 @@ export default function ExportPage() {
                                                 <FormField
                                                     control={form.control}
                                                     name={`dotSeriesTires.${index}.dot`}
-                                                    render={({ field }) => <FormItem className="flex-1"><FormLabel className="text-[#333]">DOT</FormLabel><FormControl><Input placeholder="VD: 2423" {...field} className="text-black bg-white/80" /></FormControl><FormMessage /></FormItem>}
+                                                    render={({ field }) => <FormItem className="flex-1"><FormLabel className="text-[#333]">DOT (2 số cuối)</FormLabel><FormControl><Input placeholder="VD: 23" {...field} className="text-black bg-white/80" /></FormControl><FormMessage /></FormItem>}
                                                 />
                                                 <FormField
                                                     control={form.control}
@@ -287,5 +287,3 @@ export default function ExportPage() {
         </div>
     );
 }
-
-    
