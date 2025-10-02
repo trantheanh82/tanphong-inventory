@@ -43,7 +43,7 @@ const formSchema = z.object({
   dotSeriesTires: z.array(dotSeriesTireSchema),
 }).refine(data => data.dotTires.length > 0 || data.seriesTires.length > 0 || data.dotSeriesTires.length > 0, {
     message: "Bạn phải thêm ít nhất một loại lốp xe.",
-    path: ["dotTires"], // Assign error to a field so it can be displayed
+    path: ["dotTires"], 
 });
 
 
@@ -82,20 +82,11 @@ export default function ExportPage() {
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true);
-        // This will need to be updated to handle the complex payload.
-        // For now, we can aggregate quantity for the existing API.
         try {
-            console.log("Form values:", values);
-            const totalDotQuantity = values.dotTires.reduce((sum, tire) => sum + tire.quantity, 0);
-            const totalSeriesQuantity = values.seriesTires.reduce((sum, tire) => sum + tire.quantity, 0);
-            const totalDotSeriesQuantity = values.dotSeriesTires.reduce((sum, tire) => sum + tire.quantity, 0);
-            const totalQuantity = totalDotQuantity + totalSeriesQuantity + totalDotSeriesQuantity;
-
-            // This API call needs to be replaced with one that can handle the complex form data
             const response = await fetch('/api/export-note', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: values.name, quantity: totalQuantity, customer: values.customer }), // Simplified payload
+                body: JSON.stringify(values),
             });
 
             const result = await response.json();
