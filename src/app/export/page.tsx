@@ -174,7 +174,6 @@ export default function ExportPage() {
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => appendDot({ dot: "", quantity: 1 })}
-                                            className="text-[#333] hover:bg-gray-100"
                                         >
                                             <PlusCircle className="mr-2 h-4 w-4" />
                                             Thêm
@@ -208,7 +207,6 @@ export default function ExportPage() {
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => appendSeries({ quantity: 1 })}
-                                            className="text-[#333] hover:bg-gray-100"
                                         >
                                             <PlusCircle className="mr-2 h-4 w-4" />
                                             Thêm
@@ -237,7 +235,6 @@ export default function ExportPage() {
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => appendDotSeries({ dot: "", quantity: 1 })}
-                                            className="text-[#333] hover:bg-gray-100"
                                         >
                                             <PlusCircle className="mr-2 h-4 w-4" />
                                             Thêm
@@ -280,5 +277,6 @@ export default function ExportPage() {
             </Card>
         </div>
     );
+}
 
     
