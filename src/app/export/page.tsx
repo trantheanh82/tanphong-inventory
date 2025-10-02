@@ -61,6 +61,7 @@ export default function ExportPage() {
             seriesTires: [],
             dotSeriesTires: [],
         },
+        mode: "onChange",
     });
 
     const { fields: dotFields, append: appendDot, remove: removeDot } = useFieldArray({
@@ -273,7 +274,7 @@ export default function ExportPage() {
                                 <Button 
                                     type="submit" 
                                     disabled={isSubmitting || !form.formState.isValid}
-                                    className="bg-gray-800 hover:bg-gray-900 text-white hover:text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center space-x-2 shadow-md disabled:bg-gray-600"
+                                    className="bg-gray-800 hover:bg-gray-900 text-white hover:text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center space-x-2 shadow-md disabled:bg-gray-600 disabled:opacity-50"
                                 >
                                     <ScanLine className="w-5 h-5" />
                                     <span>{isSubmitting ? 'Đang tạo...' : 'Tạo và Quét'}</span>
@@ -286,5 +287,3 @@ export default function ExportPage() {
         </div>
     );
 }
-
-    
