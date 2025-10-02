@@ -22,7 +22,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 
-const tireItemSchema = z.object({
+const dotTireSchema = z.object({
+  dot: z.string().min(2, "DOT must be at least 2 digits").max(4, "DOT can be at most 4 digits"),
+  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),
+});
+
+const seriesTireSchema = z.object({
+  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),
+});
+
+const dotSeriesTireSchema = z.object({
   dot: z.string().min(2, "DOT must be at least 2 digits").max(4, "DOT can be at most 4 digits"),
   quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),
 });
@@ -30,8 +39,14 @@ const tireItemSchema = z.object({
 const formSchema = z.object({
   name: z.string().min(1, { message: "Tên phiếu xuất là bắt buộc." }),
   customer: z.string().optional(),
-  tires: z.array(tireItemSchema).min(1, "You must add at least one tire."),
+  dotTires: z.array(dotTireSchema),
+  seriesTires: z.array(seriesTireSchema),
+  dotSeriesTires: z.array(dotSeriesTireSchema),
+}).refine(data => data.dotTires.length > 0 || data.seriesTires.length > 0 || data.dotSeriesTires.length > 0, {
+    message: "Bạn phải thêm ít nhất một loại lốp xe.",
+    path: ["dotTires"], // Assign error to a field so it can be displayed
 });
+
 
 export default function ExportPage() {
     const { toast } = useToast();
@@ -43,36 +58,44 @@ export default function ExportPage() {
         defaultValues: {
             name: "",
             customer: "",
-            tires: [],
+            dotTires: [],
+            seriesTires: [],
+            dotSeriesTires: [],
         },
     });
 
-    const { fields, append, remove } = useFieldArray({
+    const { fields: dotFields, append: appendDot, remove: removeDot } = useFieldArray({
       control: form.control,
-      name: "tires",
+      name: "dotTires",
+    });
+    
+    const { fields: seriesFields, append: appendSeries, remove: removeSeries } = useFieldArray({
+      control: form.control,
+      name: "seriesTires",
     });
 
-    const { control, handleSubmit } = form;
+    const { fields: dotSeriesFields, append: appendDotSeries, remove: removeDotSeries } = useFieldArray({
+      control: form.control,
+      name: "dotSeriesTires",
+    });
+
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true);
-        // This is a placeholder for the actual submission logic.
-        // The API endpoint and payload will need to be updated to handle the new form structure.
+        // This will need to be updated to handle the complex payload.
+        // For now, we can aggregate quantity for the existing API.
         try {
-            // NOTE: The API endpoint /api/export-note currently expects a single `name` and `quantity`.
-            // It will need to be updated to handle a customer and an array of tires.
-            console.log("Form values to be submitted:", values);
-            
-            // Simulating API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            const totalQuantity = values.tires.reduce((sum, tire) => sum + tire.quantity, 0);
+            console.log("Form values:", values);
+            const totalDotQuantity = values.dotTires.reduce((sum, tire) => sum + tire.quantity, 0);
+            const totalSeriesQuantity = values.seriesTires.reduce((sum, tire) => sum + tire.quantity, 0);
+            const totalDotSeriesQuantity = values.dotSeriesTires.reduce((sum, tire) => sum + tire.quantity, 0);
+            const totalQuantity = totalDotQuantity + totalSeriesQuantity + totalDotSeriesQuantity;
 
-            // Mock response for now
+            // This API call needs to be replaced with one that can handle the complex form data
             const response = await fetch('/api/export-note', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: values.name, quantity: totalQuantity }),
+                body: JSON.stringify({ name: values.name, quantity: totalQuantity, customer: values.customer }), // Simplified payload
             });
 
             const result = await response.json();
@@ -107,13 +130,13 @@ export default function ExportPage() {
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
-                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                             <FormField
-                                control={control}
+                                control={form.control}
                                 name="name"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-gray-800 font-semibold">Tên phiếu xuất</FormLabel>
+                                        <FormLabel className="text-[#333] font-semibold">Tên phiếu xuất</FormLabel>
                                         <FormControl>
                                             <Input placeholder="VD: Xuất hàng cho khách B" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800" />
                                         </FormControl>
@@ -123,11 +146,11 @@ export default function ExportPage() {
                             />
 
                              <FormField
-                                control={control}
+                                control={form.control}
                                 name="customer"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-gray-800 font-semibold">Khách hàng</FormLabel>
+                                        <FormLabel className="text-[#333] font-semibold">Khách hàng</FormLabel>
                                         <FormControl>
                                             <Input placeholder="Nhập tên khách hàng" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800" />
                                         </FormControl>
@@ -135,56 +158,108 @@ export default function ExportPage() {
                                     </FormItem>
                                 )}
                             />
+                            
+                            <div className="space-y-4">
+                                <FormLabel className="text-[#333] font-semibold">Thông tin lốp xe</FormLabel>
+                                {form.formState.errors.dotTires && (
+                                    <p className="text-sm font-medium text-destructive">{form.formState.errors.dotTires.message}</p>
+                                )}
 
-                            <Separator className="my-4" />
+                                {/* DOT Section */}
+                                <div className="border-t border-gray-300 pt-4">
+                                    <div className="flex items-center justify-between">
+                                        <FormLabel className="text-[#333] font-medium">DOT</FormLabel>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => appendDot({ dot: "", quantity: 1 })}
+                                            className="text-[#333] hover:bg-gray-100"
+                                        >
+                                            <PlusCircle className="mr-2 h-4 w-4" />
+                                            Thêm DOT
+                                        </Button>
+                                    </div>
+                                    <div className="space-y-3 mt-2">
+                                        {dotFields.map((field, index) => (
+                                            <div key={field.id} className="flex items-end gap-2 border-b border-dotted border-gray-400 pb-3">
+                                                <FormField
+                                                    control={form.control}
+                                                    name={`dotTires.${index}.dot`}
+                                                    render={({ field }) => <FormItem className="flex-1"><FormControl><Input placeholder="VD: 2423" {...field} className="text-black bg-white/80" /></FormControl><FormMessage /></FormItem>}
+                                                />
+                                                <FormField
+                                                    control={form.control}
+                                                    name={`dotTires.${index}.quantity`}
+                                                    render={({ field }) => <FormItem className="w-24"><FormControl><Input type="number" placeholder="SL" {...field} className="text-black bg-white/80" /></FormControl><FormMessage /></FormItem>}
+                                                />
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeDot(index)}><XCircle className="w-5 h-5 text-red-500" /></Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
 
-                            <div>
-                                <FormLabel className="text-gray-800 font-semibold">Thông tin lốp xe</FormLabel>
-                                <div className="space-y-4 mt-2">
-                                     {fields.map((field, index) => (
-                                        <div key={field.id} className="flex items-end gap-4 p-4 border rounded-lg bg-white/60">
-                                            <FormField
-                                                control={control}
-                                                name={`tires.${index}.dot`}
-                                                render={({ field }) => (
-                                                    <FormItem className="flex-1">
-                                                        <FormLabel className="text-gray-800">Lốp DOT</FormLabel>
-                                                        <FormControl>
-                                                            <Input placeholder="VD: 2423" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black"/>
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <FormField
-                                                control={control}
-                                                name={`tires.${index}.quantity`}
-                                                render={({ field }) => (
-                                                    <FormItem  className="w-24">
-                                                        <FormLabel className="text-gray-800">Số lượng</FormLabel>
-                                                        <FormControl>
-                                                            <Input type="number" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black"/>
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                                                <XCircle className="w-5 h-5 text-red-500" />
-                                            </Button>
-                                        </div>
-                                    ))}
-                                    
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => append({ dot: "", quantity: 1 })}
-                                        className="bg-white/80 border-gray-300 text-gray-800"
-                                    >
-                                        <PlusCircle className="mr-2 h-4 w-4" />
-                                        Thêm DOT
-                                    </Button>
-                                    <FormMessage>{form.formState.errors.tires?.message}</FormMessage>
+                                {/* Series Section */}
+                                <div className="border-t border-gray-300 pt-4">
+                                    <div className="flex items-center justify-between">
+                                        <FormLabel className="text-[#333] font-medium">Series</FormLabel>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => appendSeries({ quantity: 1 })}
+                                            className="text-[#333] hover:bg-gray-100"
+                                        >
+                                            <PlusCircle className="mr-2 h-4 w-4" />
+                                            Thêm Series
+                                        </Button>
+                                    </div>
+                                     <div className="space-y-3 mt-2">
+                                        {seriesFields.map((field, index) => (
+                                            <div key={field.id} className="flex items-end gap-2 border-b border-dotted border-gray-400 pb-3">
+                                                <FormField
+                                                    control={form.control}
+                                                    name={`seriesTires.${index}.quantity`}
+                                                    render={({ field }) => <FormItem className="flex-1"><FormControl><Input type="number" placeholder="Số lượng" {...field} className="text-black bg-white/80" /></FormControl><FormMessage /></FormItem>}
+                                                />
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeSeries(index)}><XCircle className="w-5 h-5 text-red-500" /></Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* DOT & Series Section */}
+                                <div className="border-t border-gray-300 pt-4">
+                                    <div className="flex items-center justify-between">
+                                        <FormLabel className="text-[#333] font-medium">DOT &amp; Series</FormLabel>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => appendDotSeries({ dot: "", quantity: 1 })}
+                                            className="text-[#333] hover:bg-gray-100"
+                                        >
+                                            <PlusCircle className="mr-2 h-4 w-4" />
+                                            Thêm DOT & Series
+                                        </Button>
+                                    </div>
+                                    <div className="space-y-3 mt-2">
+                                        {dotSeriesFields.map((field, index) => (
+                                            <div key={field.id} className="flex items-end gap-2 border-b border-dotted border-gray-400 pb-3">
+                                                <FormField
+                                                    control={form.control}
+                                                    name={`dotSeriesTires.${index}.dot`}
+                                                    render={({ field }) => <FormItem className="flex-1"><FormControl><Input placeholder="VD: 2423" {...field} className="text-black bg-white/80" /></FormControl><FormMessage /></FormItem>}
+                                                />
+                                                <FormField
+                                                    control={form.control}
+                                                    name={`dotSeriesTires.${index}.quantity`}
+                                                    render={({ field }) => <FormItem className="w-24"><FormControl><Input type="number" placeholder="SL" {...field} className="text-black bg-white/80" /></FormControl><FormMessage /></FormItem>}
+                                                />
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeDotSeries(index)}><XCircle className="w-5 h-5 text-red-500" /></Button>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
 
@@ -205,6 +280,5 @@ export default function ExportPage() {
             </Card>
         </div>
     );
-}
 
     
