@@ -7,6 +7,7 @@ export interface ScanItem {
   quantity: number;
   scanned: number;
   tire_type?: 'Nội địa' | 'Nước ngoài';
+  has_dot?: boolean;
 }
 
 interface ScanningState {

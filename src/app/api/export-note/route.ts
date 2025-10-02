@@ -121,7 +121,8 @@ export async function POST(request: NextRequest) {
                         export_note: { id: exportNoteId },
                         dot: parseInt(tire.dot!, 10),
                         quantity: 1,
-                        tire_type: 'Nước ngoài'
+                        tire_type: 'Nước ngoài',
+                        has_dot: true,
                     }
                 });
             }

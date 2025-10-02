@@ -161,7 +161,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
            case 'series':
                 targetItem = details.find((item: any) => 
                     item.fields.tire_type === 'Nước ngoài' &&
-                    (item.fields.dot === undefined || item.fields.dot === null) && // This is a series-only item
+                    !item.fields.has_dot &&
                     (item.fields.scanned || 0) < item.fields.quantity
                 );
                  if (!targetItem) return NextResponse.json({ success: false, message: `Đã quét đủ số lượng cho lốp chỉ có Series.` }, { status: 404 });
@@ -173,8 +173,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
 
                 // In 'both' mode, we now require both DOT and Series to find a match.
                 targetItem = details.find((item: any) => 
-                    item.fields.tire_type === 'Nước ngoài' &&
-                    (item.fields.dot !== undefined && item.fields.dot !== null) &&
+                    item.fields.has_dot &&
                     String(item.fields.dot) === twoDigitDot &&
                     (item.fields.scanned || 0) < item.fields.quantity
                 );
@@ -271,5 +270,3 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: error.message || 'An internal server error occurred.' }, { status: 500 });
     }
 }
-
-    

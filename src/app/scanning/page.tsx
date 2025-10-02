@@ -98,7 +98,7 @@ function ScanningComponent() {
       const scanItems: ScanItem[] = data.map((item: any) => ({
         id: item.id, dot: item.fields.dot, series: item.fields.series,
         quantity: item.fields.quantity || 1, scanned: item.fields.scanned || 0,
-        tire_type: item.fields.tire_type
+        tire_type: item.fields.tire_type, has_dot: item.fields.has_dot
       }));
       setItems(scanItems);
     } catch (error) {
@@ -127,14 +127,12 @@ function ScanningComponent() {
     const modes = new Set<ActiveScanMode>();
     items.forEach(item => {
         if ((item.scanned || 0) < item.quantity) {
-            if (item.tire_type === 'Nội địa') {
+            if (item.has_dot) {
+                modes.add('both');
+            } else if (item.tire_type === 'Nội địa') {
                 modes.add('dot');
             } else if (item.tire_type === 'Nước ngoài') {
-                if (item.dot !== undefined && item.dot !== null) {
-                    modes.add('both');
-                } else {
-                    modes.add('series');
-                }
+                modes.add('series');
             }
         }
     });
@@ -314,7 +312,7 @@ function ScanningComponent() {
           if (scanStep === 'dot' && result.fullDotNumber) {
               const twoDigitDot = result.fullDotNumber.slice(-2);
               const isValidDot = items.some(item => 
-                item.tire_type === 'Nước ngoài' && 
+                item.has_dot && 
                 String(item.dot) === twoDigitDot && 
                 (item.scanned || 0) < item.quantity
               );
@@ -376,7 +374,7 @@ function ScanningComponent() {
             }
              const twoDigitDot = dotValue.slice(-2);
              const isValidDot = items.some(item => 
-                item.tire_type === 'Nước ngoài' && 
+                item.has_dot && 
                 String(item.dot) === twoDigitDot && 
                 (item.scanned || 0) < item.quantity
               );
@@ -626,15 +624,15 @@ function ScanningComponent() {
                             <div className="flex justify-between items-center">
                                 <div className='flex-1 min-w-0'>
                                 <p className="font-semibold text-xs text-white truncate">
-                                    {item.tire_type === 'Nội địa' ? `DOT: ${item.dot}` : 
-                                     item.tire_type === 'Nước ngoài' && item.dot !== undefined && item.dot !== null ? `DOT: ${item.dot} & Series` :
+                                    {item.has_dot ? `DOT: ${item.dot} & Series` :
+                                     item.tire_type === 'Nội địa' ? `DOT: ${item.dot}` :
                                      item.tire_type === 'Nước ngoài' ? `Series` :
                                      noteType === 'warranty' ? `Series: ${item.series || '...'}` : `DOT: ${item.dot !== undefined ? item.dot : '...'}`}
                                 </p>
                                 { (noteType === 'export' || noteType === 'warranty') && item.series && <p className="text-xs text-gray-400 mt-1 truncate">Series: {item.series}</p>}
                                 </div>
                                 <div className="flex items-center gap-2 pl-2">
-                                    {noteType === 'export' && item.tire_type === 'Nước ngoài' && (item.scanned > 0 || item.series) && (
+                                    {noteType === 'export' && (item.has_dot || item.tire_type === 'Nước ngoài') && (item.scanned > 0 || item.series) && (
                                         <Button size="icon" variant="ghost" className="h-6 w-6 text-yellow-400" onClick={() => handleRescanClick(item.id)}>
                                             <RefreshCw className="w-4 h-4"/>
                                         </Button>
@@ -673,5 +671,3 @@ export default function ScanningPage() {
         </Suspense>
     )
 }
-
-    
