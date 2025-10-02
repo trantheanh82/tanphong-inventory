@@ -20,7 +20,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Separator } from "@/components/ui/separator";
 
 const dotTireSchema = z.object({
   dot: z.string().min(2, "DOT must be at least 2 digits").max(4, "DOT can be at most 4 digits"),
@@ -174,8 +173,9 @@ export default function ExportPage() {
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => appendDot({ dot: "", quantity: 1 })}
+                                            className="text-[#333] hover:bg-transparent"
                                         >
-                                            <PlusCircle className="mr-2 h-4 w-4" />
+                                            <PlusCircle className="mr-2 h-4 w-4 text-[#333]" />
                                             Thêm
                                         </Button>
                                     </div>
@@ -207,8 +207,9 @@ export default function ExportPage() {
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => appendSeries({ quantity: 1 })}
+                                            className="text-[#333] hover:bg-transparent"
                                         >
-                                            <PlusCircle className="mr-2 h-4 w-4" />
+                                            <PlusCircle className="mr-2 h-4 w-4 text-[#333]" />
                                             Thêm
                                         </Button>
                                     </div>
@@ -235,8 +236,9 @@ export default function ExportPage() {
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => appendDotSeries({ dot: "", quantity: 1 })}
+                                            className="text-[#333] hover:bg-transparent"
                                         >
-                                            <PlusCircle className="mr-2 h-4 w-4" />
+                                            <PlusCircle className="mr-2 h-4 w-4 text-[#333]" />
                                             Thêm
                                         </Button>
                                     </div>
@@ -265,7 +267,7 @@ export default function ExportPage() {
                                 <Button 
                                     type="submit" 
                                     disabled={isSubmitting || !form.formState.isValid}
-                                    className="bg-gray-800 hover:bg-gray-900 text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center space-x-2 shadow-md disabled:bg-gray-600"
+                                    className="bg-gray-800 hover:bg-gray-900 text-white hover:text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center space-x-2 shadow-md disabled:bg-gray-600"
                                 >
                                     <ScanLine className="w-5 h-5" />
                                     <span>{isSubmitting ? 'Đang tạo...' : 'Tạo và Quét'}</span>
