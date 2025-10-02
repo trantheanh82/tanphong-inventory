@@ -40,7 +40,7 @@ async function fetchNoteDetails(tableId: string, noteId: string, filterField: st
         filterSet: [{ fieldId: filterField, operator: 'is', value: noteId }],
     };
     const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
-    const url = `${API_ENDPOINT}/table/${tableId}/record?filter=${filterQuery}&fieldKeyType=dbFieldName`;
+    const url = `${API_ENDPOINT}/table/${tableId}/record?filter=${filterQuery}&fieldKeyType=dbFieldName&take=1000`;
     return apiRequest(url, 'GET', cookieHeader);
 }
 
@@ -193,3 +193,5 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message }, { status: 500 });
     }
 }
+
+    

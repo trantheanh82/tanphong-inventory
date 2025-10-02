@@ -84,15 +84,22 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
             if (scanMode === 'dot' && !fullDotNumber) {
                 return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hợp lệ.' }, { status: 400 });
             }
-            if (scanMode === 'series' && !seriesNumber) {
+            if ((scanMode === 'series' || scanMode === 'both') && !seriesNumber) {
                 return NextResponse.json({ success: false, message: 'Không nhận dạng được Series.' }, { status: 400 });
             }
+            if (scanMode === 'both' && !fullDotNumber && !seriesNumber) {
+                return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hay Series.' }, { status: 400 });
+            }
+
 
         } catch (aiError) {
             console.error("AI recognition error:", aiError);
             return NextResponse.json({ success: false, message: 'AI processing failed. Please try again.' }, { status: 500 });
         }
-    } else {
+    } else if (payloadSeries && scanMode === 'series') {
+        seriesNumber = payloadSeries;
+    }
+    else {
         return NextResponse.json({ success: false, message: "Không có thông tin để quét." }, { status: 400 });
     }
 
@@ -100,17 +107,13 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         twoDigitDot = fullDotNumber.slice(-2);
     }
     
-    if (scanMode !== 'both' && !twoDigitDot && !seriesNumber) {
-        return NextResponse.json({ success: false, message: "Không nhận dạng được thông tin lốp xe. Vui lòng thử lại." }, { status: 400 });
-    }
-
     const detailsResponse = await fetchNoteDetails(EXPORT_DETAIL_TBL_ID!, noteId, 'export_note', cookieHeader);
     const details = detailsResponse.records;
     
     let targetItem: any = null;
     let message = "";
     
-    // --- Step 2: Check for duplicate series ---
+    // --- Step 2: Check for duplicate series across the entire note ---
     if (seriesNumber) {
         for (const item of details) {
             // When rescanning, ignore the record being rescanned from the duplicate check
@@ -119,7 +122,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
             }
             const existingSeries = item.fields.series ? item.fields.series.split(',').map((s: string) => s.trim()) : [];
             if (item.fields.series && existingSeries.includes(seriesNumber)) {
-                return NextResponse.json({ success: false, message: `Series đã có trong phiếu xuất, hãy quét series khác` }, { status: 409 });
+                return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã có trong phiếu xuất, hãy quét series khác` }, { status: 409 });
             }
         }
     }
@@ -131,50 +134,94 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
             return NextResponse.json({ success: false, message: "Không tìm thấy mục để quét lại." }, { status: 404 });
         }
     } else {
-        targetItem = details.find((item: any) => (item.fields.scanned || 0) < item.fields.quantity);
-        if (!targetItem) {
-            return NextResponse.json({ success: false, message: `Đã quét đủ số lượng cho phiếu này.` }, { status: 400 });
-        }
+       switch(scanMode) {
+           case 'dot':
+                if (!twoDigitDot) return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hợp lệ.' }, { status: 400 });
+                targetItem = details.find((item: any) => 
+                    item.fields.tire_type === 'Nội địa' &&
+                    String(item.fields.dot) === twoDigitDot &&
+                    (item.fields.scanned || 0) < item.fields.quantity
+                );
+                if (!targetItem) return NextResponse.json({ success: false, message: `DOT ${twoDigitDot} không có trong phiếu hoặc đã quét đủ.` }, { status: 404 });
+                break;
+           case 'series':
+                targetItem = details.find((item: any) => 
+                    item.fields.tire_type === 'Nước ngoài' &&
+                    item.fields.dot === null && // This is a series-only item
+                    (item.fields.scanned || 0) < item.fields.quantity
+                );
+                 if (!targetItem) return NextResponse.json({ success: false, message: `Đã quét đủ số lượng cho lốp chỉ có Series.` }, { status: 404 });
+                break;
+           case 'both':
+                if (!twoDigitDot) return NextResponse.json({ success: false, message: 'Quét thiếu thông tin DOT.' }, { status: 400 });
+                 targetItem = details.find((item: any) => 
+                    item.fields.tire_type === 'Nước ngoài' &&
+                    String(item.fields.dot) === twoDigitDot &&
+                    (item.fields.scanned || 0) < item.fields.quantity
+                );
+                if (!targetItem) return NextResponse.json({ success: false, message: `DOT & Series với DOT ${twoDigitDot} không có trong phiếu hoặc đã quét đủ.` }, { status: 404 });
+                break;
+       }
     }
 
     // --- Step 4: Prepare fields for update based on scan mode ---
     const fieldsToUpdate: any = {};
     const isRescan = !!rescanRecordId;
+    
+    // For a rescan, we are just replacing the series, not changing the count.
+    // For a new scan, we increment the count.
     const newCount = isRescan ? (targetItem.fields.scanned || 1) : (targetItem.fields.scanned || 0) + 1;
 
-    // Only update scanned count if it's a new scan, not a rescan
     if (!isRescan) {
         fieldsToUpdate.scanned = newCount;
-        if (newCount >= targetItem.fields.quantity) {
-            fieldsToUpdate.status = 'Đã scan đủ';
-        }
+    }
+
+    if (newCount >= targetItem.fields.quantity && !isRescan) {
+        fieldsToUpdate.status = 'Đã scan đủ';
     }
     
     if (scanMode === 'both') {
         if (!twoDigitDot || !seriesNumber) {
             return NextResponse.json({ success: false, message: "Quét thiếu thông tin. Cần cả DOT và Series." }, { status: 400 });
         }
-        fieldsToUpdate.dot = parseInt(twoDigitDot, 10);
-        fieldsToUpdate.series = seriesNumber;
-        fieldsToUpdate.tire_type = 'Nước ngoài';
+        // In a 'both' scan, we are essentially doing a rescan of an existing slot, but filling both fields
+        const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+        if (isRescan) {
+            // Find the old series to replace, assuming rescan implies replacing one.
+            // This part is tricky without knowing which series to replace. A simpler approach is to just append.
+            // For now, let's assume rescan just overwrites the whole series field if it's a single-quantity item
+             if (targetItem.fields.quantity === 1) {
+                fieldsToUpdate.series = seriesNumber;
+            } else {
+                // Not straightforward to know which one to replace, let's deny for now
+                return NextResponse.json({ success: false, message: "Quét lại cho mục số lượng lớn chưa được hỗ trợ." }, { status: 400 });
+            }
+        } else {
+             fieldsToUpdate.series = [...currentSeries, seriesNumber].join(', ');
+        }
+        
         message = isRescan ? `Đã cập nhật DOT ${twoDigitDot} và Series ${seriesNumber}.` : `Đã ghi nhận DOT ${twoDigitDot} và Series ${seriesNumber}.`;
 
     } else if (scanMode === 'series') {
-        if (!seriesNumber) {
-            return NextResponse.json({ success: false, message: 'Không nhận dạng được Series.' }, { status: 400 });
+        if (!seriesNumber) return NextResponse.json({ success: false, message: 'Không nhận dạng được Series.' }, { status: 400 });
+        
+        const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+        if (isRescan) {
+            // This is simplified: assumes rescan on single-quantity item or you want to replace all with one.
+             if (targetItem.fields.quantity === 1) {
+                fieldsToUpdate.series = seriesNumber;
+             } else {
+                 return NextResponse.json({ success: false, message: "Quét lại cho mục số lượng lớn chưa được hỗ trợ." }, { status: 400 });
+             }
+        } else {
+            fieldsToUpdate.series = [...currentSeries, seriesNumber].join(', ');
         }
-        const currentSeries = targetItem.fields.series && !isRescan ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-        fieldsToUpdate.series = isRescan ? seriesNumber : [...currentSeries, seriesNumber].join(', ');
-        fieldsToUpdate.tire_type = 'Nước ngoài';
         message = isRescan ? `Đã cập nhật Series ${seriesNumber}.` : `Đã ghi nhận Series ${seriesNumber}.`;
 
     } else if (scanMode === 'dot') {
-        if (!twoDigitDot) {
-            return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hợp lệ.' }, { status: 400 });
-        }
-        fieldsToUpdate.dot = parseInt(twoDigitDot, 10);
-        fieldsToUpdate.tire_type = 'Nội địa';
-        message = isRescan ? `Đã cập nhật DOT ${twoDigitDot} (từ lốp ${fullDotNumber}).` : `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}).`;
+        if (!twoDigitDot) return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hợp lệ.' }, { status: 400 });
+        // DOT scans don't involve series, so it's simpler.
+        message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}).`;
     }
     
     if (!isRescan) {
@@ -188,6 +235,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     };
     await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
     
+    // Only check for overall completion on a new scan, not a rescan
     if (!isRescan) {
         await updateNoteStatusIfCompleted(noteId, cookieHeader);
     }
@@ -222,3 +270,5 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: error.message || 'An internal server error occurred.' }, { status: 500 });
     }
 }
+
+    

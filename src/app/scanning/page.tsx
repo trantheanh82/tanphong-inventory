@@ -125,13 +125,16 @@ function ScanningComponent() {
     if (noteType !== 'export') return [];
     const modes = new Set<ActiveScanMode>();
     items.forEach(item => {
-        if (item.tire_type === 'Nội địa') {
-            modes.add('dot');
-        } else if (item.tire_type === 'Nước ngoài') {
-            if (item.dot !== undefined) {
-                modes.add('both');
-            } else {
-                modes.add('series');
+        // Only add a mode if there is still something to scan for that type
+        if ((item.scanned || 0) < item.quantity) {
+            if (item.tire_type === 'Nội địa') {
+                modes.add('dot');
+            } else if (item.tire_type === 'Nước ngoài') {
+                if (item.dot !== undefined && item.dot !== null) {
+                    modes.add('both');
+                } else {
+                    modes.add('series');
+                }
             }
         }
     });
@@ -146,11 +149,16 @@ function ScanningComponent() {
     } else if (noteType === 'export') {
         if (availableScanModes.length === 1) {
             setActiveScanMode(availableScanModes[0]);
+        } else if (availableScanModes.length > 1) {
+            // If the current active mode is no longer available, reset it
+            if (!availableScanModes.includes(activeScanMode)) {
+                 setActiveScanMode('none');
+            }
         } else {
             setActiveScanMode('none');
         }
     }
-  }, [noteType, availableScanModes]);
+  }, [noteType, availableScanModes, activeScanMode]);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -231,10 +239,10 @@ function ScanningComponent() {
         
         if (rescanningItemId) setRescanningItemId(null); // Exit rescan mode
 
-        await fetchNoteDetails();
+        await fetchNoteDetails(); // Refetch all details to get the most accurate state
 
-        const latestItems = useScanningStore.getState().items;
-        const allScanned = latestItems.every(item => (item.scanned || 0) >= item.quantity);
+        // After refetching, check if everything is complete
+        const allScanned = useScanningStore.getState().items.every(item => (item.scanned || 0) >= item.quantity);
 
         if (allScanned) {
             toast({ title: "Hoàn tất", description: "Bạn đã quét đủ số lượng cho tất cả các mục.", className: "bg-green-500 text-white" });
@@ -256,27 +264,16 @@ function ScanningComponent() {
     }
     
     setIsSubmitting(true);
-
-    if (activeScanMode === 'both') {
-      await handleBothModeScan(imageDataUri);
-    } else {
-      await handleSimpleScan(activeScanMode, imageDataUri);
-    }
-
-    setIsSubmitting(false);
-  };
-  
-  const handleSimpleScan = async (scanMode: ActiveScanMode, imageDataUri: string) => {
-    if (scanMode === 'none') return;
     
-    let endpoint = '/api/scan';
+    let endpoint = '/api/scan'; // Default for import
     let body: any = { noteId, noteType, imageDataUri };
 
     if (noteType === 'export') {
       endpoint = '/api/export-scan';
-      body = { noteId, imageDataUri, scanMode, rescanRecordId: rescanningItemId };
+      body = { noteId, imageDataUri, scanMode: activeScanMode, rescanRecordId: rescanningItemId };
     } else if (noteType === 'warranty') {
       await handleWarrantyScan({ imageDataUri });
+      setIsSubmitting(false);
       return;
     }
     
@@ -291,60 +288,8 @@ function ScanningComponent() {
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
     }
-  };
-
-  const handleBothModeScan = async (imageDataUri: string) => {
-    try {
-      if (scannedDotForBoth && scannedSeriesForBoth) {
-        return; // Already submitted, wait for reset
-      }
-
-      const recognizedInfo = await recognizeTireInfo(imageDataUri);
-
-      let newDot = scannedDotForBoth;
-      let newSeries = scannedSeriesForBoth;
-
-      if (recognizedInfo?.dotNumber && !newDot) {
-        newDot = recognizedInfo.dotNumber;
-        setScannedDotForBoth(newDot);
-        toast({ title: 'Thông tin', description: `Đã nhận DOT: ${newDot}. Hãy quét Series.` });
-      }
-      if (recognizedInfo?.seriesNumber && !newSeries) {
-        newSeries = recognizedInfo.seriesNumber;
-        setScannedSeriesForBoth(newSeries);
-        toast({ title: 'Thông tin', description: `Đã nhận Series: ${newSeries}. Hãy quét DOT.` });
-      }
-      
-      if (!recognizedInfo?.dotNumber && !recognizedInfo?.seriesNumber) {
-        toast({ variant: 'destructive', title: 'Không tìm thấy', description: 'Không nhận dạng được DOT hay Series. Vui lòng thử lại.' });
-        return;
-      }
-
-      if (newDot && newSeries) {
-        toast({ title: 'Đã có đủ thông tin', description: `DOT: ${newDot}, Series: ${newSeries}. Đang xử lý...` });
-        const response = await fetch('/api/export-scan', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                noteId,
-                scanMode: 'both',
-                dotNumber: newDot,
-                seriesNumber: newSeries,
-                rescanRecordId: rescanningItemId
-            }),
-        });
-        const result = await response.json();
-        await handleScanResponse(result);
-        
-        // Reset for next scan
-        setScannedDotForBoth(null);
-        setScannedSeriesForBoth(null);
-      }
-
-    } catch (aiError) {
-        console.error("AI recognition error:", aiError);
-        toast({ variant: 'destructive', title: 'Lỗi AI', description: 'AI processing failed. Please try again.' });
-    }
+    
+    setIsSubmitting(false);
   };
   
   const handleWarrantyScan = async (scanPayload: { imageDataUri?: string; seriesNumber?: string }) => {
@@ -358,18 +303,9 @@ function ScanningComponent() {
 
       if (!response.ok) throw new Error(result.message || 'Quét bảo hành thất bại');
       
-      if (result.success) {
-        toast({ title: 'Thành công', description: result.message, className: 'bg-green-100 border-green-500 text-green-800' });
-        setManualInputValue("");
-        updateItemWithScan(result.updatedRecordId, result.series, result.dot);
-        
-        if (result.isCompleted) {
-          toast({ title: 'Hoàn tất', description: 'Đã scan đủ số lượng cho phiếu bảo hành.', className: 'bg-green-500 text-white' });
-          setTimeout(() => router.push(`/listing?type=${noteType}`), 2000);
-        }
-      } else {
-        toast({ variant: 'destructive', title: 'Thất bại', description: result.message });
-      }
+      await handleScanResponse(result);
+      if(result.success) setManualInputValue("");
+
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
     }
@@ -380,31 +316,33 @@ function ScanningComponent() {
     if (isSubmitting || !manualInputValue) return;
     setIsSubmitting(true);
     
+    let endpoint = '/api/manual-scan';
+    let body: any = { noteId, noteType, valueToScan: manualInputValue };
+
     if (noteType === 'warranty') {
         await handleWarrantyScan({ seriesNumber: manualInputValue });
-    } else if (noteType === 'import') {
-        const response = await fetch('/api/manual-scan', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ noteId, noteType, valueToScan: manualInputValue })
-        });
-        const result = await response.json();
-        await handleScanResponse(result);
-        setManualInputValue("");
     } else if (noteType === 'export') {
-        const response = await fetch('/api/export-scan', {
+        endpoint = '/api/export-scan';
+        body = {
+            noteId,
+            scanMode: activeScanMode,
+            seriesNumber: manualInputValue,
+            rescanRecordId: rescanningItemId
+        };
+    }
+    // 'import' uses the default endpoint and body
+
+    try {
+        const response = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                noteId,
-                scanMode: activeScanMode,
-                seriesNumber: manualInputValue,
-                rescanRecordId: rescanningItemId
-            }),
+            body: JSON.stringify(body)
         });
         const result = await response.json();
         await handleScanResponse(result);
-        setManualInputValue("");
+        if (result.success) setManualInputValue("");
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
     }
     
     setIsSubmitting(false);
@@ -412,6 +350,7 @@ function ScanningComponent() {
   
   const handleRescanClick = (itemId: string) => {
     setRescanningItemId(itemId);
+    setActiveScanMode('series'); // Force series mode for rescan
     toast({
         title: "Chế độ quét lại",
         description: "Vui lòng quét series mới cho mục đã chọn."
@@ -420,20 +359,20 @@ function ScanningComponent() {
 
   const getPageTitle = () => {
       if (rescanningItemId) return 'Quét lại Series';
-      if (activeScanMode === 'both') return 'Quét DOT & Series';
-      if (noteType === 'warranty' || activeScanMode === 'series') return 'Quét Series';
-      if (noteType === 'import' || activeScanMode === 'dot') return 'Quét DOT';
-      if (noteType === 'export') return 'Chọn Chế Độ Quét';
-      return 'Quét Mã';
+      if (noteType === 'export' && activeScanMode === 'none') return 'Chọn Chế Độ Quét';
+      
+      const modeMap = {
+          'dot': 'Quét DOT',
+          'series': 'Quét Series',
+          'both': 'Quét DOT & Series'
+      };
+      return modeMap[activeScanMode as keyof typeof modeMap] || 'Quét Mã';
   }
 
   const handleModeButtonClick = (mode: ActiveScanMode) => {
     setActiveScanMode(mode);
     setScannedDotForBoth(null);
     setScannedSeriesForBoth(null);
-    if (mode === 'both') {
-      toast({ title: "Chế độ quét đôi", description: "Hãy quét DOT và Series." });
-    }
   };
 
   const renderMainScanButtons = () => {
@@ -441,11 +380,6 @@ function ScanningComponent() {
         const isCaptureDisabled = isSubmitting || hasCameraPermission !== true;
         return (
             <div className="flex flex-col items-center gap-4">
-                {activeScanMode === 'both' && (
-                    <div className="text-white text-sm bg-black/30 px-3 py-1 rounded-full">
-                       {scannedDotForBoth ? `DOT: ${scannedDotForBoth}`: '...'} | {scannedSeriesForBoth ? `Series: ${scannedSeriesForBoth}` : '...'}
-                    </div>
-                )}
                  <Button
                     onClick={handleCapture}
                     disabled={isCaptureDisabled}
@@ -461,7 +395,7 @@ function ScanningComponent() {
                     {rescanningItemId ? 'Quét lại' : 'Quét'}
                 </span>
                 {noteType === 'export' && !rescanningItemId && availableScanModes.length > 1 && (
-                     <Button variant="ghost" size="sm" className='text-white' onClick={() => setActiveScanMode('none')}>Chọn lại</Button>
+                     <Button variant="ghost" size="sm" className='text-white' onClick={() => setActiveScanMode('none')}>Chọn lại chế độ</Button>
                 )}
                 {rescanningItemId && (
                     <Button variant="ghost" size="sm" className="text-yellow-400" onClick={() => setRescanningItemId(null)}>Hủy quét lại</Button>
@@ -475,7 +409,7 @@ function ScanningComponent() {
         <div className="flex justify-center gap-4 w-full">
           {availableScanModes.includes('dot') && (
             <Button onClick={() => handleModeButtonClick('dot')} className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex-col h-auto p-3 flex-1">
-              <Camera className="w-8 h-8" />
+              <Scan className="w-8 h-8" />
               <span className="text-xs mt-1">Quét DOT</span>
             </Button>
           )}
@@ -540,7 +474,11 @@ function ScanningComponent() {
             {(noteType === 'warranty' || noteType === 'import' || (noteType === 'export' && (activeScanMode === 'series' || activeScanMode === 'both'))) && (
                 <form onSubmit={handleManualSubmit} className="flex gap-2">
                     <Input 
-                        placeholder={noteType === 'warranty' ? 'Hoặc nhập tay số series...' : noteType === 'import' ? 'Hoặc nhập tay DOT (2 số)...' : 'Hoặc nhập series...'}
+                        placeholder={
+                            noteType === 'warranty' ? 'Hoặc nhập tay số series...' : 
+                            noteType === 'import' ? 'Hoặc nhập tay DOT (2 số)...' : 
+                            (activeScanMode === 'series' || activeScanMode === 'both') ? 'Hoặc nhập series...' :
+                            'Nhập tay...'}
                         value={manualInputValue}
                         onChange={(e) => setManualInputValue(e.target.value.toUpperCase())}
                         className='bg-white/20 text-white placeholder:text-gray-300 border-white/30'
@@ -583,14 +521,14 @@ function ScanningComponent() {
                                 <div className='flex-1 min-w-0'>
                                 <p className="font-semibold text-xs text-white truncate">
                                     {item.tire_type === 'Nội địa' ? `DOT: ${item.dot}` : 
-                                     item.tire_type === 'Nước ngoài' && item.dot !== undefined ? `DOT: ${item.dot} & Series` :
+                                     item.tire_type === 'Nước ngoài' && item.dot !== undefined && item.dot !== null ? `DOT: ${item.dot} & Series` :
                                      item.tire_type === 'Nước ngoài' ? `Series` :
                                      noteType === 'warranty' ? `Series: ${item.series || '...'}` : `DOT: ${item.dot !== undefined ? item.dot : '...'}`}
                                 </p>
                                 { (noteType === 'export' || noteType === 'warranty') && item.series && <p className="text-xs text-gray-400 mt-1 truncate">Series: {item.series}</p>}
                                 </div>
                                 <div className="flex items-center gap-2 pl-2">
-                                    {noteType === 'export' && (item.scanned > 0 || item.series) && activeScanMode === 'series' && (
+                                    {noteType === 'export' && item.tire_type === 'Nước ngoài' && (item.scanned > 0 || item.series) && (
                                         <Button size="icon" variant="ghost" className="h-6 w-6 text-yellow-400" onClick={() => handleRescanClick(item.id)}>
                                             <RefreshCw className="w-4 h-4"/>
                                         </Button>
@@ -629,3 +567,5 @@ export default function ScanningPage() {
         </Suspense>
     )
 }
+
+    
