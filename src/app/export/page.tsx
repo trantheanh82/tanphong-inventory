@@ -2,10 +2,10 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import * as z from "zod";
 import { useState } from "react";
-import { PlusCircle, ScanLine, MinusCircle } from "lucide-react";
+import { PlusCircle, ScanLine, XCircle } from "lucide-react";
 import { useRouter } from 'next/navigation';
 
 import { Button } from "@/components/ui/button";
@@ -20,10 +20,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { Separator } from "@/components/ui/separator";
+
+const tireItemSchema = z.object({
+  dot: z.string().min(2, "DOT must be at least 2 digits").max(4, "DOT can be at most 4 digits"),
+  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),
+});
 
 const formSchema = z.object({
   name: z.string().min(1, { message: "Tên phiếu xuất là bắt buộc." }),
-  quantity: z.coerce.number().int().min(1, { message: "Số lượng phải lớn hơn 0." }),
+  customer: z.string().optional(),
+  tires: z.array(tireItemSchema).min(1, "You must add at least one tire."),
 });
 
 export default function ExportPage() {
@@ -35,19 +42,37 @@ export default function ExportPage() {
         resolver: zodResolver(formSchema),
         defaultValues: {
             name: "",
-            quantity: 1,
+            customer: "",
+            tires: [],
         },
     });
 
-    const { control, handleSubmit, setValue, getValues } = form;
+    const { fields, append, remove } = useFieldArray({
+      control: form.control,
+      name: "tires",
+    });
+
+    const { control, handleSubmit } = form;
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true);
+        // This is a placeholder for the actual submission logic.
+        // The API endpoint and payload will need to be updated to handle the new form structure.
         try {
+            // NOTE: The API endpoint /api/export-note currently expects a single `name` and `quantity`.
+            // It will need to be updated to handle a customer and an array of tires.
+            console.log("Form values to be submitted:", values);
+            
+            // Simulating API call
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            const totalQuantity = values.tires.reduce((sum, tire) => sum + tire.quantity, 0);
+
+            // Mock response for now
             const response = await fetch('/api/export-note', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(values),
+                body: JSON.stringify({ name: values.name, quantity: totalQuantity }),
             });
 
             const result = await response.json();
@@ -72,20 +97,13 @@ export default function ExportPage() {
             setIsSubmitting(false);
         }
     }
-    
-    const handleQuantityChange = (amount: number) => {
-        const currentQuantity = getValues('quantity') || 0;
-        const newQuantity = Math.max(1, currentQuantity + amount);
-        setValue('quantity', newQuantity, { shouldValidate: true });
-    };
-
 
     return (
         <div className="p-4 animate-in fade-in-0 duration-500">
             <Card className="bg-white/50 backdrop-blur-md rounded-xl shadow-lg border border-white/50">
                 <CardHeader>
                     <CardTitle className="text-[#333]">Tạo Phiếu Xuất Kho</CardTitle>
-                    <CardDescription className="text-gray-600">Nhập tên và tổng số lượng lốp cần xuất, sau đó tiến hành quét.</CardDescription>
+                    <CardDescription className="text-gray-600">Nhập thông tin phiếu và thêm các loại lốp cần xuất.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
@@ -106,34 +124,70 @@ export default function ExportPage() {
 
                              <FormField
                                 control={control}
-                                name="quantity"
+                                name="customer"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-gray-800 font-semibold">Số lượng lốp</FormLabel>
+                                        <FormLabel className="text-gray-800 font-semibold">Khách hàng</FormLabel>
                                         <FormControl>
-                                            <div className="flex items-center gap-4">
-                                                <Button type="button" size="icon" variant="outline" onClick={() => handleQuantityChange(-1)} className="bg-white/80 border-gray-300">
-                                                    <MinusCircle className="w-5 h-5 text-gray-800"/>
-                                                </Button>
-                                                <Input 
-                                                    {...field}
-                                                    type="number"
-                                                    onChange={(e) => {
-                                                        const value = e.target.value;
-                                                        // Allow empty string for clearing, otherwise parse as number
-                                                        field.onChange(value === '' ? '' : Number(value));
-                                                    }}
-                                                    className="bg-white/80 rounded-xl border-gray-300 text-black text-center font-bold text-lg w-24 focus:outline-none focus:ring-2 focus:ring-gray-800"
-                                                />
-                                                <Button type="button" size="icon" variant="outline" onClick={() => handleQuantityChange(1)} className="bg-white/80 border-gray-300">
-                                                    <PlusCircle className="w-5 h-5 text-gray-800"/>
-                                                </Button>
-                                            </div>
+                                            <Input placeholder="Nhập tên khách hàng" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
+
+                            <Separator className="my-4" />
+
+                            <div>
+                                <FormLabel className="text-gray-800 font-semibold">Thông tin lốp xe</FormLabel>
+                                <div className="space-y-4 mt-2">
+                                     {fields.map((field, index) => (
+                                        <div key={field.id} className="flex items-end gap-4 p-4 border rounded-lg bg-white/60">
+                                            <FormField
+                                                control={control}
+                                                name={`tires.${index}.dot`}
+                                                render={({ field }) => (
+                                                    <FormItem className="flex-1">
+                                                        <FormLabel className="text-gray-800">DOT</FormLabel>
+                                                        <FormControl>
+                                                            <Input placeholder="VD: 2423" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black"/>
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={control}
+                                                name={`tires.${index}.quantity`}
+                                                render={({ field }) => (
+                                                    <FormItem  className="w-24">
+                                                        <FormLabel className="text-gray-800">Số lượng</FormLabel>
+                                                        <FormControl>
+                                                            <Input type="number" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black"/>
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                                                <XCircle className="w-5 h-5 text-red-500" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                    
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => append({ dot: "", quantity: 1 })}
+                                        className="bg-white/80 border-gray-300 text-gray-800"
+                                    >
+                                        <PlusCircle className="mr-2 h-4 w-4" />
+                                        Thêm DOT
+                                    </Button>
+                                    <FormMessage>{form.formState.errors.tires?.message}</FormMessage>
+                                </div>
+                            </div>
+
 
                             <div className="flex items-center justify-end gap-4 mt-6">
                                 <Button 
