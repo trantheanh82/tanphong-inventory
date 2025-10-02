@@ -172,18 +172,22 @@ export default function ExportPage() {
                                     </div>
                                     <div className="space-y-3 mt-2">
                                         {dotFields.map((field, index) => (
-                                            <div key={field.id} className="flex items-end gap-2 border-b border-dotted border-gray-400 pb-3">
-                                                <FormField
-                                                    control={form.control}
-                                                    name={`dotTires.${index}.dot`}
-                                                    render={({ field }) => <FormItem className="flex-1"><FormLabel className="text-[#333]">DOT (2 số cuối)</FormLabel><FormControl><Input placeholder="VD: 23" {...field} className="text-black bg-white/80" /></FormControl><FormMessage /></FormItem>}
-                                                />
-                                                <FormField
-                                                    control={form.control}
-                                                    name={`dotTires.${index}.quantity`}
-                                                    render={({ field }) => <FormItem className="w-24"><FormLabel className="text-[#333]">Số lượng</FormLabel><FormControl><Input type="number" min="1" placeholder="SL" {...field} className="text-black bg-white/80" /></FormControl><FormMessage /></FormItem>}
-                                                />
-                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeDot(index)}><XCircle className="w-5 h-5 text-red-500" /></Button>
+                                            <div key={field.id} className="border-b border-dotted border-gray-400 pb-3">
+                                                <div className="flex items-start gap-2">
+                                                    <FormField
+                                                        control={form.control}
+                                                        name={`dotTires.${index}.dot`}
+                                                        render={({ field }) => <FormItem className="flex-1"><FormLabel className="text-[#333]">DOT (2 số cuối)</FormLabel><FormControl><Input maxLength={2} placeholder="VD: 23" {...field} className="text-black bg-white/80" /></FormControl><FormMessage /></FormItem>}
+                                                    />
+                                                    <FormField
+                                                        control={form.control}
+                                                        name={`dotTires.${index}.quantity`}
+                                                        render={({ field }) => <FormItem className="w-24"><FormLabel className="text-[#333]">Số lượng</FormLabel><FormControl><Input type="number" min="1" placeholder="SL" {...field} className="text-black bg-white/80" /></FormControl><FormMessage /></FormItem>}
+                                                    />
+                                                    <div className="pt-8">
+                                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeDot(index)}><XCircle className="w-5 h-5 text-red-500" /></Button>
+                                                    </div>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -193,7 +197,7 @@ export default function ExportPage() {
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => appendDot({ dot: "", quantity: 1 })}
-                                            className="text-[#333] hover:bg-transparent hover:text-[#333]"
+                                            className="text-[#333] hover:bg-transparent"
                                         >
                                             <PlusCircle className="mr-2 h-4 w-4 text-[#333]" />
                                             <span className="text-[#333]">Thêm</span>
@@ -224,7 +228,7 @@ export default function ExportPage() {
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => appendSeries({ quantity: 1 })}
-                                            className="text-[#333] hover:bg-transparent hover:text-[#333]"
+                                            className="text-[#333] hover:bg-transparent"
                                         >
                                             <PlusCircle className="mr-2 h-4 w-4 text-[#333]" />
                                             <span className="text-[#333]">Thêm</span>
@@ -239,18 +243,22 @@ export default function ExportPage() {
                                     </div>
                                     <div className="space-y-3 mt-2">
                                         {dotSeriesFields.map((field, index) => (
-                                            <div key={field.id} className="flex items-end gap-2 border-b border-dotted border-gray-400 pb-3">
-                                                <FormField
-                                                    control={form.control}
-                                                    name={`dotSeriesTires.${index}.dot`}
-                                                    render={({ field }) => <FormItem className="flex-1"><FormLabel className="text-[#333]">DOT (2 số cuối)</FormLabel><FormControl><Input placeholder="VD: 23" {...field} className="text-black bg-white/80" /></FormControl><FormMessage /></FormItem>}
-                                                />
-                                                <FormField
-                                                    control={form.control}
-                                                    name={`dotSeriesTires.${index}.quantity`}
-                                                    render={({ field }) => <FormItem className="w-24"><FormLabel className="text-[#333]">Số lượng</FormLabel><FormControl><Input type="number" min="1" placeholder="SL" {...field} className="text-black bg-white/80" /></FormControl><FormMessage /></FormItem>}
-                                                />
-                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeDotSeries(index)}><XCircle className="w-5 h-5 text-red-500" /></Button>
+                                            <div key={field.id} className="border-b border-dotted border-gray-400 pb-3">
+                                                <div className="flex items-start gap-2">
+                                                    <FormField
+                                                        control={form.control}
+                                                        name={`dotSeriesTires.${index}.dot`}
+                                                        render={({ field }) => <FormItem className="flex-1"><FormLabel className="text-[#333]">DOT (2 số cuối)</FormLabel><FormControl><Input maxLength={2} placeholder="VD: 23" {...field} className="text-black bg-white/80" /></FormControl><FormMessage /></FormItem>}
+                                                    />
+                                                    <FormField
+                                                        control={form.control}
+                                                        name={`dotSeriesTires.${index}.quantity`}
+                                                        render={({ field }) => <FormItem className="w-24"><FormLabel className="text-[#333]">Số lượng</FormLabel><FormControl><Input type="number" min="1" placeholder="SL" {...field} className="text-black bg-white/80" /></FormControl><FormMessage /></FormItem>}
+                                                    />
+                                                     <div className="pt-8">
+                                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeDotSeries(index)}><XCircle className="w-5 h-5 text-red-500" /></Button>
+                                                    </div>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -260,7 +268,7 @@ export default function ExportPage() {
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => appendDotSeries({ dot: "", quantity: 1 })}
-                                            className="text-[#333] hover:bg-transparent hover:text-[#333]"
+                                            className="text-[#333] hover:bg-transparent"
                                         >
                                             <PlusCircle className="mr-2 h-4 w-4 text-[#333]" />
                                             <span className="text-[#333]">Thêm</span>
