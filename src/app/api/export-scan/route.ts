@@ -67,7 +67,6 @@ async function updateNoteStatusIfCompleted(noteId: string, cookieHeader: string 
 async function processScan(noteId: string, cookieHeader: string, payload: { imageDataUri?: string; scanMode: 'dot' | 'series' | 'both'; dotNumber?: string; seriesNumber?: string, rescanRecordId?: string }) {
     const { imageDataUri, scanMode, dotNumber: payloadDot, seriesNumber: payloadSeries, rescanRecordId } = payload;
     
-    let twoDigitDot: string | undefined;
     let seriesNumber: string | undefined;
     let fullDotNumber: string | undefined;
 
@@ -96,16 +95,18 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
             console.error("AI recognition error:", aiError);
             return NextResponse.json({ success: false, message: 'AI processing failed. Please try again.' }, { status: 500 });
         }
-    } else if (payloadSeries && scanMode === 'series') {
+    } else if (payloadDot && scanMode === 'dot') {
+        fullDotNumber = payloadDot;
+    } else if (payloadSeries && (scanMode === 'series' || scanMode === 'both')) {
         seriesNumber = payloadSeries;
+    } else if (payloadDot && (scanMode === 'series' || scanMode === 'both')) {
+         return NextResponse.json({ success: false, message: "Chế độ quét Series không hỗ trợ nhập DOT." }, { status: 400 });
     }
     else {
         return NextResponse.json({ success: false, message: "Không có thông tin để quét." }, { status: 400 });
     }
 
-    if (fullDotNumber) {
-        twoDigitDot = fullDotNumber.slice(-2);
-    }
+    const twoDigitDot = fullDotNumber ? fullDotNumber.slice(-2) : undefined;
     
     const detailsResponse = await fetchNoteDetails(EXPORT_DETAIL_TBL_ID!, noteId, 'export_note', cookieHeader);
     const details = detailsResponse.records;
@@ -147,19 +148,27 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
            case 'series':
                 targetItem = details.find((item: any) => 
                     item.fields.tire_type === 'Nước ngoài' &&
-                    item.fields.dot === null && // This is a series-only item
+                    (item.fields.dot === undefined || item.fields.dot === null) && // This is a series-only item
                     (item.fields.scanned || 0) < item.fields.quantity
                 );
                  if (!targetItem) return NextResponse.json({ success: false, message: `Đã quét đủ số lượng cho lốp chỉ có Series.` }, { status: 404 });
                 break;
            case 'both':
-                if (!twoDigitDot) return NextResponse.json({ success: false, message: 'Quét thiếu thông tin DOT.' }, { status: 400 });
-                 targetItem = details.find((item: any) => 
+                 if (!seriesNumber && !twoDigitDot) {
+                    return NextResponse.json({ success: false, message: 'Cần quét được Series hoặc DOT.' }, { status: 400 });
+                }
+
+                // Prefer finding by both, but fall back to one if the other is missing
+                targetItem = details.find((item: any) => 
                     item.fields.tire_type === 'Nước ngoài' &&
-                    String(item.fields.dot) === twoDigitDot &&
+                    (item.fields.dot !== undefined && item.fields.dot !== null) &&
+                    (!twoDigitDot || String(item.fields.dot) === twoDigitDot) && // Match dot if available
                     (item.fields.scanned || 0) < item.fields.quantity
                 );
-                if (!targetItem) return NextResponse.json({ success: false, message: `DOT & Series với DOT ${twoDigitDot} không có trong phiếu hoặc đã quét đủ.` }, { status: 404 });
+
+                if (!targetItem) {
+                    return NextResponse.json({ success: false, message: `Lốp DOT & Series ${twoDigitDot ? ` (DOT ${twoDigitDot})` : ''} không có trong phiếu hoặc đã quét đủ.` }, { status: 404 });
+                }
                 break;
        }
     }
@@ -180,44 +189,23 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         fieldsToUpdate.status = 'Đã scan đủ';
     }
     
-    if (scanMode === 'both') {
-        if (!twoDigitDot || !seriesNumber) {
-            return NextResponse.json({ success: false, message: "Quét thiếu thông tin. Cần cả DOT và Series." }, { status: 400 });
-        }
-        // In a 'both' scan, we are essentially doing a rescan of an existing slot, but filling both fields
-        const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-        if (isRescan) {
-            // Find the old series to replace, assuming rescan implies replacing one.
-            // This part is tricky without knowing which series to replace. A simpler approach is to just append.
-            // For now, let's assume rescan just overwrites the whole series field if it's a single-quantity item
-             if (targetItem.fields.quantity === 1) {
-                fieldsToUpdate.series = seriesNumber;
-            } else {
-                // Not straightforward to know which one to replace, let's deny for now
-                return NextResponse.json({ success: false, message: "Quét lại cho mục số lượng lớn chưa được hỗ trợ." }, { status: 400 });
-            }
-        } else {
-             fieldsToUpdate.series = [...currentSeries, seriesNumber].join(', ');
-        }
-        
-        message = isRescan ? `Đã cập nhật DOT ${twoDigitDot} và Series ${seriesNumber}.` : `Đã ghi nhận DOT ${twoDigitDot} và Series ${seriesNumber}.`;
-
-    } else if (scanMode === 'series') {
-        if (!seriesNumber) return NextResponse.json({ success: false, message: 'Không nhận dạng được Series.' }, { status: 400 });
-        
+    // This logic handles all cases where a series number is involved ('series', 'both', 'rescan')
+    if (seriesNumber) {
         const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
         if (isRescan) {
             // This is simplified: assumes rescan on single-quantity item or you want to replace all with one.
              if (targetItem.fields.quantity === 1) {
                 fieldsToUpdate.series = seriesNumber;
              } else {
+                 // For multi-quantity items, we can't know which series to replace without more info.
                  return NextResponse.json({ success: false, message: "Quét lại cho mục số lượng lớn chưa được hỗ trợ." }, { status: 400 });
              }
         } else {
             fieldsToUpdate.series = [...currentSeries, seriesNumber].join(', ');
         }
-        message = isRescan ? `Đã cập nhật Series ${seriesNumber}.` : `Đã ghi nhận Series ${seriesNumber}.`;
-
+         message = isRescan ? `Đã cập nhật Series ${seriesNumber}.` : `Đã ghi nhận Series ${seriesNumber}.`;
+         if (twoDigitDot) message += ` cho DOT ${twoDigitDot}.`
+    
     } else if (scanMode === 'dot') {
         if (!twoDigitDot) return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hợp lệ.' }, { status: 400 });
         // DOT scans don't involve series, so it's simpler.
@@ -270,5 +258,3 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: error.message || 'An internal server error occurred.' }, { status: 500 });
     }
 }
-
-    
