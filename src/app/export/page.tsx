@@ -173,7 +173,7 @@ export default function ExportPage() {
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => appendDot({ dot: "", quantity: 1 })}
-                                            className="text-[#333] hover:bg-transparent"
+                                            className="text-[#333] hover:bg-transparent hover:text-[#333]"
                                         >
                                             <PlusCircle className="mr-2 h-4 w-4 text-[#333]" />
                                             Thêm
@@ -207,7 +207,7 @@ export default function ExportPage() {
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => appendSeries({ quantity: 1 })}
-                                            className="text-[#333] hover:bg-transparent"
+                                            className="text-[#333] hover:bg-transparent hover:text-[#333]"
                                         >
                                             <PlusCircle className="mr-2 h-4 w-4 text-[#333]" />
                                             Thêm
@@ -236,7 +236,7 @@ export default function ExportPage() {
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => appendDotSeries({ dot: "", quantity: 1 })}
-                                            className="text-[#333] hover:bg-transparent"
+                                            className="text-[#333] hover:bg-transparent hover:text-[#333]"
                                         >
                                             <PlusCircle className="mr-2 h-4 w-4 text-[#333]" />
                                             Thêm
