@@ -210,15 +210,26 @@ export default function ExportPage() {
                                     <div className="flex items-center justify-between">
                                         <FormLabel className="text-[#333] font-bold">Series</FormLabel>
                                     </div>
-                                     <div className="space-y-3 mt-2">
+                                    <div className="space-y-3 mt-2">
                                         {seriesFields.map((field, index) => (
                                             <div key={field.id} className="flex items-end gap-2 border-b border-dotted border-gray-400 pb-3">
                                                 <FormField
                                                     control={form.control}
                                                     name={`seriesTires.${index}.quantity`}
-                                                    render={({ field }) => <FormItem className="w-24"><FormLabel className="text-[#333]">Số lượng</FormLabel><FormControl><Input type="number" min="1" placeholder="Số lượng" {...field} className="text-black bg-white/80" /></FormControl><FormMessage /></FormItem>}
+                                                    render={({ field }) => (
+                                                        <FormItem className="w-24">
+                                                            <FormLabel className="text-[#333]">Số lượng</FormLabel>
+                                                            <FormControl>
+                                                                <Input type="number" min="1" placeholder="Số lượng" {...field} className="text-black bg-white/80" />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
                                                 />
-                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeSeries(index)}><XCircle className="w-5 h-5 text-red-500" /></Button>
+                                                <div className="flex-grow"></div>
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeSeries(index)}>
+                                                    <XCircle className="w-5 h-5 text-red-500" />
+                                                </Button>
                                             </div>
                                         ))}
                                     </div>
