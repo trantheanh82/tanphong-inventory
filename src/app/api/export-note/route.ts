@@ -103,24 +103,28 @@ export async function POST(request: NextRequest) {
         });
 
         seriesTires.forEach(tire => {
-            detailRecords.push({
-                fields: {
-                    export_note: { id: exportNoteId },
-                    quantity: tire.quantity,
-                    tire_type: 'Nước ngoài'
-                }
-            });
+            for (let i = 0; i < tire.quantity; i++) {
+                detailRecords.push({
+                    fields: {
+                        export_note: { id: exportNoteId },
+                        quantity: 1,
+                        tire_type: 'Nước ngoài'
+                    }
+                });
+            }
         });
         
         dotSeriesTires.forEach(tire => {
-            detailRecords.push({
-                fields: {
-                    export_note: { id: exportNoteId },
-                    dot: parseInt(tire.dot!, 10),
-                    quantity: tire.quantity,
-                    tire_type: 'Nước ngoài'
-                }
-            });
+            for (let i = 0; i < tire.quantity; i++) {
+                detailRecords.push({
+                    fields: {
+                        export_note: { id: exportNoteId },
+                        dot: parseInt(tire.dot!, 10),
+                        quantity: 1,
+                        tire_type: 'Nước ngoài'
+                    }
+                });
+            }
         });
 
         // 3. Create Export Note Details in a single batch
