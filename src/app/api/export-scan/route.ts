@@ -84,10 +84,14 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
                 return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hợp lệ.' }, { status: 400 });
             }
             if ((scanMode === 'series' || scanMode === 'both') && !seriesNumber) {
-                return NextResponse.json({ success: false, message: 'Không nhận dạng được Series.' }, { status: 400 });
+                // For 'both' mode, we might scan DOT first, then series. So this error is only for series-only mode.
+                if (scanMode === 'series') {
+                    return NextResponse.json({ success: false, message: 'Không nhận dạng được Series.' }, { status: 400 });
+                }
             }
+            // For 'both' mode, it's ok if only one is found, client state will handle the two-step process.
             if (scanMode === 'both' && !fullDotNumber && !seriesNumber) {
-                return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hay Series.' }, { status: 400 });
+                 return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hay Series.' }, { status: 400 });
             }
 
 
@@ -95,18 +99,27 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
             console.error("AI recognition error:", aiError);
             return NextResponse.json({ success: false, message: 'AI processing failed. Please try again.' }, { status: 500 });
         }
-    } else if (payloadDot && scanMode === 'dot') {
+    } else if (payloadDot && (scanMode === 'dot' || scanMode === 'both')) {
         fullDotNumber = payloadDot;
     } else if (payloadSeries && (scanMode === 'series' || scanMode === 'both')) {
         seriesNumber = payloadSeries;
-    } else if (payloadDot && (scanMode === 'series' || scanMode === 'both')) {
-         return NextResponse.json({ success: false, message: "Chế độ quét Series không hỗ trợ nhập DOT." }, { status: 400 });
-    }
-    else {
+    } else {
         return NextResponse.json({ success: false, message: "Không có thông tin để quét." }, { status: 400 });
     }
 
     const twoDigitDot = fullDotNumber ? fullDotNumber.slice(-2) : undefined;
+    
+    // For 'both' mode from camera, if only one part is recognized, return it for the client to handle the state.
+    if (scanMode === 'both' && imageDataUri && (!payloadDot || !payloadSeries)) {
+         return NextResponse.json({
+            success: true,
+            dot: twoDigitDot,
+            fullDotNumber: fullDotNumber,
+            series: seriesNumber,
+            message: "Partial scan recognized.",
+            partial: true // Flag for client
+        });
+    }
     
     const detailsResponse = await fetchNoteDetails(EXPORT_DETAIL_TBL_ID!, noteId, 'export_note', cookieHeader);
     const details = detailsResponse.records;
@@ -154,20 +167,20 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
                  if (!targetItem) return NextResponse.json({ success: false, message: `Đã quét đủ số lượng cho lốp chỉ có Series.` }, { status: 404 });
                 break;
            case 'both':
-                 if (!seriesNumber && !twoDigitDot) {
-                    return NextResponse.json({ success: false, message: 'Cần quét được Series hoặc DOT.' }, { status: 400 });
+                 if (!seriesNumber || !twoDigitDot) {
+                    return NextResponse.json({ success: false, message: 'Bắt buộc phải có cả DOT và Series cho loại lốp này.' }, { status: 400 });
                 }
 
-                // Prefer finding by both, but fall back to one if the other is missing
+                // In 'both' mode, we now require both DOT and Series to find a match.
                 targetItem = details.find((item: any) => 
                     item.fields.tire_type === 'Nước ngoài' &&
                     (item.fields.dot !== undefined && item.fields.dot !== null) &&
-                    (!twoDigitDot || String(item.fields.dot) === twoDigitDot) && // Match dot if available
+                    String(item.fields.dot) === twoDigitDot &&
                     (item.fields.scanned || 0) < item.fields.quantity
                 );
 
                 if (!targetItem) {
-                    return NextResponse.json({ success: false, message: `Lốp DOT & Series ${twoDigitDot ? ` (DOT ${twoDigitDot})` : ''} không có trong phiếu hoặc đã quét đủ.` }, { status: 404 });
+                    return NextResponse.json({ success: false, message: `Lốp DOT ${twoDigitDot} không có trong phiếu hoặc đã quét đủ.` }, { status: 404 });
                 }
                 break;
        }
@@ -258,3 +271,5 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: error.message || 'An internal server error occurred.' }, { status: 500 });
     }
 }
+
+    
