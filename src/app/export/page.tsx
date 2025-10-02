@@ -167,7 +167,7 @@ export default function ExportPage() {
                                 {/* DOT Section */}
                                 <div className="border-t border-gray-300 pt-4">
                                     <div className="flex items-center justify-between">
-                                        <FormLabel className="text-[#333] font-medium">DOT</FormLabel>
+                                        <FormLabel className="text-[#333] font-bold">DOT</FormLabel>
                                     </div>
                                     <div className="space-y-3 mt-2">
                                         {dotFields.map((field, index) => (
@@ -203,7 +203,7 @@ export default function ExportPage() {
                                 {/* Series Section */}
                                 <div className="border-t border-gray-300 pt-4">
                                     <div className="flex items-center justify-between">
-                                        <FormLabel className="text-[#333] font-medium">Series</FormLabel>
+                                        <FormLabel className="text-[#333] font-bold">Series</FormLabel>
                                     </div>
                                      <div className="space-y-3 mt-2">
                                         {seriesFields.map((field, index) => (
@@ -234,7 +234,7 @@ export default function ExportPage() {
                                 {/* DOT & Series Section */}
                                 <div className="border-t border-gray-300 pt-4">
                                     <div className="flex items-center justify-between">
-                                        <FormLabel className="text-[#333] font-medium">DOT &amp; Series</FormLabel>
+                                        <FormLabel className="text-[#333] font-bold">DOT &amp; Series</FormLabel>
                                     </div>
                                     <div className="space-y-3 mt-2">
                                         {dotSeriesFields.map((field, index) => (
@@ -286,5 +286,3 @@ export default function ExportPage() {
         </div>
     );
 }
-
-    
