@@ -211,7 +211,7 @@ export default function ExportPage() {
                                                 <FormField
                                                     control={form.control}
                                                     name={`seriesTires.${index}.quantity`}
-                                                    render={({ field }) => <FormItem className="flex-1"><FormLabel className="text-[#333]">Số lượng</FormLabel><FormControl><Input type="number" placeholder="Số lượng" {...field} className="text-black bg-white/80" /></FormControl><FormMessage /></FormItem>}
+                                                    render={({ field }) => <FormItem className="w-24"><FormLabel className="text-[#333]">Số lượng</FormLabel><FormControl><Input type="number" placeholder="Số lượng" {...field} className="text-black bg-white/80" /></FormControl><FormMessage /></FormItem>}
                                                 />
                                                 <Button type="button" variant="ghost" size="icon" onClick={() => removeSeries(index)}><XCircle className="w-5 h-5 text-red-500" /></Button>
                                             </div>
