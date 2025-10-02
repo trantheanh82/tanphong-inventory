@@ -177,7 +177,7 @@ export default function ExportPage() {
                                             className="text-[#333] hover:bg-gray-100"
                                         >
                                             <PlusCircle className="mr-2 h-4 w-4" />
-                                            Thêm DOT
+                                            Thêm
                                         </Button>
                                     </div>
                                     <div className="space-y-3 mt-2">
@@ -211,7 +211,7 @@ export default function ExportPage() {
                                             className="text-[#333] hover:bg-gray-100"
                                         >
                                             <PlusCircle className="mr-2 h-4 w-4" />
-                                            Thêm Series
+                                            Thêm
                                         </Button>
                                     </div>
                                      <div className="space-y-3 mt-2">
@@ -240,7 +240,7 @@ export default function ExportPage() {
                                             className="text-[#333] hover:bg-gray-100"
                                         >
                                             <PlusCircle className="mr-2 h-4 w-4" />
-                                            Thêm DOT & Series
+                                            Thêm
                                         </Button>
                                     </div>
                                     <div className="space-y-3 mt-2">
