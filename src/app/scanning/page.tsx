@@ -241,13 +241,33 @@ function ScanningComponent() {
         }
 
         await fetchNoteDetails();
+        const currentItems = useScanningStore.getState().items;
 
-        const allScanned = useScanningStore.getState().items.every(item => (item.scanned || 0) >= item.quantity);
-
-        if (allScanned) {
+        const allItemsInNoteScanned = currentItems.every(item => (item.scanned || 0) >= item.quantity);
+        if (allItemsInNoteScanned) {
             toast({ title: "Hoàn tất", description: "Bạn đã quét đủ số lượng cho tất cả các mục.", className: "bg-green-500 text-white" });
             setTimeout(() => router.push(`/listing?type=${noteType}`), 2000);
+            return;
         }
+
+        if (noteType === 'export') {
+            const allItemsForModeScanned = currentItems
+                .filter(item => {
+                    if (activeScanMode === 'dot') return item.tire_type === 'Nội địa' && !item.has_dot;
+                    if (activeScanMode === 'series') return item.tire_type === 'Nước ngoài' && !item.has_dot;
+                    if (activeScanMode === 'both') return item.has_dot;
+                    return false;
+                })
+                .every(item => (item.scanned || 0) >= item.quantity);
+            
+            if (allItemsForModeScanned) {
+                toast({ title: "Hoàn tất mục", description: `Đã quét đủ tất cả lốp cho chế độ này.`, className: "bg-blue-500 text-white" });
+                setActiveScanMode('none');
+                setScanStep('dot');
+                setScannedDotForBoth(null);
+            }
+        }
+
 
     } else if (!result.success) {
         toast({ variant: 'destructive', title: "Thất bại", description: result.message });
