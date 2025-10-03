@@ -18,6 +18,7 @@ async function fetchTableData(tableId: string, cookieHeader: string | null, sear
         url.searchParams.append('projection[]', 'createdTime');
         url.searchParams.append('projection[]', 'total_warranty_note');
         url.searchParams.append('projection[]', 'scanned');
+        url.searchParams.append('projection[]', 'customer');
     }
 
     const orderBy = JSON.stringify([{ fieldId: 'createdAt', order: 'desc' }]);
