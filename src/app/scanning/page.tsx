@@ -131,7 +131,7 @@ function ScanningComponent() {
                 modes.add('both');
             } else if (item.tire_type === 'Nội địa') {
                 modes.add('dot');
-            } else if (item.tire_type === 'Nước ngoài') {
+            } else if (item.tire_type === 'Nước ngoài' && !item.has_dot) { // Check has_dot is false for series only
                 modes.add('series');
             }
         }
@@ -145,17 +145,25 @@ function ScanningComponent() {
     } else if (noteType === 'warranty') {
       setActiveScanMode('series');
     } else if (noteType === 'export') {
-        if (availableScanModes.length === 1) {
-            setActiveScanMode(availableScanModes[0]);
-        } else if (availableScanModes.length > 1) {
-            if (!availableScanModes.includes(activeScanMode)) {
+        const currentAvailableModes = availableScanModes;
+        if (currentAvailableModes.length === 0 && items.length > 0) {
+            // All items scanned, prepare for redirect
+             if (items.every(item => (item.scanned || 0) >= item.quantity)) {
+                toast({ title: "Hoàn tất", description: "Bạn đã quét đủ số lượng cho tất cả các mục.", className: "bg-green-500 text-white" });
+                setTimeout(() => router.push(`/listing?type=${noteType}`), 2000);
+            }
+        } else if (currentAvailableModes.length === 1) {
+            setActiveScanMode(currentAvailableModes[0]);
+        } else if (currentAvailableModes.length > 1) {
+            // If the current mode is no longer available, switch to 'none' to force re-selection
+            if (!currentAvailableModes.includes(activeScanMode)) {
                  setActiveScanMode('none');
             }
         } else {
             setActiveScanMode('none');
         }
     }
-  }, [noteType, availableScanModes, activeScanMode]);
+  }, [noteType, availableScanModes, items, activeScanMode, router, toast]);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -240,35 +248,8 @@ function ScanningComponent() {
             setScannedDotForBoth(null);
         }
 
-        await fetchNoteDetails();
-        const currentItems = useScanningStore.getState().items;
-
-        const allItemsInNoteScanned = currentItems.every(item => (item.scanned || 0) >= item.quantity);
-        if (allItemsInNoteScanned) {
-            toast({ title: "Hoàn tất", description: "Bạn đã quét đủ số lượng cho tất cả các mục.", className: "bg-green-500 text-white" });
-            setTimeout(() => router.push(`/listing?type=${noteType}`), 2000);
-            return;
-        }
-
-        if (noteType === 'export') {
-            const allItemsForModeScanned = currentItems
-                .filter(item => {
-                    if (activeScanMode === 'dot') return item.tire_type === 'Nội địa' && !item.has_dot;
-                    if (activeScanMode === 'series') return item.tire_type === 'Nước ngoài' && !item.has_dot;
-                    if (activeScanMode === 'both') return item.has_dot;
-                    return false;
-                })
-                .every(item => (item.scanned || 0) >= item.quantity);
-            
-            if (allItemsForModeScanned) {
-                toast({ title: "Hoàn tất mục", description: `Đã quét đủ tất cả lốp cho chế độ này.`, className: "bg-blue-500 text-white" });
-                setActiveScanMode('none');
-                setScanStep('dot');
-                setScannedDotForBoth(null);
-            }
-        }
-
-
+        await fetchNoteDetails(); // This will trigger re-calculation of availableScanModes and useEffect for navigation
+        
     } else if (!result.success) {
         toast({ variant: 'destructive', title: "Thất bại", description: result.message });
         if (activeScanMode === 'both') { // If any step fails, reset the 'both' scan
@@ -646,13 +627,13 @@ function ScanningComponent() {
                                 <p className="font-semibold text-xs text-white truncate">
                                     {item.has_dot ? `DOT: ${item.dot} & Series` :
                                      item.tire_type === 'Nội địa' ? `DOT: ${item.dot}` :
-                                     item.tire_type === 'Nước ngoài' ? `Series` :
+                                     item.tire_type === 'Nước ngoài' && !item.has_dot ? `Series` :
                                      noteType === 'warranty' ? `Series: ${item.series || '...'}` : `DOT: ${item.dot !== undefined ? item.dot : '...'}`}
                                 </p>
                                 { (noteType === 'export' || noteType === 'warranty') && item.series && <p className="text-xs text-gray-400 mt-1 truncate">Series: {item.series}</p>}
                                 </div>
                                 <div className="flex items-center gap-2 pl-2">
-                                    {noteType === 'export' && (item.has_dot || item.tire_type === 'Nước ngoài') && (item.scanned > 0 || item.series) && (
+                                    {noteType === 'export' && (item.has_dot || (item.tire_type === 'Nước ngoài' && !item.has_dot)) && item.scanned > 0 && (
                                         <Button size="icon" variant="ghost" className="h-6 w-6 text-yellow-400" onClick={() => handleRescanClick(item.id)}>
                                             <RefreshCw className="w-4 h-4"/>
                                         </Button>
