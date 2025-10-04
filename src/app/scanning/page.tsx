@@ -147,15 +147,13 @@ function ScanningComponent() {
     } else if (noteType === 'export') {
         const currentAvailableModes = availableScanModes;
         if (currentAvailableModes.length === 0 && items.length > 0) {
-            // All items scanned, prepare for redirect
-             if (items.every(item => (item.scanned || 0) >= item.quantity)) {
+            if (items.every(item => (item.scanned || 0) >= item.quantity)) {
                 toast({ title: "Hoàn tất", description: "Bạn đã quét đủ số lượng cho tất cả các mục.", className: "bg-green-500 text-white" });
-                setTimeout(() => router.push(`/listing?type=${noteType}`), 2000);
+                setActiveScanMode('none'); 
             }
         } else if (currentAvailableModes.length === 1) {
             setActiveScanMode(currentAvailableModes[0]);
         } else if (currentAvailableModes.length > 1) {
-            // If the current mode is no longer available, switch to 'none' to force re-selection
             if (!currentAvailableModes.includes(activeScanMode)) {
                  setActiveScanMode('none');
             }
@@ -163,7 +161,7 @@ function ScanningComponent() {
             setActiveScanMode('none');
         }
     }
-  }, [noteType, availableScanModes, items, activeScanMode, router, toast]);
+  }, [noteType, availableScanModes, items, activeScanMode, toast]);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -248,16 +246,15 @@ function ScanningComponent() {
             setScannedDotForBoth(null);
         }
 
-        await fetchNoteDetails(); // This will trigger re-calculation of availableScanModes and useEffect for navigation
+        await fetchNoteDetails(); 
         
     } else if (!result.success) {
         toast({ variant: 'destructive', title: "Thất bại", description: result.message });
-        if (activeScanMode === 'both') { // If any step fails, reset the 'both' scan
+        if (activeScanMode === 'both') {
             setScanStep('dot');
             setScannedDotForBoth(null);
         }
     }
-    // if partial, do nothing, just let the client handle the new state
   }
   
   const submitCombinedScan = async (dot: string, series: string) => {
@@ -272,7 +269,7 @@ function ScanningComponent() {
         await handleScanResponse(result);
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
-        setScanStep('dot'); // Reset on error
+        setScanStep('dot'); 
         setScannedDotForBoth(null);
     }
     setIsSubmitting(false);
@@ -560,26 +557,6 @@ function ScanningComponent() {
         </div>
 
         <div className='p-4 space-y-4'>
-            {(noteType !== 'export' || (noteType === 'export' && activeScanMode !== 'none')) && (
-                 <form onSubmit={handleManualSubmit} className="flex gap-2">
-                    <Input 
-                        placeholder={
-                            activeScanMode === 'dot' ? 'Hoặc nhập tay DOT (2 số)...' :
-                            activeScanMode === 'series' ? 'Hoặc nhập tay số series...' :
-                            activeScanMode === 'both' ? (scanStep === 'dot' ? 'Nhập DOT (4 số)...' : 'Nhập Series...') :
-                            noteType === 'warranty' ? 'Hoặc nhập tay số series...' :
-                            'Nhập tay...'
-                        }
-                        value={manualInputValue}
-                        onChange={(e) => setManualInputValue(e.target.value.toUpperCase())}
-                        className='bg-white/20 text-white placeholder:text-gray-300 border-white/30'
-                    />
-                    <Button type="submit" size="icon" disabled={isSubmitting || !manualInputValue}>
-                        <Send className='w-5 h-5'/>
-                    </Button>
-                </form>
-            )}
-
              {scannedDotForBoth && (
                 <Alert variant="default" className="bg-blue-500/10 border-blue-500/30 text-blue-300 flex justify-between items-center">
                     <div>
