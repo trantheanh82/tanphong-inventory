@@ -35,7 +35,6 @@ function ScanningComponent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isFlashOn, setIsFlashOn] = useState(true);
-  const [manualInputValue, setManualInputValue] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -56,6 +55,7 @@ function ScanningComponent() {
     setItems,
     getTotalProgress,
     reset,
+    checkAllScanned
   } = useScanningStore();
 
   useEffect(() => {
@@ -131,7 +131,7 @@ function ScanningComponent() {
                 modes.add('both');
             } else if (item.tire_type === 'Nội địa') {
                 modes.add('dot');
-            } else if (item.tire_type === 'Nước ngoài' && !item.has_dot) { // Check has_dot is false for series only
+            } else if (item.tire_type === 'Nước ngoài' && !item.has_dot) {
                 modes.add('series');
             }
         }
@@ -146,11 +146,8 @@ function ScanningComponent() {
       setActiveScanMode('series');
     } else if (noteType === 'export') {
         const currentAvailableModes = availableScanModes;
-        if (currentAvailableModes.length === 0 && items.length > 0) {
-            if (items.every(item => (item.scanned || 0) >= item.quantity)) {
-                toast({ title: "Hoàn tất", description: "Bạn đã quét đủ số lượng cho tất cả các mục.", className: "bg-green-500 text-white" });
-                setActiveScanMode('none'); 
-            }
+        if (checkAllScanned()) {
+             setActiveScanMode('none');
         } else if (currentAvailableModes.length === 1) {
             setActiveScanMode(currentAvailableModes[0]);
         } else if (currentAvailableModes.length > 1) {
@@ -161,7 +158,7 @@ function ScanningComponent() {
             setActiveScanMode('none');
         }
     }
-  }, [noteType, availableScanModes, items, activeScanMode, toast]);
+  }, [noteType, availableScanModes, items, activeScanMode, toast, checkAllScanned]);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -242,7 +239,7 @@ function ScanningComponent() {
         
         if (rescanningItemId) setRescanningItemId(null);
         if (activeScanMode === 'both') {
-            setScanStep('dot'); // Reset for next scan
+            setScanStep('dot');
             setScannedDotForBoth(null);
         }
 
@@ -352,79 +349,10 @@ function ScanningComponent() {
       if (!response.ok) throw new Error(result.message || 'Quét bảo hành thất bại');
       
       await handleScanResponse(result);
-      if(result.success) setManualInputValue("");
 
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
     }
-  };
-
-  const handleManualSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSubmitting || !manualInputValue) return;
-
-    if (activeScanMode === 'both') {
-        if (scanStep === 'dot') {
-            const dotValue = manualInputValue;
-            if (!/^\d{4}$/.test(dotValue)) {
-                toast({ variant: 'destructive', title: "Lỗi", description: "Vui lòng nhập 4 chữ số DOT." });
-                return;
-            }
-             const twoDigitDot = dotValue.slice(-2);
-             const isValidDot = items.some(item => 
-                item.has_dot && 
-                String(item.dot) === twoDigitDot && 
-                (item.scanned || 0) < item.quantity
-              );
-            if (isValidDot) {
-                setScannedDotForBoth(dotValue);
-                setScanStep('series');
-                setManualInputValue(''); // Clear input for next step
-                toast({ title: "Thành công", description: `Đã ghi nhận DOT ${dotValue}. Giờ hãy nhập Series.` });
-            } else {
-                 toast({ variant: 'destructive', title: "DOT không hợp lệ", description: `DOT ${twoDigitDot} không có trong phiếu hoặc đã quét đủ.` });
-            }
-        } else if (scanStep === 'series' && scannedDotForBoth) {
-            const seriesValue = manualInputValue;
-            await submitCombinedScan(scannedDotForBoth, seriesValue);
-            setManualInputValue('');
-        }
-        return;
-    }
-    
-    setIsSubmitting(true);
-    
-    let endpoint = '/api/manual-scan';
-    let body: any = { noteId, noteType, valueToScan: manualInputValue };
-
-    if (noteType === 'warranty') {
-        await handleWarrantyScan({ seriesNumber: manualInputValue });
-    } else if (noteType === 'export') {
-        endpoint = '/api/export-scan';
-        body = {
-            noteId,
-            scanMode: activeScanMode,
-            seriesNumber: activeScanMode === 'series' ? manualInputValue : undefined,
-            dotNumber: activeScanMode === 'dot' ? manualInputValue : undefined,
-            rescanRecordId: rescanningItemId
-        };
-    }
-    // 'import' uses the default endpoint and body
-
-    try {
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-        const result = await response.json();
-        await handleScanResponse(result);
-        if (result.success) setManualInputValue("");
-    } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
-    }
-    
-    setIsSubmitting(false);
   };
   
   const handleRescanClick = (itemId: string) => {
@@ -437,6 +365,7 @@ function ScanningComponent() {
   };
 
   const getPageTitle = () => {
+      if (checkAllScanned()) return "Đã hoàn tất";
       if (rescanningItemId) return 'Quét lại Series';
       if (noteType === 'export') {
           if (activeScanMode === 'none') return 'Chọn Chế Độ Quét';
@@ -461,7 +390,24 @@ function ScanningComponent() {
     toast({ description: "Đã hủy quét DOT & Series." });
   }
 
+  const handleBack = () => {
+    if (noteType) {
+        router.push(`/listing?type=${noteType}`);
+    } else {
+        router.back();
+    }
+  };
+
   const renderMainScanButtons = () => {
+    if (checkAllScanned()) {
+        return (
+            <Button onClick={handleBack} className="bg-green-600 hover:bg-green-700 text-white rounded-lg p-3">
+                <CheckCircle className="w-5 h-5 mr-2" />
+                Hoàn tất, quay lại danh sách
+            </Button>
+        );
+    }
+
     if (activeScanMode !== 'none') {
         const isCaptureDisabled = isSubmitting || hasCameraPermission !== true;
         return (
@@ -521,7 +467,7 @@ function ScanningComponent() {
   return (
     <div className="flex flex-col h-full bg-gray-900">
       <header className="bg-gray-800 text-white p-4 flex items-center justify-between shadow-md sticky top-0 z-20">
-        <Button onClick={() => router.back()} variant="ghost" size="icon" className="mr-2">
+        <Button onClick={handleBack} variant="ghost" size="icon" className="mr-2">
           <ArrowLeft className="w-6 h-6" />
         </Button>
         <h1 className="text-xl font-bold text-center flex-1 truncate">{getPageTitle()}</h1>
@@ -649,3 +595,5 @@ export default function ScanningPage() {
         </Suspense>
     )
 }
+
+    
