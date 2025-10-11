@@ -84,12 +84,10 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
                 return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hợp lệ.' }, { status: 400 });
             }
             if ((scanMode === 'series' || scanMode === 'both') && !seriesNumber) {
-                // For 'both' mode, we might scan DOT first, then series. So this error is only for series-only mode.
                 if (scanMode === 'series') {
                     return NextResponse.json({ success: false, message: 'Không nhận dạng được Series.' }, { status: 400 });
                 }
             }
-            // For 'both' mode, it's ok if only one is found, client state will handle the two-step process.
             if (scanMode === 'both' && !fullDotNumber && !seriesNumber) {
                  return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hay Series.' }, { status: 400 });
             }
@@ -109,7 +107,6 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
 
     const twoDigitDot = fullDotNumber ? fullDotNumber.slice(-2) : undefined;
     
-    // For 'both' mode from camera, if only one part is recognized, return it for the client to handle the state.
     if (scanMode === 'both' && imageDataUri && (!payloadDot || !payloadSeries)) {
          return NextResponse.json({
             success: true,
@@ -130,13 +127,12 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     // --- Step 2: Check for duplicate series across the entire note ---
     if (seriesNumber) {
         for (const item of details) {
-            // When rescanning, ignore the record being rescanned from the duplicate check
             if (rescanRecordId && item.id === rescanRecordId) {
                 continue;
             }
             const existingSeries = item.fields.series ? item.fields.series.split(',').map((s: string) => s.trim()) : [];
             if (item.fields.series && existingSeries.includes(seriesNumber)) {
-                return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã có trong phiếu xuất, hãy quét series khác` }, { status: 409 });
+                return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã được quét rồi.` }, { status: 409 });
             }
         }
     }
@@ -171,7 +167,6 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
                     return NextResponse.json({ success: false, message: 'Bắt buộc phải có cả DOT và Series cho loại lốp này.' }, { status: 400 });
                 }
 
-                // In 'both' mode, we now require both DOT and Series to find a match.
                 targetItem = details.find((item: any) => 
                     item.fields.has_dot &&
                     String(item.fields.dot) === twoDigitDot &&
@@ -189,8 +184,6 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     const fieldsToUpdate: any = {};
     const isRescan = !!rescanRecordId;
     
-    // For a rescan, we are just replacing the series, not changing the count.
-    // For a new scan, we increment the count.
     const newCount = isRescan ? (targetItem.fields.scanned || 1) : (targetItem.fields.scanned || 0) + 1;
 
     if (!isRescan) {
@@ -201,15 +194,12 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         fieldsToUpdate.status = 'Đã scan đủ';
     }
     
-    // This logic handles all cases where a series number is involved ('series', 'both', 'rescan')
     if (seriesNumber) {
         const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
         if (isRescan) {
-            // This is simplified: assumes rescan on single-quantity item or you want to replace all with one.
              if (targetItem.fields.quantity === 1) {
                 fieldsToUpdate.series = seriesNumber;
              } else {
-                 // For multi-quantity items, we can't know which series to replace without more info.
                  return NextResponse.json({ success: false, message: "Quét lại cho mục số lượng lớn chưa được hỗ trợ." }, { status: 400 });
              }
         } else {
@@ -220,7 +210,6 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     
     } else if (scanMode === 'dot') {
         if (!twoDigitDot) return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hợp lệ.' }, { status: 400 });
-        // DOT scans don't involve series, so it's simpler.
         message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}).`;
     }
     
@@ -235,7 +224,6 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     };
     await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
     
-    // Only check for overall completion on a new scan, not a rescan
     if (!isRescan) {
         await updateNoteStatusIfCompleted(noteId, cookieHeader);
     }
