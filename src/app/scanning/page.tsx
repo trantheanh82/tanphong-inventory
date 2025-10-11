@@ -250,7 +250,7 @@ function ScanningComponent() {
         
     } else if (!result.success) {
         toast({ variant: 'destructive', title: "Thất bại", description: result.message });
-        if (activeScanMode === 'both') {
+        if (activeScanMode === 'both' && !result.partial && !scannedDotForBoth) {
             // Only reset if it was a final submission fail, not partial
              if (!result.partial) {
                 setScanStep('dot');
@@ -294,7 +294,7 @@ function ScanningComponent() {
 
     if (noteType === 'export') {
       endpoint = '/api/export-scan';
-      body = { noteId, imageDataUri, scanMode: activeScanMode, rescanRecordId: rescanningItemId };
+      body = { noteId, imageDataUri, scanMode: activeScanMode, rescanRecordId: rescanningItemId, dotNumber: scannedDotForBoth };
     } else if (noteType === 'warranty') {
       await handleWarrantyScan({ imageDataUri });
       setIsSubmitting(false);
@@ -601,5 +601,3 @@ export default function ScanningPage() {
         </Suspense>
     )
 }
-
-    

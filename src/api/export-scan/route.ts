@@ -34,6 +34,40 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
     return response.json();
 }
 
+async function searchRecordBySeries(series: string, cookieHeader: string | null) {
+    if (!API_ENDPOINT || !EXPORT_DETAIL_TBL_ID) {
+        throw new Error('Environment variables for API endpoint and table IDs are not set.');
+    }
+    
+    const filterObject = {
+        conjunction: 'and',
+        filterSet: [
+            { fieldId: 'series', operator: 'contains', value: series }
+        ],
+    };
+    const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
+    const url = `${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record?filter=${filterQuery}&fieldKeyType=dbFieldName`;
+    
+    const response = await apiRequest(url, 'GET', cookieHeader);
+    
+    if (!response.records || response.records.length === 0) {
+        return undefined;
+    }
+
+    // Since 'contains' can have partial matches, we must verify the full series number.
+    for (const record of response.records) {
+        if (record.fields && record.fields.series) {
+            const seriesList = record.fields.series.split(',').map((s: string) => s.trim());
+            if (seriesList.includes(series)) {
+                return record; // Return the first record with an exact match
+            }
+        }
+    }
+    
+    return undefined;
+}
+
+
 async function fetchNoteDetails(tableId: string, noteId: string, filterField: string, cookieHeader: string | null) {
     const filterObject = {
         conjunction: 'and',
@@ -77,17 +111,22 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     } else if (imageDataUri) {
         try {
             const recognizedInfo = await recognizeTireInfo(imageDataUri);
-            fullDotNumber = recognizedInfo?.dotNumber;
-            seriesNumber = recognizedInfo?.seriesNumber;
+            
+            // If the client has already scanned a DOT, trust that and only look for series
+            if (scanMode === 'both' && payloadDot) {
+                fullDotNumber = payloadDot;
+                seriesNumber = recognizedInfo?.seriesNumber;
+            } else {
+                fullDotNumber = recognizedInfo?.dotNumber;
+                seriesNumber = recognizedInfo?.seriesNumber;
+            }
+
 
             if (scanMode === 'dot' && !fullDotNumber) {
                 return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hợp lệ.' }, { status: 400 });
             }
-            if ((scanMode === 'series' || scanMode === 'both') && !seriesNumber) {
-                // For 'both' mode, we might scan DOT first, then series. So this error is only for series-only mode.
-                if (scanMode === 'series') {
-                    return NextResponse.json({ success: false, message: 'Không nhận dạng được Series.' }, { status: 400 });
-                }
+            if (scanMode === 'series' && !seriesNumber) {
+                return NextResponse.json({ success: false, message: 'Không nhận dạng được Series.' }, { status: 400 });
             }
             // For 'both' mode, it's ok if only one is found, client state will handle the two-step process.
             if (scanMode === 'both' && !fullDotNumber && !seriesNumber) {
@@ -110,7 +149,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     const twoDigitDot = fullDotNumber ? fullDotNumber.slice(-2) : undefined;
     
     // For 'both' mode from camera, if only one part is recognized, return it for the client to handle the state.
-    if (scanMode === 'both' && imageDataUri && (!payloadDot || !payloadSeries)) {
+    if (scanMode === 'both' && imageDataUri && (!payloadSeries || (seriesNumber && !payloadDot))) {
          return NextResponse.json({
             success: true,
             dot: twoDigitDot,
@@ -127,16 +166,13 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     let targetItem: any = null;
     let message = "";
     
-    // --- Step 2: Check for duplicate series across the entire note ---
+    // --- Step 2: Check for duplicate series across the entire system ---
     if (seriesNumber) {
-        for (const item of details) {
-            // When rescanning, ignore the record being rescanned from the duplicate check
-            if (rescanRecordId && item.id === rescanRecordId) {
-                continue;
-            }
-            const existingSeries = item.fields.series ? item.fields.series.split(',').map((s: string) => s.trim()) : [];
-            if (item.fields.series && existingSeries.includes(seriesNumber)) {
-                return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã có trong phiếu xuất, hãy quét series khác` }, { status: 409 });
+        const existingRecord = await searchRecordBySeries(seriesNumber, cookieHeader);
+        if (existingRecord) {
+             // Allow update if we are rescanning the *exact same* record
+            if (!rescanRecordId || existingRecord.id !== rescanRecordId) {
+                return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã có trong hệ thống, vui lòng quét lại` }, { status: 409 });
             }
         }
     }
@@ -153,14 +189,12 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
                 if (!twoDigitDot) return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hợp lệ.' }, { status: 400 });
                 targetItem = details.find((item: any) => 
                     item.fields.tire_type === 'Nội địa' &&
-                    !item.fields.has_dot &&
                     String(item.fields.dot) === twoDigitDot &&
                     (item.fields.scanned || 0) < item.fields.quantity
                 );
                 if (!targetItem) return NextResponse.json({ success: false, message: `DOT ${twoDigitDot} không có trong phiếu hoặc đã quét đủ.` }, { status: 404 });
                 break;
            case 'series':
-                if (!seriesNumber) return NextResponse.json({ success: false, message: 'Không nhận dạng được Series.' }, { status: 400 });
                 targetItem = details.find((item: any) => 
                     item.fields.tire_type === 'Nước ngoài' &&
                     !item.fields.has_dot &&
@@ -173,7 +207,6 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
                     return NextResponse.json({ success: false, message: 'Bắt buộc phải có cả DOT và Series cho loại lốp này.' }, { status: 400 });
                 }
 
-                // In 'both' mode, we now require both DOT and Series to find a match.
                 targetItem = details.find((item: any) => 
                     item.fields.has_dot &&
                     String(item.fields.dot) === twoDigitDot &&
@@ -187,16 +220,10 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
        }
     }
 
-    if (!targetItem && !rescanRecordId) {
-        return NextResponse.json({ success: false, message: 'Không tìm thấy mục phù hợp để quét trong phiếu này.' }, { status: 404 });
-    }
-
     // --- Step 4: Prepare fields for update based on scan mode ---
     const fieldsToUpdate: any = {};
     const isRescan = !!rescanRecordId;
     
-    // For a rescan, we are just replacing the series, not changing the count.
-    // For a new scan, we increment the count.
     const newCount = isRescan ? (targetItem.fields.scanned || 1) : (targetItem.fields.scanned || 0) + 1;
 
     if (!isRescan) {
@@ -207,15 +234,12 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         fieldsToUpdate.status = 'Đã scan đủ';
     }
     
-    // This logic handles all cases where a series number is involved ('series', 'both', 'rescan')
     if (seriesNumber) {
         const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
         if (isRescan) {
-            // This is simplified: assumes rescan on single-quantity item or you want to replace all with one.
              if (targetItem.fields.quantity === 1) {
                 fieldsToUpdate.series = seriesNumber;
              } else {
-                 // For multi-quantity items, we can't know which series to replace without more info.
                  return NextResponse.json({ success: false, message: "Quét lại cho mục số lượng lớn chưa được hỗ trợ." }, { status: 400 });
              }
         } else {
@@ -226,7 +250,6 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     
     } else if (scanMode === 'dot') {
         if (!twoDigitDot) return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hợp lệ.' }, { status: 400 });
-        // DOT scans don't involve series, so it's simpler.
         message = `Đã ghi nhận DOT ${twoDigitDot} (từ lốp ${fullDotNumber}).`;
     }
     
@@ -241,7 +264,6 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     };
     await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
     
-    // Only check for overall completion on a new scan, not a rescan
     if (!isRescan) {
         await updateNoteStatusIfCompleted(noteId, cookieHeader);
     }
