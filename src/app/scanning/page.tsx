@@ -145,20 +145,23 @@ function ScanningComponent() {
     } else if (noteType === 'warranty') {
       setActiveScanMode('series');
     } else if (noteType === 'export') {
-        const currentAvailableModes = availableScanModes;
         if (checkAllScanned()) {
              setActiveScanMode('none');
-        } else if (currentAvailableModes.length === 1) {
-            setActiveScanMode(currentAvailableModes[0]);
-        } else if (currentAvailableModes.length > 1) {
-            if (!currentAvailableModes.includes(activeScanMode)) {
-                 setActiveScanMode('none');
-            }
         } else {
-            setActiveScanMode('none');
+            const currentAvailableModes = availableScanModes;
+            if (currentAvailableModes.length === 1) {
+                setActiveScanMode(currentAvailableModes[0]);
+            } else if (currentAvailableModes.length > 1) {
+                // If a mode is already active and still available, keep it. Otherwise, prompt user to select.
+                if (!currentAvailableModes.includes(activeScanMode)) {
+                     setActiveScanMode('none');
+                }
+            } else {
+                setActiveScanMode('none');
+            }
         }
     }
-  }, [noteType, availableScanModes, items, activeScanMode, toast, checkAllScanned]);
+  }, [noteType, availableScanModes, items, activeScanMode, checkAllScanned]);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -248,8 +251,11 @@ function ScanningComponent() {
     } else if (!result.success) {
         toast({ variant: 'destructive', title: "Thất bại", description: result.message });
         if (activeScanMode === 'both') {
-            setScanStep('dot');
-            setScannedDotForBoth(null);
+            // Only reset if it was a final submission fail, not partial
+             if (!result.partial) {
+                setScanStep('dot');
+                setScannedDotForBoth(null);
+             }
         }
     }
   }
