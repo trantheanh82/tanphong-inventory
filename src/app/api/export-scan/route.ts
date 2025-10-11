@@ -34,6 +34,40 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
     return response.json();
 }
 
+async function searchRecordBySeries(series: string, cookieHeader: string | null) {
+    if (!API_ENDPOINT || !EXPORT_DETAIL_TBL_ID) {
+        throw new Error('Environment variables for API endpoint and table IDs are not set.');
+    }
+    
+    const filterObject = {
+        conjunction: 'and',
+        filterSet: [
+            { fieldId: 'series', operator: 'contains', value: series }
+        ],
+    };
+    const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
+    const url = `${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record?filter=${filterQuery}&fieldKeyType=dbFieldName`;
+    
+    const response = await apiRequest(url, 'GET', cookieHeader);
+    
+    if (!response.records || response.records.length === 0) {
+        return undefined;
+    }
+
+    // Since 'contains' can have partial matches, we must verify the full series number.
+    for (const record of response.records) {
+        if (record.fields && record.fields.series) {
+            const seriesList = record.fields.series.split(',').map((s: string) => s.trim());
+            if (seriesList.includes(series)) {
+                return record; // Return the first record with an exact match
+            }
+        }
+    }
+    
+    return undefined;
+}
+
+
 async function fetchNoteDetails(tableId: string, noteId: string, filterField: string, cookieHeader: string | null) {
     const filterObject = {
         conjunction: 'and',
@@ -124,15 +158,13 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     let targetItem: any = null;
     let message = "";
     
-    // --- Step 2: Check for duplicate series across the entire note ---
+    // --- Step 2: Check for duplicate series across the entire system ---
     if (seriesNumber) {
-        for (const item of details) {
-            if (rescanRecordId && item.id === rescanRecordId) {
-                continue;
-            }
-            const existingSeries = item.fields.series ? item.fields.series.split(',').map((s: string) => s.trim()) : [];
-            if (item.fields.series && existingSeries.includes(seriesNumber)) {
-                return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã được quét rồi.` }, { status: 409 });
+        const existingRecord = await searchRecordBySeries(seriesNumber, cookieHeader);
+        if (existingRecord) {
+             // Allow update if we are rescanning the *exact same* record
+            if (!rescanRecordId || existingRecord.id !== rescanRecordId) {
+                return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã có trong hệ thống, vui lòng quét lại` }, { status: 409 });
             }
         }
     }
@@ -258,3 +290,5 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: error.message || 'An internal server error occurred.' }, { status: 500 });
     }
 }
+
+    
