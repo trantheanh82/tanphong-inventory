@@ -413,7 +413,7 @@ function ScanningComponent() {
   };
 
   const renderMainScanButtons = () => {
-    if (checkAllScanned()) {
+    if (checkAllScanned() && !rescanningItemId) {
         return (
             <Button onClick={handleBack} className="bg-green-600 hover:bg-green-700 text-white rounded-lg p-3">
                 <CheckCircle className="w-5 h-5 mr-2" />
@@ -611,3 +611,5 @@ export default function ScanningPage() {
         </Suspense>
     )
 }
+
+    
