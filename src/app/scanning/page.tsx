@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 import { recognizeTireInfo } from '@/ai/flows/export-scan-flow';
 
 type ActiveScanMode = 'dot' | 'series' | 'both' | 'none';
-type ScanStep = 'dot' | 'series' | 'done';
+type ScanStep = 'dot' | 'series' | 'waiting' | 'done';
 
 interface ScanResultData {
   success: boolean;
@@ -43,8 +43,8 @@ function ScanningComponent() {
   const trackRef = useRef<MediaStreamTrack | null>(null);
 
   const [activeScanMode, setActiveScanMode] = useState<ActiveScanMode>('none');
-  const [scanStep, setScanStep] = useState<ScanStep>('dot');
   const [scannedDotForBoth, setScannedDotForBoth] = useState<string | null>(null);
+  const [scannedSeriesForBoth, setScannedSeriesForBoth] = useState<string | null>(null);
   const [rescanningItemId, setRescanningItemId] = useState<string | null>(null);
 
   const noteId = searchParams.get('noteId');
@@ -242,19 +242,20 @@ function ScanningComponent() {
         
         if (rescanningItemId) setRescanningItemId(null);
         if (activeScanMode === 'both') {
-            setScanStep('dot');
             setScannedDotForBoth(null);
+            setScannedSeriesForBoth(null);
         }
 
         await fetchNoteDetails(); 
         
     } else if (!result.success) {
         toast({ variant: 'destructive', title: "Thất bại", description: result.message });
-        if (activeScanMode === 'both' && !result.partial && !scannedDotForBoth) {
-            // Only reset if it was a final submission fail, not partial
-             if (!result.partial) {
-                setScanStep('dot');
+        if (activeScanMode === 'both' && !result.partial) {
+             if (scannedDotForBoth) {
+                // If DOT was scanned but Series failed, don't reset DOT
+             } else {
                 setScannedDotForBoth(null);
+                setScannedSeriesForBoth(null);
              }
         }
     }
@@ -272,8 +273,8 @@ function ScanningComponent() {
         await handleScanResponse(result);
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
-        setScanStep('dot'); 
         setScannedDotForBoth(null);
+        setScannedSeriesForBoth(null);
     }
     setIsSubmitting(false);
   }
@@ -294,7 +295,7 @@ function ScanningComponent() {
 
     if (noteType === 'export') {
       endpoint = '/api/export-scan';
-      body = { noteId, imageDataUri, scanMode: activeScanMode, rescanRecordId: rescanningItemId, dotNumber: scannedDotForBoth };
+      body = { noteId, imageDataUri, scanMode: activeScanMode, rescanRecordId: rescanningItemId, dotNumber: scannedDotForBoth, seriesNumber: scannedSeriesForBoth };
     } else if (noteType === 'warranty') {
       await handleWarrantyScan({ imageDataUri });
       setIsSubmitting(false);
@@ -310,28 +311,33 @@ function ScanningComponent() {
       const result: ScanResultData = await response.json();
       
       if (activeScanMode === 'both' && result.partial) {
-          if (scanStep === 'dot' && result.fullDotNumber) {
+          let tempDot = scannedDotForBoth;
+          let tempSeries = scannedSeriesForBoth;
+
+          if (result.fullDotNumber && !tempDot) {
               const twoDigitDot = result.fullDotNumber.slice(-2);
               const isValidDot = items.some(item => 
-                item.has_dot && 
-                String(item.dot) === twoDigitDot && 
-                (item.scanned || 0) < item.quantity
+                item.has_dot && String(item.dot) === twoDigitDot && (item.scanned || 0) < item.quantity
               );
-
               if (isValidDot) {
-                setScannedDotForBoth(result.fullDotNumber);
-                setScanStep('series');
-                toast({ title: "Thành công", description: `Đã nhận dạng DOT ${result.fullDotNumber}. Giờ hãy quét Series.` });
+                  setScannedDotForBoth(result.fullDotNumber);
+                  tempDot = result.fullDotNumber;
+                  toast({ title: "Thành công", description: `Đã nhận dạng DOT ${result.fullDotNumber}. Giờ hãy quét Series.` });
               } else {
-                 toast({ variant: 'destructive', title: "DOT không hợp lệ", description: `DOT ${twoDigitDot} không có trong phiếu hoặc đã quét đủ.` });
+                  toast({ variant: 'destructive', title: "DOT không hợp lệ", description: `DOT ${twoDigitDot} không có trong phiếu hoặc đã quét đủ.` });
               }
+          }
+          
+          if (result.series && !tempSeries) {
+              setScannedSeriesForBoth(result.series);
+              tempSeries = result.series;
+              toast({ title: "Thành công", description: `Đã nhận dạng Series ${result.series}. Giờ hãy quét DOT.` });
+          }
 
-          } else if (scanStep === 'series' && result.series) {
-             if (scannedDotForBoth) {
-                await submitCombinedScan(scannedDotForBoth, result.series);
-             }
-          } else {
-             toast({ variant: 'destructive', title: "Không nhận dạng được", description: scanStep === 'dot' ? "Không tìm thấy DOT. Vui lòng thử lại." : "Không tìm thấy Series. Vui lòng thử lại." });
+          if (tempDot && tempSeries) {
+              await submitCombinedScan(tempDot, tempSeries);
+          } else if (!result.fullDotNumber && !result.series) {
+               toast({ variant: 'destructive', title: "Không nhận dạng được", description: "Không tìm thấy DOT hay Series. Vui lòng thử lại." });
           }
       } else {
         await handleScanResponse(result);
@@ -378,7 +384,9 @@ function ScanningComponent() {
           if (activeScanMode === 'dot') return 'Quét DOT';
           if (activeScanMode === 'series') return 'Quét Series';
           if (activeScanMode === 'both') {
-              return scanStep === 'dot' ? 'Bước 1: Quét DOT' : 'Bước 2: Quét Series';
+              if (scannedDotForBoth) return 'Bước 2: Quét Series';
+              if (scannedSeriesForBoth) return 'Bước 2: Quét DOT';
+              return 'Bước 1: Quét DOT hoặc Series';
           }
       }
       return 'Quét Mã';
@@ -386,14 +394,14 @@ function ScanningComponent() {
 
   const handleModeButtonClick = (mode: ActiveScanMode) => {
     setActiveScanMode(mode);
-    setScanStep('dot');
     setScannedDotForBoth(null);
+    setScannedSeriesForBoth(null);
   };
   
   const cancelBothScan = () => {
-    setScanStep('dot');
     setScannedDotForBoth(null);
-    toast({ description: "Đã hủy quét DOT & Series." });
+    setScannedSeriesForBoth(null);
+    toast({ description: "Đã hủy quét. Vui lòng quét lại từ đầu." });
   }
 
   const handleBack = () => {
@@ -509,12 +517,14 @@ function ScanningComponent() {
         </div>
 
         <div className='p-4 space-y-4'>
-             {scannedDotForBoth && (
+             {(scannedDotForBoth || scannedSeriesForBoth) && (
                 <Alert variant="default" className="bg-blue-500/10 border-blue-500/30 text-blue-300 flex justify-between items-center">
                     <div>
-                        <AlertTitle>Đã ghi nhận DOT: {scannedDotForBoth}</AlertTitle>
+                        <AlertTitle>Đã ghi nhận:</AlertTitle>
                         <AlertDescription>
-                            Vui lòng quét hoặc nhập Series cho lốp này.
+                            {scannedDotForBoth && `DOT: ${scannedDotForBoth}`}
+                            {scannedDotForBoth && scannedSeriesForBoth && <br />}
+                            {scannedSeriesForBoth && `Series: ${scannedSeriesForBoth}`}
                         </AlertDescription>
                     </div>
                     <Button variant="ghost" size="icon" className="text-blue-300" onClick={cancelBothScan}>

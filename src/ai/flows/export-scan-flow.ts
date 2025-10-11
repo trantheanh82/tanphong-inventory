@@ -14,8 +14,9 @@ const TireInfoRecognitionSchema = z.object({
     .describe('The 4-digit DOT number found in the image, if visible and valid. The first two digits must be between 01-52.'),
   seriesNumber: z
     .string()
+    .max(10, 'Series number cannot be longer than 10 characters.')
     .optional()
-    .describe('The alphanumeric series number found in the image, if visible.'),
+    .describe('The alphanumeric series number found in the image, if visible and no longer than 10 characters.'),
 });
 
 export type TireInfo = z.infer<typeof TireInfoRecognitionSchema>;
@@ -30,8 +31,8 @@ export async function recognizeTireInfo(
       output: { schema: TireInfoRecognitionSchema },
       prompt: `You are an expert tire inspector. Your task is to identify the 4-digit DOT number and/or the alphanumeric series number from the provided image.
 - The DOT number is always a 4-digit number. The first two digits MUST be a valid week (01-52). If it is not a valid week (e.g., '7021'), do not return it.
-- The series number is a long alphanumeric string, often found printed on a sticker. It can be purely numeric. The number below a barcode is the Series Number.
-- Analyze the image carefully. Extract the series number and/or the DOT number. If you can only find one, return only that one.
+- The series number is a long alphanumeric string, often found printed on a sticker, and it MUST be 10 characters or less. The number below a barcode is the Series Number.
+- Analyze the image carefully. Extract the series number (max 10 chars) and/or the DOT number. If you can only find one, return only that one.
 
 Examples of valid responses:
 {"dotNumber": "4020", "seriesNumber": "A1B2C3D4"}
@@ -45,6 +46,10 @@ Image to analyze: {{media url=photoDataUri}}`,
     const { output } = await recognizeTireInfoPrompt({ photoDataUri });
     
     if (output && (output.dotNumber || output.seriesNumber)) {
+      if (output.seriesNumber && output.seriesNumber.length > 10) {
+        // AI might hallucinate despite instructions, so we double-check.
+        output.seriesNumber = undefined;
+      }
       return output;
     }
     

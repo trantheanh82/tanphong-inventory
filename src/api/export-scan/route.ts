@@ -112,15 +112,21 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         try {
             const recognizedInfo = await recognizeTireInfo(imageDataUri);
             
-            // If the client has already scanned a DOT, trust that and only look for series
-            if (scanMode === 'both' && payloadDot) {
+            // If the client has already scanned one part, use it and try to get the other from AI
+            if (payloadDot) {
                 fullDotNumber = payloadDot;
                 seriesNumber = recognizedInfo?.seriesNumber;
+            } else if (payloadSeries) {
+                seriesNumber = payloadSeries;
+                fullDotNumber = recognizedInfo?.dotNumber;
             } else {
                 fullDotNumber = recognizedInfo?.dotNumber;
                 seriesNumber = recognizedInfo?.seriesNumber;
             }
-
+            
+            if (seriesNumber && seriesNumber.length > 10) {
+              return NextResponse.json({ success: false, message: 'Series tối đa chỉ 10 số. Vui lòng quét lại.' }, { status: 400 });
+            }
 
             if (scanMode === 'dot' && !fullDotNumber) {
                 return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hợp lệ.' }, { status: 400 });
@@ -149,7 +155,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     const twoDigitDot = fullDotNumber ? fullDotNumber.slice(-2) : undefined;
     
     // For 'both' mode from camera, if only one part is recognized, return it for the client to handle the state.
-    if (scanMode === 'both' && imageDataUri && (!payloadSeries || (seriesNumber && !payloadDot))) {
+    if (scanMode === 'both' && imageDataUri && (!payloadSeries || !payloadDot)) {
          return NextResponse.json({
             success: true,
             dot: twoDigitDot,
