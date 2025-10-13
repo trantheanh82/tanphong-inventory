@@ -33,8 +33,9 @@ const itemSchema = z.object({
 });
 
 const formSchema = z.object({
-  items: z.array(itemSchema).min(1, { message: "Phải có ít nhất một lốp xe." }),
   name: z.string().min(1, { message: "Tên phiếu nhập là bắt buộc." }),
+  customer: z.string().optional(),
+  items: z.array(itemSchema).min(1, { message: "Phải có ít nhất một lốp xe." }),
 });
 
 export default function ImportPage() {
@@ -46,6 +47,7 @@ export default function ImportPage() {
         resolver: zodResolver(formSchema),
         defaultValues: {
             name: "",
+            customer: "",
             items: [{ dot: "", quantity: 1 }],
         },
     });
@@ -115,6 +117,20 @@ export default function ImportPage() {
                                         <FormLabel className="text-gray-800 font-semibold">Tên phiếu</FormLabel>
                                         <FormControl>
                                             <Input placeholder="Nhập tên phiếu nhập" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800" />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="customer"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-gray-800 font-semibold">Khách hàng</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Nhập tên khách hàng (không bắt buộc)" {...field} className="bg-white/80 rounded-xl border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-gray-800" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -200,5 +216,3 @@ export default function ImportPage() {
         </div>
     );
 }
-
-    

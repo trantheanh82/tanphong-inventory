@@ -202,7 +202,7 @@ function ListingComponent() {
                     <TableRow className="bg-gray-800 hover:bg-gray-800 border-b-2 border-gray-700">
                         <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">#</TableHead>
                         <TableHead className="sticky left-0 bg-gray-800 px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">Tên phiếu</TableHead>
-                        {filterType === 'export' && <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">Khách Hàng</TableHead>}
+                        {(filterType === 'export' || filterType === 'import') && <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">Khách Hàng</TableHead>}
                         <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">Số lượng</TableHead>
                         <TableHead className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">Ngày tạo</TableHead>
                     </TableRow>
@@ -219,7 +219,7 @@ function ListingComponent() {
                             <span>{item.fields.name}</span>
                         </div>
                     </TableCell>
-                    {filterType === 'export' && (
+                    {(filterType === 'export' || filterType === 'import') && (
                         <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
                             {item.fields.customer || '-'}
                         </TableCell>
@@ -295,7 +295,7 @@ function ListingComponent() {
                         <span className="font-semibold w-1/2">Tên Phiếu:</span>
                         <span className="w-1/2">{selectedItem.fields.name}</span>
                     </div>
-                    {filterType === 'export' && selectedItem.fields.customer && (
+                    {(filterType === 'export' || filterType === 'import') && selectedItem.fields.customer && (
                         <div className="flex">
                             <span className="font-semibold w-1/2">Khách Hàng:</span>
                             <span className="w-1/2">{selectedItem.fields.customer}</span>
