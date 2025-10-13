@@ -142,6 +142,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     
     let seriesNumber: string | undefined;
     let fullDotNumber: string | undefined;
+    let wasSeriesFromImage = false;
 
     // --- Step 1: Get DOT and Series info ---
     if (scanMode === 'both' && payloadDot && payloadSeries) {
@@ -151,26 +152,30 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         try {
             const recognizedInfo = await recognizeTireInfo(imageDataUri);
             
-            // If the client has already scanned one part, use it and try to get the other from AI
             if (payloadDot) {
                 fullDotNumber = payloadDot;
-                seriesNumber = recognizedInfo?.seriesNumber;
+                if (recognizedInfo?.seriesNumber) {
+                    seriesNumber = recognizedInfo.seriesNumber;
+                    wasSeriesFromImage = true;
+                }
             } else if (payloadSeries) {
                 seriesNumber = payloadSeries;
                 fullDotNumber = recognizedInfo?.dotNumber;
             } else {
                 fullDotNumber = recognizedInfo?.dotNumber;
-                seriesNumber = recognizedInfo?.seriesNumber;
+                if (recognizedInfo?.seriesNumber) {
+                    seriesNumber = recognizedInfo.seriesNumber;
+                    wasSeriesFromImage = true;
+                }
             }
             
             if (seriesNumber && seriesNumber.length > 10) {
               return NextResponse.json({ success: false, message: 'Series tối đa chỉ 10 số. Vui lòng quét lại.' }, { status: 400 });
             }
             
-            // --- Immediate validation for Series ---
             if (seriesNumber) {
                 const existingRecord = await searchRecordBySeries(seriesNumber, cookieHeader);
-                if (existingRecord) {
+                if (existingRecord && existingRecord.id !== rescanRecordId) {
                     return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã có trong hệ thống, vui lòng quét lại` }, { status: 409 });
                 }
             }
@@ -181,7 +186,6 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
             if (scanMode === 'series' && !seriesNumber) {
                 return NextResponse.json({ success: false, message: 'Không nhận dạng được Series.' }, { status: 400 });
             }
-            // For 'both' mode, it's ok if only one is found, client state will handle the two-step process.
             if (scanMode === 'both' && !fullDotNumber && !seriesNumber) {
                  return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hay Series.' }, { status: 400 });
             }
@@ -201,7 +205,6 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
 
     const twoDigitDot = fullDotNumber ? fullDotNumber.slice(-2) : undefined;
     
-    // For 'both' mode from camera, if only one part is recognized, return it for the client to handle the state.
     if (scanMode === 'both' && imageDataUri && (!payloadDot || !payloadSeries)) {
          return NextResponse.json({
             success: true,
@@ -209,18 +212,14 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
             fullDotNumber: fullDotNumber,
             series: seriesNumber,
             message: "Partial scan recognized.",
-            partial: true // Flag for client
+            partial: true
         });
     }
     
-    // --- Step 2: Check for duplicate series if not already checked (e.g. from client state) ---
-    if (seriesNumber && !imageDataUri) { // imageDataUri means it was already checked
+    if (seriesNumber && !imageDataUri) { 
         const existingRecord = await searchRecordBySeries(seriesNumber, cookieHeader);
-        if (existingRecord) {
-             // Allow update if we are rescanning the *exact same* record
-            if (!rescanRecordId || existingRecord.id !== rescanRecordId) {
-                return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã có trong hệ thống, vui lòng quét lại` }, { status: 409 });
-            }
+        if (existingRecord && existingRecord.id !== rescanRecordId) {
+            return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã có trong hệ thống, vui lòng quét lại` }, { status: 409 });
         }
     }
     
@@ -318,8 +317,8 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     };
     await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
     
-    if (seriesNumber && imageDataUri) {
-        await uploadAttachment(targetItem.id, imageDataUri, cookieHeader);
+    if (seriesNumber && (imageDataUri || wasSeriesFromImage)) {
+        await uploadAttachment(targetItem.id, imageDataUri!, cookieHeader);
     }
     
     if (!isRescan) {
