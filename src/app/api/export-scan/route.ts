@@ -6,6 +6,7 @@ import { cookies } from 'next/headers';
 import { recognizeTireInfo } from '@/ai/flows/export-scan-flow';
 
 const { API_ENDPOINT, EXPORT_TBL_ID, EXPORT_DETAIL_TBL_ID } = process.env;
+const SERIES_IMAGE_FIELD_ID = 'fldhfktNc02xn9CoLkX';
 
 async function apiRequest(url: string, method: string, cookieHeader: string | null, body?: any) {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -33,6 +34,44 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
 
     return response.json();
 }
+
+async function uploadAttachment(recordId: string, imageDataUri: string, cookieHeader: string | null) {
+    if (!API_ENDPOINT || !EXPORT_DETAIL_TBL_ID || !SERIES_IMAGE_FIELD_ID) {
+        console.error('Missing env vars for attachment upload');
+        return;
+    }
+
+    try {
+        const response = await fetch(imageDataUri);
+        const imageBlob = await response.blob();
+        
+        const formData = new FormData();
+        formData.append('file', imageBlob, 'series-scan.jpg');
+
+        const url = `${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record/${recordId}/${SERIES_IMAGE_FIELD_ID}/uploadAttachment`;
+
+        const headers: HeadersInit = {};
+        if (cookieHeader) {
+            headers['Cookie'] = cookieHeader;
+        }
+
+        const uploadResponse = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+            const errorText = await uploadResponse.text();
+            console.error(`Failed to upload attachment for record ${recordId}:`, errorText);
+        } else {
+            console.log(`Successfully uploaded attachment for record ${recordId}`);
+        }
+    } catch (error) {
+        console.error('Error during attachment upload:', error);
+    }
+}
+
 
 async function searchRecordBySeries(series: string, cookieHeader: string | null) {
     if (!API_ENDPOINT || !EXPORT_DETAIL_TBL_ID) {
@@ -278,6 +317,10 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         fieldKeyType: "dbFieldName"
     };
     await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
+    
+    if (seriesNumber && imageDataUri) {
+        await uploadAttachment(targetItem.id, imageDataUri, cookieHeader);
+    }
     
     if (!isRescan) {
         await updateNoteStatusIfCompleted(noteId, cookieHeader);
