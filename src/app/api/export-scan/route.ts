@@ -317,8 +317,9 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     };
     await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
     
-    if (seriesNumber && (imageDataUri || wasSeriesFromImage)) {
-        await uploadAttachment(targetItem.id, imageDataUri!, cookieHeader);
+    // Always check if an image should be uploaded if a series number is present
+    if (seriesNumber && imageDataUri) {
+        await uploadAttachment(targetItem.id, imageDataUri, cookieHeader);
     }
     
     if (!isRescan) {
