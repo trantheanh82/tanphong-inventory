@@ -23,6 +23,7 @@ export async function recognizeSeriesNumber(
       output: { schema: SeriesRecognitionSchema },
       prompt: `You are an expert tire inspector. Your task is to identify the alphanumeric series number from the provided image of a tire.
 The series number can contain letters and numbers.
+IMPORTANT: The series number never contains the letter 'O'. If you see a character that looks like 'O', it is always the number '0'. Convert it accordingly.
 Analyze the image and return the series number you find.
 Return your answer as a JSON object with a single key "seriesNumber".
 Example: {"seriesNumber": "A1B2C3D4"}
@@ -32,9 +33,11 @@ Image to analyze: {{media url=photoDataUri}}`,
 
     const llmResponse = await recognizeSeriesPrompt({ photoDataUri });
 
-    const seriesNumber = llmResponse.output?.seriesNumber;
+    let seriesNumber = llmResponse.output?.seriesNumber;
 
     if (seriesNumber && seriesNumber.length > 0) {
+      // Replace all occurrences of 'O' with '0' as a fallback.
+      seriesNumber = seriesNumber.replace(/O/g, '0');
       return seriesNumber.trim();
     }
     
