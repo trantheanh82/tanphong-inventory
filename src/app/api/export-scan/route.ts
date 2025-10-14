@@ -45,7 +45,7 @@ async function uploadAttachment(recordId: string, imageDataUri: string, cookieHe
         const imageBlob = await response.blob();
         
         const formData = new FormData();
-        formData.append('file', imageBlob, 'series-scan.jpg');
+        formData.append('file', imageBlob, 'scan.jpg');
 
         const url = `${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record/${recordId}/${SERIES_IMAGE_FIELD_ID}/uploadAttachment`;
 
@@ -141,7 +141,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     
     let seriesNumber: string | undefined;
     let fullDotNumber: string | undefined;
-    let finalImageDataUri = imageDataUri || scannedImageDataUri;
+    const finalImageDataUri = imageDataUri || scannedImageDataUri;
 
     // --- Step 1: Get DOT and Series info ---
     if (scanMode === 'both' && payloadDot && payloadSeries) {
@@ -311,7 +311,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     };
     await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
     
-    if (seriesNumber && finalImageDataUri) {
+    if (finalImageDataUri && targetItem) {
         await uploadAttachment(targetItem.id, finalImageDataUri, cookieHeader);
     }
     
@@ -350,4 +350,4 @@ export async function POST(request: NextRequest) {
     }
 }
 
-  
+    
