@@ -327,11 +327,18 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     
     if (imageDataUri && targetItem) {
         let fieldIdToUpdate: string | undefined;
-        if (scanMode === 'dot') fieldIdToUpdate = DOT_IMAGE_FIELD_ID;
-        if (scanMode === 'series') fieldIdToUpdate = SERIES_IMAGE_FIELD_ID;
-        if (scanMode === 'both' && scanType === 'series') fieldIdToUpdate = SERIES_IMAGE_FIELD_ID;
+        // In 'both' mode, we now distinguish which image to upload based on what was scanned.
+        if (scanMode === 'both') {
+            if (scanType === 'series') {
+                fieldIdToUpdate = SERIES_IMAGE_FIELD_ID;
+            } 
+            // The DOT image for 'both' mode is handled during the partial scan response.
+        } else if (scanMode === 'dot') {
+            fieldIdToUpdate = DOT_IMAGE_FIELD_ID;
+        } else if (scanMode === 'series') {
+            fieldIdToUpdate = SERIES_IMAGE_FIELD_ID;
+        }
         
-        // DOT image for 'both' is handled during partial scan
         if (fieldIdToUpdate) {
             await uploadAttachment(targetItem.id, fieldIdToUpdate, imageDataUri, cookieHeader);
         }
