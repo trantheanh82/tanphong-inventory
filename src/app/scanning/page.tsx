@@ -211,7 +211,7 @@ function ScanningComponent() {
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
     if (!context) return null;
-
+    
     const videoWidth = video.videoWidth;
     const videoHeight = video.videoHeight;
     
@@ -229,7 +229,66 @@ function ScanningComponent() {
 
     context.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
-    return canvas.toDataURL('image/jpeg', 0.8);
+    // Image processing
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    // Grayscale, Contrast, Sharpen
+    const contrast = 1.5; // (0-4)
+    const sharpenMatrix = [ 0, -1,  0,
+                           -1,  5, -1,
+                            0, -1,  0 ];
+    const sharpenFactor = 0.7; // How much to apply sharpness (0-1)
+
+    const originalData = Uint8ClampedArray.from(data);
+    const width = canvas.width;
+    const height = canvas.height;
+
+    for (let i = 0; i < data.length; i += 4) {
+        // Grayscale
+        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+        data[i] = avg;
+        data[i + 1] = avg;
+        data[i + 2] = avg;
+
+        // Contrast
+        let r = data[i];
+        let g = data[i+1];
+        let b = data[i+2];
+
+        r = (((r / 255.0 - 0.5) * contrast) + 0.5) * 255.0;
+        g = (((g / 255.0 - 0.5) * contrast) + 0.5) * 255.0;
+        b = (((b / 255.0 - 0.5) * contrast) + 0.5) * 255.0;
+
+        data[i] = Math.max(0, Math.min(255, r));
+        data[i+1] = Math.max(0, Math.min(255, g));
+        data[i+2] = Math.max(0, Math.min(255, b));
+    }
+    
+    // Sharpen
+    for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+            const i = (y * width + x) * 4;
+            let r = 0, g = 0, b = 0;
+            for (let sy = -1; sy <= 1; sy++) {
+                for (let sx = -1; sx <= 1; sx++) {
+                    const k = sharpenMatrix[(sy + 1) * 3 + (sx + 1)];
+                    const pi = ((y + sy) * width + (x + sx)) * 4;
+                    r += originalData[pi] * k;
+                    g += originalData[pi+1] * k;
+                    b += originalData[pi+2] * k;
+                }
+            }
+            
+            data[i] = data[i] * (1-sharpenFactor) + Math.max(0, Math.min(255, r)) * sharpenFactor;
+            data[i+1] = data[i+1] * (1-sharpenFactor) + Math.max(0, Math.min(255, g)) * sharpenFactor;
+            data[i+2] = data[i+2] * (1-sharpenFactor) + Math.max(0, Math.min(255, b)) * sharpenFactor;
+        }
+    }
+
+
+    context.putImageData(imageData, 0, 0);
+    return canvas.toDataURL('image/jpeg', 0.9);
   }
 
   const handleScanResponse = async (result: ScanResultData) => {
@@ -267,7 +326,7 @@ function ScanningComponent() {
         const response = await fetch('/api/export-scan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ noteId, scanMode: 'both', dotNumber: dot, seriesNumber: series }),
+            body: JSON.stringify({ noteId, scanMode: 'both', dotNumber: dot, seriesNumber: series, rescanRecordId: rescanningItemId }),
         });
         const result = await response.json();
         await handleScanResponse(result);
@@ -572,7 +631,7 @@ function ScanningComponent() {
                                 { (noteType === 'export' || noteType === 'warranty') && item.series && <p className="text-xs text-gray-400 mt-1 truncate">Series: {item.series}</p>}
                                 </div>
                                 <div className="flex items-center gap-2 pl-2">
-                                    {noteType === 'export' && (item.has_dot || (item.tire_type === 'Nước ngoài' && !item.has_dot)) && item.scanned > 0 && (
+                                    {noteType === 'export' && (item.has_dot || (item.tire_type === 'Nước ngoài' && !item.has_dot)) && item.scanned > 0 && item.quantity === 1 && (
                                         <Button size="icon" variant="ghost" className="h-6 w-6 text-yellow-400" onClick={() => handleRescanClick(item.id)}>
                                             <RefreshCw className="w-4 h-4"/>
                                         </Button>
