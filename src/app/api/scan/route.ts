@@ -9,7 +9,10 @@ const { API_ENDPOINT, DOT_IMAGE_FIELD_ID, IMPORT_DETAIL_TBL_ID, IMPORT_TBL_ID } 
 
 
 async function apiRequest(url: string, method: string, cookieHeader: string | null, body?: any, contentType: string = 'application/json') {
-    const headers: HeadersInit = { 'Content-Type': contentType };
+    const headers: HeadersInit = {};
+     if (contentType === 'application/json') {
+        headers['Content-Type'] = 'application/json';
+    }
     if (cookieHeader) {
         headers['Cookie'] = cookieHeader;
     }
@@ -49,12 +52,30 @@ async function uploadAttachment(recordId: string, tableId: string, fieldId: stri
             return;
         }
         const imageBuffer = Buffer.from(base64Data, 'base64');
+        const imageBlob = new Blob([imageBuffer], { type: 'image/jpeg' });
+
+        const formData = new FormData();
+        formData.append('file', imageBlob, 'scan.jpg');
         
-        const url = `${API_ENDPOINT}/table/${tableId}/record/${recordId}/${fieldId}/uploadAttachment?fileName=dot-scan.jpg`;
+        const url = `${API_ENDPOINT}/table/${tableId}/record/${recordId}/${fieldId}/uploadAttachment`;
+        
+        const headers: HeadersInit = {};
+        if (cookieHeader) {
+            headers['Cookie'] = cookieHeader;
+        }
 
-        await apiRequest(url, 'POST', cookieHeader, imageBuffer, 'image/jpeg');
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: headers,
+            body: formData,
+        });
 
-        console.log(`Successfully requested attachment upload for record ${recordId}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Error during attachment upload for record ${recordId}:`, errorText);
+        } else {
+            console.log(`Successfully requested attachment upload for record ${recordId} to field ${fieldId}`);
+        }
     } catch (error) {
         console.error('Error during attachment upload:', error);
     }
@@ -122,7 +143,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, message: 'AI processing failed. Please try again.' }, { status: 500 });
     }
     
-    const valueToScan = fullRecognizedDot.slice(-2); // CORRECT: Use last 2 digits for matching
+    const recognizedLastTwoDigits = fullRecognizedDot.slice(-2);
 
     let detailTableId: string | undefined;
     let noteLinkField: string | undefined;
@@ -154,10 +175,12 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: 'Could not find details for this note.' }, { status: 404 });
         }
 
-        const targetItem = details.find((item: any) => String(item.fields[dotField!]) === valueToScan);
-
+        const targetItem = details.find((item: any) => 
+            String(item.fields[dotField!]) === recognizedLastTwoDigits
+        );
+        
         if (!targetItem) {
-            return NextResponse.json({ success: false, message: `DOT **${valueToScan}** (từ lốp ${fullRecognizedDot}) không có trong phiếu.` }, { status: 404 });
+            return NextResponse.json({ success: false, message: `DOT **${recognizedLastTwoDigits}** (từ lốp ${fullRecognizedDot}) không có trong phiếu.` }, { status: 404 });
         }
 
         const currentScanned = targetItem.fields.scanned || 0;
@@ -166,10 +189,10 @@ export async function POST(request: NextRequest) {
         if (currentScanned >= totalQuantity) {
             return NextResponse.json({ 
                 success: true,
-                message: `Đã quét đủ số lượng cho DOT ${valueToScan}.`,
+                message: `Đã quét đủ số lượng cho DOT ${recognizedLastTwoDigits}.`,
                 scanned: currentScanned,
                 total: totalQuantity,
-                dot: valueToScan,
+                dot: recognizedLastTwoDigits,
                 fullDotNumber: fullRecognizedDot,
                 isCompleted: true,
                 warning: true
@@ -202,9 +225,9 @@ export async function POST(request: NextRequest) {
             await updateNoteStatusIfCompleted(noteType, noteId, cookieHeader);
         }
         
-        let overallMessage = `Đã ghi nhận DOT ${valueToScan} (từ lốp ${fullRecognizedDot}). (${newScannedCount}/${totalQuantity})`;
+        let overallMessage = `Đã ghi nhận DOT ${recognizedLastTwoDigits} (từ lốp ${fullRecognizedDot}). (${newScannedCount}/${totalQuantity})`;
         if (isItemCompleted) {
-            overallMessage = `Bạn đã quét đủ số lượng cho DOT ${valueToScan} (từ lốp ${fullRecognizedDot}) (${newScannedCount}/${totalQuantity})`;
+            overallMessage = `Bạn đã quét đủ số lượng cho DOT ${recognizedLastTwoDigits} (từ lốp ${fullRecognizedDot}) (${newScannedCount}/${totalQuantity})`;
         }
 
         return NextResponse.json({
@@ -212,7 +235,7 @@ export async function POST(request: NextRequest) {
             message: overallMessage,
             scanned: newScannedCount,
             total: totalQuantity,
-            dot: valueToScan,
+            dot: recognizedLastTwoDigits,
             fullDotNumber: fullRecognizedDot,
             isCompleted: isItemCompleted,
         });

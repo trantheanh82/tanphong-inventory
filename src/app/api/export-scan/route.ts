@@ -151,8 +151,8 @@ async function updateNoteStatusIfCompleted(noteId: string, cookieHeader: string 
     }
 }
 
-async function processScan(noteId: string, cookieHeader: string, payload: { imageDataUri?: string; scanMode: 'dot' | 'series' | 'both'; scanType?: 'dot' | 'series'; dotNumber?: string; seriesNumber?: string, rescanRecordId?: string }) {
-    const { imageDataUri, scanMode, scanType, dotNumber: payloadDot, seriesNumber: payloadSeries, rescanRecordId } = payload;
+async function processScan(noteId: string, cookieHeader: string, payload: { imageDataUri?: string; scanMode: 'dot' | 'series' | 'both'; scanType?: 'dot' | 'series'; dotNumber?: string; seriesNumber?: string, rescanRecordId?: string, recordId?: string }) {
+    const { imageDataUri, scanMode, scanType, dotNumber: payloadDot, seriesNumber: payloadSeries, rescanRecordId, recordId: existingRecordId } = payload;
     
     if (rescanRecordId) {
         // --- RESCAN LOGIC ---
@@ -186,6 +186,8 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
                 message += `Series ${newSeries}. `;
                 seriesImageUploaded = await uploadAttachment(targetItem.id, imageDataUri, SERIES_IMAGE_FIELD_ID!, cookieHeader);
             } else if (newDot) {
+                // If rescanning a DOT & Series item, we assume we're only updating the series. 
+                // Updating DOT is not a primary use case here. But we can log the image.
                 message += `DOT ${newDot}. `;
                  dotImageUploaded = await uploadAttachment(targetItem.id, imageDataUri, DOT_IMAGE_FIELD_ID!, cookieHeader);
             } else {
@@ -229,46 +231,81 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         let message = "";
         let dotImageUploaded = false;
         let seriesImageUploaded = false;
-        const existingRecordId = payload.dotNumber ? noteId : null; // Simplified, need better state management from client
 
-        // Handle first scan in a 'both' flow
-        if (scanMode === 'both' && !payloadDot && !payloadSeries) {
-             if (!recognizedDot && !recognizedSeries) {
+        // Handle second scan in a 'both' flow
+        if (existingRecordId && scanMode === 'both') {
+            targetItem = details.find((item: any) => item.id === existingRecordId);
+             if (!targetItem) {
+                return NextResponse.json({ success: false, message: "Không tìm thấy mục đã quét từ bước 1." }, { status: 404 });
+            }
+
+            const newCount = (targetItem.fields.scanned || 0) + 1;
+            fieldsToUpdate.scanned = newCount;
+             if (newCount >= targetItem.fields.quantity) {
+                fieldsToUpdate.status = 'Đã scan đủ';
+            }
+
+            if (scanType === 'dot' && recognizedDot) {
+                 const recognizedLastTwoDigits = recognizedDot.slice(-2);
+                 if (String(targetItem.fields.dot) !== recognizedLastTwoDigits) {
+                     return NextResponse.json({ success: false, message: `DOT ${recognizedLastTwoDigits} không khớp với DOT ${targetItem.fields.dot} của lốp đã chọn.` }, { status: 400 });
+                 }
+                 dotImageUploaded = await uploadAttachment(targetItem.id, imageDataUri, DOT_IMAGE_FIELD_ID!, cookieHeader);
+                 message = `Đã ghi nhận DOT ${recognizedLastTwoDigits}. Hoàn tất quét lốp.`;
+            } else if (scanType === 'series' && recognizedSeries) {
+                const duplicateRecord = await searchRecordBySeries(recognizedSeries, cookieHeader);
+                if (duplicateRecord) return NextResponse.json({ success: false, message: `Series ${recognizedSeries} đã tồn tại.` }, { status: 409 });
+                
+                seriesImageUploaded = await uploadAttachment(targetItem.id, imageDataUri, SERIES_IMAGE_FIELD_ID!, cookieHeader);
+                fieldsToUpdate.series = recognizedSeries;
+                message = `Đã ghi nhận Series ${recognizedSeries}. Hoàn tất quét lốp.`;
+            } else {
+                 return NextResponse.json({ success: false, message: "Không nhận dạng được thông tin cho bước 2." }, { status: 400 });
+            }
+
+            message += ` (${newCount}/${targetItem.fields.quantity})`;
+            const updatePayload = { records: [{ id: targetItem.id, fields: fieldsToUpdate }], fieldKeyType: "dbFieldName" };
+            await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
+            
+            await updateNoteStatusIfCompleted(noteId, cookieHeader);
+            return NextResponse.json({ success: true, message, dotImageUploaded, seriesImageUploaded, partial: false });
+        
+        } else if (scanMode === 'both') {
+            // This is the FIRST scan of a 'both' item
+            if (!recognizedDot && !recognizedSeries) {
                  return NextResponse.json({ success: false, message: 'Với chế độ này, vui lòng quét lốp có DOT hoặc Series.' }, { status: 400 });
             }
 
-            if (recognizedSeries) {
-                const duplicateRecord = await searchRecordBySeries(recognizedSeries, cookieHeader);
-                if (duplicateRecord) return NextResponse.json({ success: false, message: `Series ${recognizedSeries} đã tồn tại.` }, { status: 409 });
-            }
-
             if(recognizedDot) {
-                const twoDigitDot = recognizedDot.slice(-2);
+                const recognizedLastTwoDigits = recognizedDot.slice(-2);
                 targetItem = details.find((item: any) => 
                     item.fields.has_dot && 
-                    String(item.fields.dot) === twoDigitDot && 
+                    String(item.fields.dot) === recognizedLastTwoDigits && 
                     (item.fields.scanned || 0) < item.fields.quantity
                 );
     
-                if (!targetItem) return NextResponse.json({ success: false, message: `Lốp có DOT ${twoDigitDot} không có trong phiếu hoặc đã quét đủ.` }, { status: 404 });
+                if (!targetItem) return NextResponse.json({ success: false, message: `Lốp có DOT ${recognizedLastTwoDigits} (từ lốp ${recognizedDot}) không có trong phiếu hoặc đã quét đủ.` }, { status: 404 });
                 
                 dotImageUploaded = await uploadAttachment(targetItem.id, imageDataUri, DOT_IMAGE_FIELD_ID!, cookieHeader);
     
                 return NextResponse.json({
                     success: true,
-                    message: `Đã ghi nhận DOT ${recognizedDot}. Bây giờ hãy quét Series.`,
+                    message: `Đã ghi nhận DOT ${recognizedLastTwoDigits}. Bây giờ hãy quét Series.`,
                     partial: true,
                     recordId: targetItem.id,
                     dot: recognizedDot,
-                    series: recognizedSeries, // Can be null, client should check
-                    dotImageUploaded
+                    series: null,
+                    dotImageUploaded,
                 });
 
-            } else { // recognizedSeries must be true
+            } else { // recognizedSeries must be true here
+                 const duplicateRecord = await searchRecordBySeries(recognizedSeries, cookieHeader);
+                 if (duplicateRecord) return NextResponse.json({ success: false, message: `Series ${recognizedSeries} đã tồn tại.` }, { status: 409 });
+
                  targetItem = details.find((item: any) => 
                     item.fields.has_dot && 
                     (item.fields.scanned || 0) < item.fields.quantity &&
-                    !item.fields.series // Find one that doesn't have a series yet or has quantity > 1
+                    !item.fields.series 
                 );
                  if (!targetItem) return NextResponse.json({ success: false, message: `Không tìm thấy lốp phù hợp (có DOT, cần series) hoặc đã quét đủ.` }, { status: 404 });
 
@@ -285,31 +322,24 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
                     recordId: targetItem.id,
                     dot: null,
                     series: recognizedSeries,
-                    seriesImageUploaded
+                    seriesImageUploaded,
                 });
             }
         }
         
-        // Handle second scan in a 'both' flow OR a single scan mode
-        const recordIdForUpdate = payloadDot || payloadSeries ? noteId : null; // This logic needs client to send recordId
-        if(payload.dotNumber || payload.seriesNumber){
-             targetItem = details.find((item: any) => item.id === recordIdForUpdate);
-        }
-
-        if (!targetItem) {
-            // Logic to find target item for single scan modes
-            if (scanMode === 'dot') {
-                if (!recognizedDot) return NextResponse.json({ success: false, message: `Không nhận dạng được DOT.` }, { status: 400 });
-                const twoDigitDot = recognizedDot.slice(-2);
-                targetItem = details.find((item: any) => item.fields.tire_type === 'Nội địa' && String(item.fields.dot) === twoDigitDot && (item.fields.scanned || 0) < item.fields.quantity);
-                if (!targetItem) return NextResponse.json({ success: false, message: `DOT ${twoDigitDot} không có trong phiếu hoặc đã quét đủ.` }, { status: 404 });
-            } else if (scanMode === 'series') {
-                if (!recognizedSeries) return NextResponse.json({ success: false, message: `Không nhận dạng được Series.` }, { status: 400 });
-                const duplicateRecord = await searchRecordBySeries(recognizedSeries, cookieHeader);
-                if (duplicateRecord) return NextResponse.json({ success: false, message: `Series ${recognizedSeries} đã tồn tại.` }, { status: 409 });
-                targetItem = details.find((item: any) => item.fields.tire_type === 'Nước ngoài' && !item.fields.has_dot && (item.fields.scanned || 0) < item.fields.quantity);
-                if (!targetItem) return NextResponse.json({ success: false, message: `Đã quét đủ số lượng cho lốp chỉ có Series.` }, { status: 404 });
-            }
+        // Handle single scan modes
+        if (scanMode === 'dot') {
+            if (!recognizedDot) return NextResponse.json({ success: false, message: `Không nhận dạng được DOT.` }, { status: 400 });
+            const recognizedLastTwoDigits = recognizedDot.slice(-2);
+            targetItem = details.find((item: any) => item.fields.tire_type === 'Nội địa' && String(item.fields.dot) === recognizedLastTwoDigits && (item.fields.scanned || 0) < item.fields.quantity);
+            if (!targetItem) return NextResponse.json({ success: false, message: `DOT ${recognizedLastTwoDigits} (từ lốp ${recognizedDot}) không có trong phiếu hoặc đã quét đủ.` }, { status: 404 });
+        
+        } else if (scanMode === 'series') {
+            if (!recognizedSeries) return NextResponse.json({ success: false, message: `Không nhận dạng được Series.` }, { status: 400 });
+            const duplicateRecord = await searchRecordBySeries(recognizedSeries, cookieHeader);
+            if (duplicateRecord) return NextResponse.json({ success: false, message: `Series ${recognizedSeries} đã tồn tại.` }, { status: 409 });
+            targetItem = details.find((item: any) => item.fields.tire_type === 'Nước ngoài' && !item.fields.has_dot && (item.fields.scanned || 0) < item.fields.quantity);
+            if (!targetItem) return NextResponse.json({ success: false, message: `Đã quét đủ số lượng cho lốp chỉ có Series.` }, { status: 404 });
         }
         
         if (!targetItem) {
@@ -331,19 +361,6 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
             const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
             fieldsToUpdate.series = [...currentSeries, recognizedSeries].join(', ');
             message = `Đã ghi nhận Series ${recognizedSeries}.`;
-        } else if (scanMode === 'both') {
-            // This is the second step
-            if (scanType === 'dot' && recognizedDot) {
-                 dotImageUploaded = await uploadAttachment(targetItem.id, imageDataUri, DOT_IMAGE_FIELD_ID!, cookieHeader);
-                 message = `Đã ghi nhận DOT ${recognizedDot.slice(-2)} cho lốp.`;
-            } else if (scanType === 'series' && recognizedSeries) {
-                const duplicateRecord = await searchRecordBySeries(recognizedSeries, cookieHeader);
-                if (duplicateRecord) return NextResponse.json({ success: false, message: `Series ${recognizedSeries} đã tồn tại.` }, { status: 409 });
-                seriesImageUploaded = await uploadAttachment(targetItem.id, imageDataUri, SERIES_IMAGE_FIELD_ID!, cookieHeader);
-                const currentSeries = targetItem.fields.series ? targetItem.fields.series.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-                fieldsToUpdate.series = [...currentSeries, recognizedSeries].join(', ');
-                message = `Đã ghi nhận Series ${recognizedSeries}.`;
-            }
         }
         
         message += ` (${newCount}/${targetItem.fields.quantity})`;
@@ -352,7 +369,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         
         await updateNoteStatusIfCompleted(noteId, cookieHeader);
         
-        return NextResponse.json({ success: true, message, dotImageUploaded, seriesImageUploaded });
+        return NextResponse.json({ success: true, message, dotImageUploaded, seriesImageUploaded, partial: false });
     }
 }
 
@@ -380,5 +397,3 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: error.message || 'An internal server error occurred.' }, { status: 500 });
     }
 }
-
-    
