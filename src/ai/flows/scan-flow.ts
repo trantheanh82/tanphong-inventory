@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI flow for recognizing a 4-digit DOT number from an image of a tire.
@@ -23,22 +24,21 @@ export async function recognizeDotNumber(
       output: { schema: DotRecognitionSchema },
       prompt: `You are an expert tire inspector. Your task is to identify the 4-digit DOT number from the provided image of a tire.
 The DOT number is always a 4-digit number, often located inside an oval shape.
-The first two digits of the DOT number represent the week of manufacture and MUST be a number between 01 and 52.
-The last two digits represent the year.
-Analyze the image. If you find a valid 4-digit DOT number that meets this criteria, return it. Otherwise, do not return anything.
+Analyze the image. If you find a 4-digit number, return it.
 Return your answer as a JSON object with a single key "dotNumber".
-Example of a valid DOT: {"dotNumber": "4020"} (40th week of 2020)
-Example of an invalid number you should ignore: "7023" (because 70 is not a valid week)
+Example: {"dotNumber": "4020"}
 
 Image to analyze: {{media url=photoDataUri}}`,
     });
 
     const { output } = await recognizeDotPrompt({ photoDataUri });
 
-    // The AI prompt is already handling the validation of the week.
-    // We only need to check if the output exists and is a 4-digit string.
     if (output && output.dotNumber && /^\d{4}$/.test(output.dotNumber)) {
-      return output.dotNumber;
+      // Validate the week number in code, not in the prompt, for better reliability.
+      const week = parseInt(output.dotNumber.substring(0, 2), 10);
+      if (week >= 1 && week <= 52) {
+        return output.dotNumber;
+      }
     }
     
     return undefined;

@@ -11,7 +11,7 @@ const TireInfoRecognitionSchema = z.object({
   dotNumber: z
     .string()
     .optional()
-    .describe('The 4-digit DOT number found in the image, if visible and valid. The first two digits must be between 01-52.'),
+    .describe('The 4-digit DOT number found in the image, if visible. This is often inside an oval shape.'),
   seriesNumber: z
     .string()
     .max(10, 'Series number cannot be longer than 10 characters.')
@@ -30,10 +30,10 @@ export async function recognizeTireInfo(
       input: { schema: z.object({ photoDataUri: z.string() }) },
       output: { schema: TireInfoRecognitionSchema },
       prompt: `You are an expert tire inspector. Your task is to identify the 4-digit DOT number and/or the alphanumeric series number from the provided image.
-- The DOT number is always a 4-digit number. The first two digits MUST be a valid week (01-52). If it is not a valid week (e.g., '7021'), do not return it.
+- The DOT number is always a 4-digit number, often located inside an oval shape.
 - The series number is a long alphanumeric string, often found printed on a sticker, and it MUST be 10 characters or less. The number below a barcode is the Series Number.
 - IMPORTANT: The series number never contains the letter 'O'. If you see a character that looks like 'O', it is always the number '0'. Convert it accordingly.
-- Analyze the image carefully. Extract the series number (max 10 chars) and/or the DOT number. If you can only find one, return only that one.
+- Analyze the image carefully. Extract the series number (max 10 chars) and/or the 4-digit DOT number. If you can only find one, return only that one.
 
 Examples of valid responses:
 {"dotNumber": "4020", "seriesNumber": "A1B2C3D4"}
@@ -47,16 +47,28 @@ Image to analyze: {{media url=photoDataUri}}`,
     const { output } = await recognizeTireInfoPrompt({ photoDataUri });
     
     if (output) {
+      // Post-processing and validation in code is more reliable than in the prompt.
+      if (output.dotNumber) {
+        if (!/^\d{4}$/.test(output.dotNumber)) {
+          output.dotNumber = undefined; // Not a 4-digit number
+        } else {
+          const week = parseInt(output.dotNumber.substring(0, 2), 10);
+          if (week < 1 || week > 52) {
+            output.dotNumber = undefined; // Invalid week
+          }
+        }
+      }
+
       if (output.seriesNumber) {
         // Replace all occurrences of 'O' with '0' as a fallback.
         output.seriesNumber = output.seriesNumber.replace(/O/g, '0');
-      }
-
-      if (output.dotNumber || output.seriesNumber) {
-        if (output.seriesNumber && output.seriesNumber.length > 10) {
+        if (output.seriesNumber.length > 10) {
           // AI might hallucinate despite instructions, so we double-check.
           output.seriesNumber = undefined;
         }
+      }
+
+      if (output.dotNumber || output.seriesNumber) {
         return output;
       }
     }
