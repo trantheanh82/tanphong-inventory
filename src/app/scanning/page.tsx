@@ -29,7 +29,6 @@ interface ScanResultData {
   isCompleted?: boolean;
   warning?: boolean;
   partial?: boolean;
-  scannedImageDataUri?: string;
 }
 
 function ScanningComponent() {
@@ -47,7 +46,6 @@ function ScanningComponent() {
   const [scannedDotForBoth, setScannedDotForBoth] = useState<string | null>(null);
   const [scannedSeriesForBoth, setScannedSeriesForBoth] = useState<string | null>(null);
   const [rescanningItemId, setRescanningItemId] = useState<string | null>(null);
-  const [scannedImageDataUri, setScannedImageDataUri] = useState<string | null>(null);
 
 
   const noteId = searchParams.get('noteId');
@@ -299,7 +297,6 @@ function ScanningComponent() {
   const resetBothScanState = () => {
     setScannedDotForBoth(null);
     setScannedSeriesForBoth(null);
-    setScannedImageDataUri(null);
   };
 
   const handleScanResponse = async (result: ScanResultData) => {
@@ -329,13 +326,13 @@ function ScanningComponent() {
     }
   }
   
-  const submitCombinedScan = async (dot: string, series: string, imageUri: string | null) => {
+  const submitCombinedScan = async (dot: string, series: string, imageUri: string) => {
     setIsSubmitting(true);
     try {
         const response = await fetch('/api/export-scan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ noteId, scanMode: 'both', dotNumber: dot, seriesNumber: series, rescanRecordId: rescanningItemId, scannedImageDataUri: imageUri }),
+            body: JSON.stringify({ noteId, scanMode: 'both', dotNumber: dot, seriesNumber: series, rescanRecordId: rescanningItemId, imageDataUri: imageUri }),
         });
         const result = await response.json();
         await handleScanResponse(result);
@@ -358,11 +355,11 @@ function ScanningComponent() {
     setIsSubmitting(true);
     
     let endpoint = '/api/scan';
-    let body: any = { noteId, noteType, imageDataUri };
+    let body: any = { noteId, noteType, imageDataUri, dotNumber: scannedDotForBoth, seriesNumber: scannedSeriesForBoth, rescanRecordId: rescanningItemId };
 
     if (noteType === 'export') {
       endpoint = '/api/export-scan';
-      body = { noteId, imageDataUri, scanMode: activeScanMode, rescanRecordId: rescanningItemId, dotNumber: scannedDotForBoth, seriesNumber: scannedSeriesForBoth, scannedImageDataUri: scannedImageDataUri };
+      body.scanMode = activeScanMode;
     } else if (noteType === 'warranty') {
       await handleWarrantyScan({ imageDataUri });
       setIsSubmitting(false);
@@ -380,8 +377,6 @@ function ScanningComponent() {
       if (activeScanMode === 'both' && result.partial) {
           let tempDot = scannedDotForBoth;
           let tempSeries = scannedSeriesForBoth;
-          let finalImageUri = scannedImageDataUri || result.scannedImageDataUri || null;
-
 
           if (result.fullDotNumber && !tempDot) {
               const twoDigitDot = result.fullDotNumber.slice(-2);
@@ -402,14 +397,9 @@ function ScanningComponent() {
               tempSeries = result.series;
               toast({ title: "Thành công", description: `Đã nhận dạng Series ${result.series}. Giờ hãy quét DOT.` });
           }
-          
-          if(result.scannedImageDataUri && !scannedImageDataUri) {
-              setScannedImageDataUri(result.scannedImageDataUri);
-              finalImageUri = result.scannedImageDataUri;
-          }
 
           if (tempDot && tempSeries) {
-              await submitCombinedScan(tempDot, tempSeries, finalImageUri);
+              await submitCombinedScan(tempDot, tempSeries, imageDataUri);
           } else if (!result.fullDotNumber && !result.series) {
                toast({ variant: 'destructive', title: "Không nhận dạng được", description: "Không tìm thấy DOT hay Series. Vui lòng thử lại." });
           }
@@ -506,7 +496,7 @@ function ScanningComponent() {
       );
     }
     
-    if (checkAllScanned()) {
+    if (checkAllScanned() && !rescanningItemId) {
         return (
             <Button onClick={handleBack} className="bg-green-600 hover:bg-green-700 text-white rounded-lg p-3">
                 <CheckCircle className="w-5 h-5 mr-2" />

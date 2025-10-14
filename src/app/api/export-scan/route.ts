@@ -141,12 +141,11 @@ async function updateNoteStatusIfCompleted(noteId: string, cookieHeader: string 
     }
 }
 
-async function processScan(noteId: string, cookieHeader: string, payload: { imageDataUri?: string; scanMode: 'dot' | 'series' | 'both'; dotNumber?: string; seriesNumber?: string, rescanRecordId?: string; scannedImageDataUri?: string }) {
-    const { imageDataUri, scanMode, dotNumber: payloadDot, seriesNumber: payloadSeries, rescanRecordId, scannedImageDataUri } = payload;
+async function processScan(noteId: string, cookieHeader: string, payload: { imageDataUri?: string; scanMode: 'dot' | 'series' | 'both'; dotNumber?: string; seriesNumber?: string, rescanRecordId?: string }) {
+    const { imageDataUri, scanMode, dotNumber: payloadDot, seriesNumber: payloadSeries, rescanRecordId } = payload;
     
     let seriesNumber: string | undefined;
     let fullDotNumber: string | undefined;
-    const finalImageDataUri = imageDataUri || scannedImageDataUri;
 
     // --- Step 1: Get DOT and Series info ---
     if (scanMode === 'both' && payloadDot && payloadSeries) {
@@ -211,11 +210,10 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
             series: seriesNumber,
             message: "Partial scan recognized.",
             partial: true,
-            scannedImageDataUri: imageDataUri, // Pass the image URI back to client
         });
     }
     
-    if (seriesNumber && !finalImageDataUri) { // This handles manual entry for series
+    if (seriesNumber && !imageDataUri) { // This handles manual entry for series
         const existingRecord = await searchRecordBySeries(seriesNumber, cookieHeader);
         if (existingRecord && existingRecord.id !== rescanRecordId) {
             return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã có trong hệ thống, vui lòng quét lại` }, { status: 409 });
@@ -321,8 +319,8 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
     
     // UPLOAD ATTACHMENT FOR ALL MODES IF IMAGE IS PRESENT
-    if (finalImageDataUri && targetItem) {
-        await uploadAttachment(targetItem.id, finalImageDataUri, cookieHeader);
+    if (imageDataUri && targetItem) {
+        await uploadAttachment(targetItem.id, imageDataUri, cookieHeader);
     }
     
     if (!isRescan) {
