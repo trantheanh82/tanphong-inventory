@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { recognizeDotNumber } from '@/ai/flows/scan-flow';
 
-const { API_ENDPOINT, DOT_IMAGE_FIELD_ID, IMPORT_DETAIL_TBL_ID } = process.env;
+const { API_ENDPOINT, DOT_IMAGE_FIELD_ID, IMPORT_DETAIL_TBL_ID, IMPORT_TBL_ID } = process.env;
 
 
 async function apiRequest(url: string, method: string, cookieHeader: string | null, body?: any) {
@@ -42,8 +42,13 @@ async function uploadAttachment(recordId: string, tableId: string, fieldId: stri
     }
 
     try {
-        const response = await fetch(imageDataUri);
-        const imageBlob = await response.blob();
+        const base64Data = imageDataUri.split(',')[1];
+        if (!base64Data) {
+            console.error('Invalid imageDataUri format');
+            return;
+        }
+        const imageBuffer = Buffer.from(base64Data, 'base64');
+        const imageBlob = new Blob([imageBuffer], { type: 'image/jpeg' });
         
         const formData = new FormData();
         formData.append('file', imageBlob, 'dot-scan.jpg');

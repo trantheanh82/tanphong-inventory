@@ -41,8 +41,13 @@ async function uploadAttachment(recordId: string, imageDataUri: string, cookieHe
     }
 
     try {
-        const response = await fetch(imageDataUri);
-        const imageBlob = await response.blob();
+        const base64Data = imageDataUri.split(',')[1];
+        if (!base64Data) {
+            console.error('Invalid imageDataUri format');
+            return;
+        }
+        const imageBuffer = Buffer.from(base64Data, 'base64');
+        const imageBlob = new Blob([imageBuffer], { type: 'image/jpeg' });
         
         const formData = new FormData();
         formData.append('file', imageBlob, 'scan.jpg');
