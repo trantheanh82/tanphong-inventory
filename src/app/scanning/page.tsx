@@ -140,6 +140,9 @@ function ScanningComponent() {
   }, [items, noteType]);
 
   useEffect(() => {
+    // Do not change mode if we are in rescan mode
+    if (rescanningItemId) return;
+
     if (noteType === 'import') {
       setActiveScanMode('dot');
     } else if (noteType === 'warranty') {
@@ -161,7 +164,7 @@ function ScanningComponent() {
             }
         }
     }
-  }, [noteType, availableScanModes, items, activeScanMode, checkAllScanned]);
+  }, [noteType, availableScanModes, items, activeScanMode, checkAllScanned, rescanningItemId]);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -426,18 +429,34 @@ function ScanningComponent() {
     }
   };
   
-  const handleRescanClick = (itemId: string) => {
-    setRescanningItemId(itemId);
-    setActiveScanMode('series');
+  const handleRescanClick = (item: ScanItem) => {
+    setRescanningItemId(item.id);
+    let description = "";
+    if (item.has_dot) {
+      setActiveScanMode('both');
+      description = "Vui lòng quét lại DOT & Series cho mục đã chọn.";
+    } else if (item.tire_type === 'Nước ngoài' && !item.has_dot) {
+      setActiveScanMode('series');
+      description = "Vui lòng quét lại Series cho mục đã chọn.";
+    } else {
+      // This case should ideally not happen for rescan, but as a fallback
+      setActiveScanMode('series');
+      description = "Vui lòng quét lại thông tin cho mục đã chọn.";
+    }
+
     toast({
         title: "Chế độ quét lại",
-        description: "Vui lòng quét series mới cho mục đã chọn."
+        description: description,
     });
   };
 
   const getPageTitle = () => {
-      if (checkAllScanned()) return "Đã hoàn tất";
-      if (rescanningItemId) return 'Quét lại Series';
+      if (checkAllScanned() && !rescanningItemId) return "Đã hoàn tất";
+      if (rescanningItemId) {
+          const item = items.find(i => i.id === rescanningItemId);
+          if (item?.has_dot) return 'Quét lại DOT & Series';
+          return 'Quét lại Series';
+      }
       if (noteType === 'export') {
           if (activeScanMode === 'none') return 'Chọn Chế Độ Quét';
           if (activeScanMode === 'dot') return 'Quét DOT';
@@ -457,10 +476,20 @@ function ScanningComponent() {
     setScannedSeriesForBoth(null);
   };
   
-  const cancelBothScan = () => {
-    setScannedDotForBoth(null);
-    setScannedSeriesForBoth(null);
-    toast({ description: "Đã hủy quét. Vui lòng quét lại từ đầu." });
+  const cancelScan = () => {
+    if (rescanningItemId) {
+      setRescanningItemId(null);
+      // Reset activeScanMode to what it should be based on remaining items
+      const currentAvailableModes = availableScanModes;
+      if (currentAvailableModes.length === 1) {
+          setActiveScanMode(currentAvailableModes[0]);
+      } else {
+          setActiveScanMode('none');
+      }
+    } else if (activeScanMode === 'both' && (scannedDotForBoth || scannedSeriesForBoth)) {
+      setScannedDotForBoth(null);
+      setScannedSeriesForBoth(null);
+    }
   }
 
   const handleBack = () => {
@@ -500,10 +529,10 @@ function ScanningComponent() {
                     {rescanningItemId ? 'Quét lại' : 'Quét'}
                 </span>
                 {noteType === 'export' && !rescanningItemId && availableScanModes.length > 1 && (
-                     <Button variant="ghost" size="sm" className='text-white' onClick={() => { setActiveScanMode('none'); cancelBothScan(); }}>Chọn lại chế độ</Button>
+                     <Button variant="ghost" size="sm" className='text-white' onClick={() => { setActiveScanMode('none'); cancelScan(); }}>Chọn lại chế độ</Button>
                 )}
-                {rescanningItemId && (
-                    <Button variant="ghost" size="sm" className="text-yellow-400" onClick={() => setRescanningItemId(null)}>Hủy quét lại</Button>
+                {(rescanningItemId || (activeScanMode === 'both' && (scannedDotForBoth || scannedSeriesForBoth))) && (
+                    <Button variant="ghost" size="sm" className="text-yellow-400" onClick={cancelScan}>Hủy</Button>
                 )}
             </div>
         );
@@ -586,7 +615,7 @@ function ScanningComponent() {
                             {scannedSeriesForBoth && `Series: ${scannedSeriesForBoth}`}
                         </AlertDescription>
                     </div>
-                    <Button variant="ghost" size="icon" className="text-blue-300" onClick={cancelBothScan}>
+                    <Button variant="ghost" size="icon" className="text-blue-300" onClick={cancelScan}>
                         <X className="h-4 w-4"/>
                     </Button>
                 </Alert>
@@ -597,7 +626,7 @@ function ScanningComponent() {
                     <AlertTriangle className="h-4 w-4 text-yellow-500" />
                     <AlertTitle>Chế độ quét lại</AlertTitle>
                     <AlertDescription>
-                        Quét series mới để cập nhật cho mục đã chọn.
+                        Quét thông tin mới để cập nhật cho mục đã chọn.
                     </AlertDescription>
                 </Alert>
             )}
@@ -632,7 +661,7 @@ function ScanningComponent() {
                                 </div>
                                 <div className="flex items-center gap-2 pl-2">
                                     {noteType === 'export' && (item.has_dot || (item.tire_type === 'Nước ngoài' && !item.has_dot)) && item.scanned > 0 && item.quantity === 1 && (
-                                        <Button size="icon" variant="ghost" className="h-6 w-6 text-yellow-400" onClick={() => handleRescanClick(item.id)}>
+                                        <Button size="icon" variant="ghost" className="h-6 w-6 text-yellow-400" onClick={() => handleRescanClick(item)}>
                                             <RefreshCw className="w-4 h-4"/>
                                         </Button>
                                     )}

@@ -272,6 +272,11 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
                 break;
        }
     }
+    
+    if (!targetItem && !rescanRecordId) {
+        return NextResponse.json({ success: false, message: 'Không tìm thấy mục nào phù hợp trong phiếu để quét.' }, { status: 404 });
+    }
+
 
     // --- Step 4: Prepare fields for update based on scan mode ---
     const fieldsToUpdate: any = {};
@@ -293,6 +298,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
              if (targetItem.fields.quantity === 1) {
                 fieldsToUpdate.series = seriesNumber;
              } else {
+                 // For now, disallow rescanning items with quantity > 1 as it's ambiguous which series to replace.
                  return NextResponse.json({ success: false, message: "Quét lại cho mục số lượng lớn chưa được hỗ trợ." }, { status: 400 });
              }
         } else {
@@ -356,5 +362,3 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: error.message || 'An internal server error occurred.' }, { status: 500 });
     }
 }
-
-    
