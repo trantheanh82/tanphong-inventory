@@ -143,6 +143,8 @@ function ScanningComponent() {
   }, [items, noteType]);
 
   useEffect(() => {
+    if (rescanningItemId) return; // Don't change mode if we are rescanning
+
     if (noteType === 'import') {
       setActiveScanMode('dot');
     } else if (noteType === 'warranty') {
@@ -164,7 +166,7 @@ function ScanningComponent() {
             }
         }
     }
-  }, [noteType, availableScanModes, items, activeScanMode, checkAllScanned]);
+  }, [noteType, availableScanModes, items, activeScanMode, checkAllScanned, rescanningItemId]);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -439,18 +441,22 @@ function ScanningComponent() {
     }
   };
   
-  const handleRescanClick = (itemId: string) => {
-    setRescanningItemId(itemId);
-    setActiveScanMode('series');
+  const handleRescanClick = (item: ScanItem) => {
+    setRescanningItemId(item.id);
+    if (item.has_dot) {
+      setActiveScanMode('both');
+    } else {
+      setActiveScanMode('series');
+    }
     toast({
         title: "Chế độ quét lại",
-        description: "Vui lòng quét series mới cho mục đã chọn."
+        description: "Vui lòng quét thông tin mới cho mục đã chọn."
     });
   };
 
   const getPageTitle = () => {
       if (checkAllScanned() && !rescanningItemId) return "Đã hoàn tất";
-      if (rescanningItemId) return 'Quét lại Series';
+      if (rescanningItemId) return 'Quét lại';
       if (noteType === 'export') {
           if (activeScanMode === 'none') return 'Chọn Chế Độ Quét';
           if (activeScanMode === 'dot') return 'Quét DOT';
@@ -483,7 +489,24 @@ function ScanningComponent() {
   };
 
   const renderMainScanButtons = () => {
-    if (checkAllScanned() && !rescanningItemId) {
+    if (rescanningItemId) {
+      const isCaptureDisabled = isSubmitting || hasCameraPermission !== true;
+      return (
+            <div className="flex flex-col items-center gap-4">
+                 <Button
+                    onClick={handleCapture}
+                    disabled={isCaptureDisabled}
+                    className="h-20 w-20 bg-blue-600 text-white rounded-full text-xl font-bold flex items-center justify-center gap-3 hover:bg-blue-700 disabled:bg-gray-500 shadow-lg"
+                >
+                    {isSubmitting ? <LoaderCircle className="w-10 h-10 animate-spin" /> : <Camera className="w-10 h-10" />}
+                </Button>
+                <span className="text-white font-semibold">Quét lại</span>
+                <Button variant="ghost" size="sm" className="text-yellow-400" onClick={() => setRescanningItemId(null)}>Hủy quét lại</Button>
+            </div>
+      );
+    }
+    
+    if (checkAllScanned()) {
         return (
             <Button onClick={handleBack} className="bg-green-600 hover:bg-green-700 text-white rounded-lg p-3">
                 <CheckCircle className="w-5 h-5 mr-2" />
@@ -508,13 +531,10 @@ function ScanningComponent() {
                     )}
                 </Button>
                 <span className="text-white font-semibold">
-                    {rescanningItemId ? 'Quét lại' : 'Quét'}
+                    Quét
                 </span>
                 {noteType === 'export' && !rescanningItemId && availableScanModes.length > 1 && (
                      <Button variant="ghost" size="sm" className='text-white' onClick={() => { setActiveScanMode('none'); cancelBothScan(); }}>Chọn lại chế độ</Button>
-                )}
-                {rescanningItemId && (
-                    <Button variant="ghost" size="sm" className="text-yellow-400" onClick={() => setRescanningItemId(null)}>Hủy quét lại</Button>
                 )}
             </div>
         );
@@ -643,7 +663,7 @@ function ScanningComponent() {
                                 </div>
                                 <div className="flex items-center gap-2 pl-2">
                                     {noteType === 'export' && (item.has_dot || (item.tire_type === 'Nước ngoài' && !item.has_dot)) && item.scanned > 0 && item.quantity === 1 && (
-                                        <Button size="icon" variant="ghost" className="h-6 w-6 text-yellow-400" onClick={() => handleRescanClick(item.id)}>
+                                        <Button size="icon" variant="ghost" className="h-6 w-6 text-yellow-400" onClick={() => handleRescanClick(item)}>
                                             <RefreshCw className="w-4 h-4"/>
                                         </Button>
                                     )}
