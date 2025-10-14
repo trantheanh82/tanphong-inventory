@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: 'Could not find details for this note.' }, { status: 404 });
         }
 
-        const targetItem = details.find((item: any) => String(item.fields[dotField!]) === valueToScan);
+        const targetItem = details.find((item: any) => String(item.fields[dotField!]) === String(valueToScan));
 
         if (!targetItem) {
             return NextResponse.json({ success: false, message: `DOT ${valueToScan} không có trong phiếu nhận.` }, { status: 404 });

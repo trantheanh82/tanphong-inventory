@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
         }
 
         const targetItem = details.find((item: any) => 
-            String(item.fields[dotField!]) === recognizedLastTwoDigits
+            String(item.fields[dotField!]) === String(recognizedLastTwoDigits)
         );
         
         if (!targetItem) {

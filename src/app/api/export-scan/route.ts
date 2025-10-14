@@ -247,7 +247,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
 
             if (scanType === 'dot' && recognizedDot) {
                  const recognizedLastTwoDigits = recognizedDot.slice(-2);
-                 if (String(targetItem.fields.dot) !== recognizedLastTwoDigits) {
+                 if (String(targetItem.fields.dot) !== String(recognizedLastTwoDigits)) {
                      return NextResponse.json({ success: false, message: `DOT ${recognizedLastTwoDigits} không khớp với DOT ${targetItem.fields.dot} của lốp đã chọn.` }, { status: 400 });
                  }
                  dotImageUploaded = await uploadAttachment(targetItem.id, imageDataUri, DOT_IMAGE_FIELD_ID!, cookieHeader);
@@ -280,7 +280,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
                 const recognizedLastTwoDigits = recognizedDot.slice(-2);
                 targetItem = details.find((item: any) => 
                     item.fields.has_dot && 
-                    String(item.fields.dot) === recognizedLastTwoDigits && 
+                    String(item.fields.dot) === String(recognizedLastTwoDigits) && 
                     (item.fields.scanned || 0) < item.fields.quantity
                 );
     
@@ -299,7 +299,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
                 });
 
             } else { // recognizedSeries must be true here
-                 const duplicateRecord = await searchRecordBySeries(recognizedSeries, cookieHeader);
+                 const duplicateRecord = await searchRecordBySeries(recognizedSeries!, cookieHeader);
                  if (duplicateRecord) return NextResponse.json({ success: false, message: `Series ${recognizedSeries} đã tồn tại.` }, { status: 409 });
 
                  targetItem = details.find((item: any) => 
@@ -331,7 +331,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         if (scanMode === 'dot') {
             if (!recognizedDot) return NextResponse.json({ success: false, message: `Không nhận dạng được DOT.` }, { status: 400 });
             const recognizedLastTwoDigits = recognizedDot.slice(-2);
-            targetItem = details.find((item: any) => item.fields.tire_type === 'Nội địa' && String(item.fields.dot) === recognizedLastTwoDigits && (item.fields.scanned || 0) < item.fields.quantity);
+            targetItem = details.find((item: any) => item.fields.tire_type === 'Nội địa' && String(item.fields.dot) === String(recognizedLastTwoDigits) && (item.fields.scanned || 0) < item.fields.quantity);
             if (!targetItem) return NextResponse.json({ success: false, message: `DOT ${recognizedLastTwoDigits} (từ lốp ${recognizedDot}) không có trong phiếu hoặc đã quét đủ.` }, { status: 404 });
         
         } else if (scanMode === 'series') {
