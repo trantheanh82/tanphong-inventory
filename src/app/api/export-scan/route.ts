@@ -267,6 +267,10 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
        }
     }
 
+    if (!targetItem) {
+        return NextResponse.json({ success: false, message: "Không tìm thấy lốp phù hợp để cập nhật." }, { status: 404 });
+    }
+
     // --- Step 4: Prepare fields for update based on scan mode ---
     const fieldsToUpdate: any = {};
     const isRescan = !!rescanRecordId;
@@ -311,6 +315,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     };
     await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
     
+    // UPLOAD ATTACHMENT FOR ALL MODES IF IMAGE IS PRESENT
     if (finalImageDataUri && targetItem) {
         await uploadAttachment(targetItem.id, finalImageDataUri, cookieHeader);
     }
@@ -349,5 +354,3 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: error.message || 'An internal server error occurred.' }, { status: 500 });
     }
 }
-
-    
