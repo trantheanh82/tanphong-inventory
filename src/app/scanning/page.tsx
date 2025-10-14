@@ -3,26 +3,23 @@
 
 import { useEffect, useState, useRef, Suspense, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Camera, CheckCircle, LoaderCircle, Scan, Zap, ZapOff, Send, ScanText, Combine, AlertTriangle, X, RefreshCw, Check, XCircle } from 'lucide-react';
+import { ArrowLeft, Camera, CheckCircle, LoaderCircle, Scan, Zap, ZapOff, ScanText, Combine, AlertTriangle, X, RefreshCw, Check, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useScanningStore, ScanItem } from '@/store/scanning-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
 type ActiveScanMode = 'dot' | 'series' | 'both' | 'none';
-type ScanStep = 'dot' | 'series' | 'waiting' | 'done';
 
 interface ScanResultData {
   success: boolean;
   message: string;
   dot?: string;
-  fullDotNumber?: string;
   series?: string;
   scanned?: number;
   total?: number;
@@ -158,7 +155,6 @@ function ScanningComponent() {
   }, [items, noteType]);
 
   useEffect(() => {
-    // Do not change mode if we are in rescan mode
     if (rescanningItemId) return;
 
     if (noteType === 'import') {
@@ -259,44 +255,34 @@ function ScanningComponent() {
   };
 
   const handleScanResponse = async (result: ScanResultData) => {
-    if (result.success && !result.partial) {
-        toast({
-            title: result.warning ? 'Quét thành công (Đã đủ)' : 'Quét thành công',
-            description: result.message,
-            className: result.warning ? "bg-yellow-100 border-yellow-500 text-yellow-800" : "bg-green-100 border-green-500 text-green-800"
-        });
+    if (result.success && (result.isCompleted || result.partial)) {
+        if (result.dotImageUploaded) toast({ title: 'Thông báo', description: 'Đã tải lên hình ảnh DOT.' });
+        if (result.seriesImageUploaded) toast({ title: 'Thông báo', description: 'Đã tải lên hình ảnh Series.' });
         
-        if(result.dotImageUploaded) toast({ title: 'Thông báo', description: 'Đã tải lên hình ảnh DOT.' });
-        if(result.seriesImageUploaded) toast({ title: 'Thông báo', description: 'Đã tải lên hình ảnh Series.' });
-        
-        if (rescanningItemId) setRescanningItemId(null);
-        if (activeScanMode === 'both') {
-            resetBothScanState();
+        if (result.partial) {
+            // This is for the first step of a 'both' scan
+            setRecordIdForBoth(result.recordId!);
+            if (result.dot) {
+                setScannedDotForBoth(result.dot);
+                toast({ title: "Bước 1 Thành công", description: result.message });
+            } else if (result.series) {
+                setScannedSeriesForBoth(result.series);
+                 toast({ title: "Bước 1 Thành công", description: result.message });
+            }
+        } else {
+             toast({
+                title: result.warning ? 'Quét thành công (Đã đủ)' : 'Quét thành công',
+                description: result.message,
+                className: result.warning ? "bg-yellow-100 border-yellow-500 text-yellow-800" : "bg-green-100 border-green-500 text-green-800"
+            });
+            if (rescanningItemId) setRescanningItemId(null);
+            if (activeScanMode === 'both') resetBothScanState();
+            await fetchNoteDetails(); 
         }
-
-        await fetchNoteDetails(); 
-        
-    } else if (result.success && result.partial) {
-        // This is for the first step of a 'both' scan
-        setRecordIdForBoth(result.recordId!);
-        if (result.dot) {
-            setScannedDotForBoth(result.dot);
-            toast({ title: "Bước 1 Thành công", description: result.message });
-        } else if (result.series) {
-            setScannedSeriesForBoth(result.series);
-             toast({ title: "Bước 1 Thành công", description: result.message });
-        }
-        if(result.dotImageUploaded) toast({ title: 'Thông báo', description: 'Đã tải lên hình ảnh DOT.' });
-        if(result.seriesImageUploaded) toast({ title: 'Thông báo', description: 'Đã tải lên hình ảnh Series.' });
-
     } else if (!result.success) {
         toast({ variant: 'destructive', title: "Thất bại", description: result.message });
-        // Don't reset state if it was a partial success on the server that client rejected
-        if (activeScanMode === 'both' && !result.partial) {
-             if (scannedDotForBoth) {
-             } else {
-                resetBothScanState();
-             }
+        if (activeScanMode === 'both' && !result.partial && !scannedDotForBoth) {
+             resetBothScanState();
         }
     }
   }
@@ -304,23 +290,12 @@ function ScanningComponent() {
   const proceedWithScan = async (data: ConfirmationData) => {
     setIsSubmitting(true);
     let endpoint = '/api/scan';
-    let scanTypeForApi: 'dot' | 'series' | undefined = undefined;
-
-    // This is the second step of a "both" scan.
-    const isSecondStepOfBoth = data.scanMode === 'both' && (scannedDotForBoth || scannedSeriesForBoth);
-    
-    if (isSecondStepOfBoth) {
-      scanTypeForApi = scannedDotForBoth ? 'series' : 'dot';
-    }
     
     let body: any = { 
         noteId, 
         noteType, 
         imageDataUri: data.imageUri, 
-        dotNumber: data.scannedDot || scannedDotForBoth, 
-        seriesNumber: data.scannedSeries || scannedSeriesForBoth,
         rescanRecordId: rescanningItemId,
-        scanType: scanTypeForApi,
         recordId: recordIdForBoth,
     };
 
@@ -328,7 +303,7 @@ function ScanningComponent() {
       endpoint = '/api/export-scan';
       body.scanMode = data.scanMode;
     } else if (noteType === 'warranty') {
-      await handleWarrantyScan({ imageDataUri: data.imageUri, seriesNumber: data.scannedSeries! });
+      await handleWarrantyScan({ imageDataUri: data.imageUri });
       setIsSubmitting(false);
       return;
     }
@@ -358,96 +333,15 @@ function ScanningComponent() {
         return;
     }
     
-    setIsSubmitting(true);
-    
-    try {
-      const recogResponse = await fetch('/api/recognize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageDataUri }),
-      });
-
-      const recogResult = await recogResponse.json();
-      if (!recogResult.success) {
-        throw new Error(recogResult.message || 'Không nhận dạng được thông tin.');
-      }
-      
-      const scannedDot = recogResult.dotNumber || null;
-      const scannedSeries = recogResult.seriesNumber || null;
-
-      let expectedDot: string | null = null;
-      let isMatch: boolean | null = null;
-      
-      let isReadyToProceed = false;
-
-      // Handle the first scan of a "both" process
-      if (activeScanMode === 'both' && !scannedDotForBoth && !scannedSeriesForBoth) {
-          if (scannedDot) {
-              const lastTwoDigits = scannedDot.slice(-2);
-              const targetItem = items.find(item => item.has_dot && String(item.dot) === lastTwoDigits && item.scanned < item.quantity);
-              isMatch = !!targetItem;
-              expectedDot = targetItem ? String(targetItem.dot) : lastTwoDigits;
-              isReadyToProceed = true;
-          } else if (scannedSeries) {
-              isMatch = true; // For series, we can't pre-match, so we assume it's okay to proceed
-              isReadyToProceed = true;
-          } else {
-               throw new Error('Không nhận dạng được DOT hay Series.');
-          }
-      // Handle the second scan of a "both" process
-      } else if (activeScanMode === 'both' && (scannedDotForBoth || scannedSeriesForBoth)) {
-          if (scannedDotForBoth && scannedSeries) { // Have DOT, now scanning Series
-               isMatch = true; // Can't pre-match series
-               isReadyToProceed = true;
-          } else if (scannedSeriesForBoth && scannedDot) { // Have Series, now scanning DOT
-              const lastTwoDigits = scannedDot.slice(-2);
-              const targetItem = items.find(item => item.id === recordIdForBoth);
-              expectedDot = targetItem ? String(targetItem.dot) : null;
-              isMatch = expectedDot === lastTwoDigits;
-              isReadyToProceed = true;
-          } else {
-               throw new Error('Không nhận dạng được thông tin cần thiết cho bước 2.');
-          }
-      }
-      // Handle single DOT scan modes
-      else if (activeScanMode === 'dot') {
-          if (!scannedDot) {
-              throw new Error('Không nhận dạng được DOT 4 chữ số.');
-          }
-          const lastTwoDigits = scannedDot.slice(-2);
-          const targetItem = items.find(item => String(item.dot) === lastTwoDigits && item.scanned < item.quantity);
-          expectedDot = targetItem ? String(targetItem.dot) : lastTwoDigits;
-          isMatch = !!targetItem;
-          isReadyToProceed = true;
-      }
-      // Handle single Series scan modes or warranty
-      else if (activeScanMode === 'series') {
-          if (!scannedSeries) {
-              throw new Error('Không nhận dạng được Series.');
-          }
-          isMatch = true; // Can't pre-match series
-          isReadyToProceed = true;
-      }
-      
-      if (isReadyToProceed) {
-          setConfirmationData({
-              imageUri: imageDataUri,
-              scannedDot: scannedDot,
-              scannedSeries: scannedSeries,
-              expectedDot: expectedDot,
-              isMatch: isMatch,
-              scanMode: activeScanMode
-          });
-          setIsConfirmationOpen(true);
-      } else {
-          throw new Error('Chế độ quét không hợp lệ hoặc không có thông tin nhận dạng.');
-      }
-
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Lỗi Nhận Dạng', description: error.message });
-    }
-
-    setIsSubmitting(false);
+    setIsConfirmationOpen(true);
+    setConfirmationData({
+        imageUri: imageDataUri,
+        scannedDot: null,
+        scannedSeries: null,
+        expectedDot: null,
+        isMatch: null,
+        scanMode: activeScanMode
+    });
   };
   
   const handleWarrantyScan = async (scanPayload: { imageDataUri?: string; seriesNumber?: string }) => {
@@ -519,7 +413,6 @@ function ScanningComponent() {
   const cancelScan = () => {
     if (rescanningItemId) {
       setRescanningItemId(null);
-      // Reset activeScanMode to what it should be based on remaining items
       const currentAvailableModes = availableScanModes;
       if (currentAvailableModes.length === 1) {
           setActiveScanMode(currentAvailableModes[0]);
@@ -527,9 +420,7 @@ function ScanningComponent() {
           setActiveScanMode('none');
       }
     } else if (activeScanMode === 'both' && (scannedDotForBoth || scannedSeriesForBoth)) {
-      setScannedDotForBoth(null);
-      setScannedSeriesForBoth(null);
-      setRecordIdForBoth(null);
+      resetBothScanState();
     }
   }
 
@@ -756,39 +647,6 @@ function ScanningComponent() {
                     <div className="relative w-full aspect-video rounded-md overflow-hidden border">
                         <Image src={confirmationData.imageUri} alt="Captured scan" layout="fill" objectFit="contain" />
                     </div>
-                    <div className="space-y-2 text-sm">
-                        {confirmationData.scannedDot && (
-                            <div className="flex justify-between items-center">
-                                <span className="font-semibold text-gray-600">DOT quét được:</span>
-                                <span className="font-bold text-lg text-black">{confirmationData.scannedDot}</span>
-                            </div>
-                        )}
-                        {confirmationData.scannedSeries && (
-                             <div className="flex justify-between items-center">
-                                <span className="font-semibold text-gray-600">Series quét được:</span>
-                                <span className="font-bold text-base text-black break-all">{confirmationData.scannedSeries}</span>
-                            </div>
-                        )}
-                         {confirmationData.expectedDot && (
-                            <div className="flex justify-between items-center">
-                                <span className="font-semibold text-gray-600">DOT cần quét:</span>
-                                <span className="font-bold text-lg text-black">{confirmationData.expectedDot}</span>
-                            </div>
-                        )}
-                        {confirmationData.isMatch !== null && (
-                            <div className={cn("flex justify-between items-center p-2 rounded-md", confirmationData.isMatch ? "bg-green-100" : "bg-red-100")}>
-                                <span className={cn("font-semibold", confirmationData.isMatch ? "text-green-800" : "text-red-800")}>
-                                    Kết quả:
-                                </span>
-                                <div className="flex items-center gap-2">
-                                     <span className={cn("font-bold text-lg", confirmationData.isMatch ? "text-green-800" : "text-red-800")}>
-                                        {confirmationData.isMatch ? "TRÙNG KHỚP" : "KHÔNG KHỚP"}
-                                    </span>
-                                    {confirmationData.isMatch ? <CheckCircle className="w-5 h-5 text-green-600" /> : <XCircle className="w-5 h-5 text-red-600" />}
-                                </div>
-                            </div>
-                        )}
-                    </div>
                 </div>
                 <DialogFooter>
                     <Button variant="ghost" onClick={() => setIsConfirmationOpen(false)}>Hủy</Button>
@@ -797,8 +655,7 @@ function ScanningComponent() {
                             setIsConfirmationOpen(false);
                             proceedWithScan(confirmationData);
                         }}
-                        disabled={confirmationData.isMatch === false}
-                        className="bg-gray-800 hover:bg-gray-900 text-white disabled:bg-gray-400"
+                        className="bg-gray-800 hover:bg-gray-900 text-white"
                     >
                         Xác nhận
                     </Button>
@@ -818,3 +675,5 @@ export default function ScanningPage() {
         </Suspense>
     )
 }
+
+    
