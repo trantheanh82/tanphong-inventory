@@ -29,6 +29,7 @@ interface ScanResultData {
   isCompleted?: boolean;
   warning?: boolean;
   partial?: boolean;
+  scannedImageDataUri?: string;
 }
 
 function ScanningComponent() {
@@ -46,6 +47,8 @@ function ScanningComponent() {
   const [scannedDotForBoth, setScannedDotForBoth] = useState<string | null>(null);
   const [scannedSeriesForBoth, setScannedSeriesForBoth] = useState<string | null>(null);
   const [rescanningItemId, setRescanningItemId] = useState<string | null>(null);
+  const [scannedImageDataUri, setScannedImageDataUri] = useState<string | null>(null);
+
 
   const noteId = searchParams.get('noteId');
   const noteType = searchParams.get('type') as 'import' | 'export' | 'warranty';
@@ -291,6 +294,12 @@ function ScanningComponent() {
     return canvas.toDataURL('image/jpeg', 0.9);
   }
 
+  const resetBothScanState = () => {
+    setScannedDotForBoth(null);
+    setScannedSeriesForBoth(null);
+    setScannedImageDataUri(null);
+  };
+
   const handleScanResponse = async (result: ScanResultData) => {
     if (result.success && !result.partial) {
         toast({
@@ -301,8 +310,7 @@ function ScanningComponent() {
         
         if (rescanningItemId) setRescanningItemId(null);
         if (activeScanMode === 'both') {
-            setScannedDotForBoth(null);
-            setScannedSeriesForBoth(null);
+            resetBothScanState();
         }
 
         await fetchNoteDetails(); 
@@ -313,27 +321,25 @@ function ScanningComponent() {
              if (scannedDotForBoth) {
                 // If DOT was scanned but Series failed, don't reset DOT
              } else {
-                setScannedDotForBoth(null);
-                setScannedSeriesForBoth(null);
+                resetBothScanState();
              }
         }
     }
   }
   
-  const submitCombinedScan = async (dot: string, series: string) => {
+  const submitCombinedScan = async (dot: string, series: string, imageUri: string | null) => {
     setIsSubmitting(true);
     try {
         const response = await fetch('/api/export-scan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ noteId, scanMode: 'both', dotNumber: dot, seriesNumber: series, rescanRecordId: rescanningItemId }),
+            body: JSON.stringify({ noteId, scanMode: 'both', dotNumber: dot, seriesNumber: series, rescanRecordId: rescanningItemId, scannedImageDataUri: imageUri }),
         });
         const result = await response.json();
         await handleScanResponse(result);
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
-        setScannedDotForBoth(null);
-        setScannedSeriesForBoth(null);
+        resetBothScanState();
     }
     setIsSubmitting(false);
   }
@@ -354,7 +360,7 @@ function ScanningComponent() {
 
     if (noteType === 'export') {
       endpoint = '/api/export-scan';
-      body = { noteId, imageDataUri, scanMode: activeScanMode, rescanRecordId: rescanningItemId, dotNumber: scannedDotForBoth, seriesNumber: scannedSeriesForBoth };
+      body = { noteId, imageDataUri, scanMode: activeScanMode, rescanRecordId: rescanningItemId, dotNumber: scannedDotForBoth, seriesNumber: scannedSeriesForBoth, scannedImageDataUri: scannedImageDataUri };
     } else if (noteType === 'warranty') {
       await handleWarrantyScan({ imageDataUri });
       setIsSubmitting(false);
@@ -372,6 +378,8 @@ function ScanningComponent() {
       if (activeScanMode === 'both' && result.partial) {
           let tempDot = scannedDotForBoth;
           let tempSeries = scannedSeriesForBoth;
+          let finalImageUri = scannedImageDataUri || result.scannedImageDataUri || null;
+
 
           if (result.fullDotNumber && !tempDot) {
               const twoDigitDot = result.fullDotNumber.slice(-2);
@@ -392,9 +400,14 @@ function ScanningComponent() {
               tempSeries = result.series;
               toast({ title: "Thành công", description: `Đã nhận dạng Series ${result.series}. Giờ hãy quét DOT.` });
           }
+          
+          if(result.scannedImageDataUri && !scannedImageDataUri) {
+              setScannedImageDataUri(result.scannedImageDataUri);
+              finalImageUri = result.scannedImageDataUri;
+          }
 
           if (tempDot && tempSeries) {
-              await submitCombinedScan(tempDot, tempSeries);
+              await submitCombinedScan(tempDot, tempSeries, finalImageUri);
           } else if (!result.fullDotNumber && !result.series) {
                toast({ variant: 'destructive', title: "Không nhận dạng được", description: "Không tìm thấy DOT hay Series. Vui lòng thử lại." });
           }
@@ -436,7 +449,7 @@ function ScanningComponent() {
   };
 
   const getPageTitle = () => {
-      if (checkAllScanned()) return "Đã hoàn tất";
+      if (checkAllScanned() && !rescanningItemId) return "Đã hoàn tất";
       if (rescanningItemId) return 'Quét lại Series';
       if (noteType === 'export') {
           if (activeScanMode === 'none') return 'Chọn Chế Độ Quét';
@@ -453,13 +466,11 @@ function ScanningComponent() {
 
   const handleModeButtonClick = (mode: ActiveScanMode) => {
     setActiveScanMode(mode);
-    setScannedDotForBoth(null);
-    setScannedSeriesForBoth(null);
+    resetBothScanState();
   };
   
   const cancelBothScan = () => {
-    setScannedDotForBoth(null);
-    setScannedSeriesForBoth(null);
+    resetBothScanState();
     toast({ description: "Đã hủy quét. Vui lòng quét lại từ đầu." });
   }
 
@@ -672,3 +683,4 @@ export default function ScanningPage() {
 }
 
     
+  

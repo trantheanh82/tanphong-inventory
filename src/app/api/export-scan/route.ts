@@ -5,8 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { recognizeTireInfo } from '@/ai/flows/export-scan-flow';
 
-const { API_ENDPOINT, EXPORT_TBL_ID, EXPORT_DETAIL_TBL_ID } = process.env;
-const SERIES_IMAGE_FIELD_ID = 'fldhfktNc02xn9CoLkX';
+const { API_ENDPOINT, EXPORT_TBL_ID, EXPORT_DETAIL_TBL_ID, SERIES_IMAGE_FIELD_ID } = process.env;
 
 async function apiRequest(url: string, method: string, cookieHeader: string | null, body?: any) {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -137,11 +136,12 @@ async function updateNoteStatusIfCompleted(noteId: string, cookieHeader: string 
     }
 }
 
-async function processScan(noteId: string, cookieHeader: string, payload: { imageDataUri?: string; scanMode: 'dot' | 'series' | 'both'; dotNumber?: string; seriesNumber?: string, rescanRecordId?: string }) {
-    const { imageDataUri, scanMode, dotNumber: payloadDot, seriesNumber: payloadSeries, rescanRecordId } = payload;
+async function processScan(noteId: string, cookieHeader: string, payload: { imageDataUri?: string; scanMode: 'dot' | 'series' | 'both'; dotNumber?: string; seriesNumber?: string, rescanRecordId?: string; scannedImageDataUri?: string }) {
+    const { imageDataUri, scanMode, dotNumber: payloadDot, seriesNumber: payloadSeries, rescanRecordId, scannedImageDataUri } = payload;
     
     let seriesNumber: string | undefined;
     let fullDotNumber: string | undefined;
+    let finalImageDataUri = imageDataUri || scannedImageDataUri;
 
     // --- Step 1: Get DOT and Series info ---
     if (scanMode === 'both' && payloadDot && payloadSeries) {
@@ -198,18 +198,19 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
 
     const twoDigitDot = fullDotNumber ? fullDotNumber.slice(-2) : undefined;
     
-    if (scanMode === 'both' && imageDataUri && (!payloadDot || !payloadSeries)) {
+    if (scanMode === 'both' && imageDataUri && (!fullDotNumber || !seriesNumber)) {
          return NextResponse.json({
             success: true,
             dot: twoDigitDot,
             fullDotNumber: fullDotNumber,
             series: seriesNumber,
             message: "Partial scan recognized.",
-            partial: true
+            partial: true,
+            scannedImageDataUri: imageDataUri, // Pass the image URI back to client
         });
     }
     
-    if (seriesNumber && !imageDataUri) { // This handles manual entry for series
+    if (seriesNumber && !finalImageDataUri) { // This handles manual entry for series
         const existingRecord = await searchRecordBySeries(seriesNumber, cookieHeader);
         if (existingRecord && existingRecord.id !== rescanRecordId) {
             return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã có trong hệ thống, vui lòng quét lại` }, { status: 409 });
@@ -310,9 +311,8 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     };
     await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
     
-    // Always check if an image should be uploaded if a series number is present
-    if (seriesNumber && imageDataUri) {
-        await uploadAttachment(targetItem.id, imageDataUri, cookieHeader);
+    if (seriesNumber && finalImageDataUri) {
+        await uploadAttachment(targetItem.id, finalImageDataUri, cookieHeader);
     }
     
     if (!isRescan) {
@@ -349,3 +349,5 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: error.message || 'An internal server error occurred.' }, { status: 500 });
     }
 }
+
+  
