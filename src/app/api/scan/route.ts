@@ -8,8 +8,8 @@ import { recognizeDotNumber } from '@/ai/flows/scan-flow';
 const { API_ENDPOINT, DOT_IMAGE_FIELD_ID, IMPORT_DETAIL_TBL_ID, IMPORT_TBL_ID } = process.env;
 
 
-async function apiRequest(url: string, method: string, cookieHeader: string | null, body?: any) {
-    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+async function apiRequest(url: string, method: string, cookieHeader: string | null, body?: any, contentType: string = 'application/json') {
+    const headers: HeadersInit = { 'Content-Type': contentType };
     if (cookieHeader) {
         headers['Cookie'] = cookieHeader;
     }
@@ -17,7 +17,7 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
     const response = await fetch(url, {
         method,
         headers,
-        body: body ? JSON.stringify(body) : undefined,
+        body: body,
     });
 
     if (!response.ok) {
@@ -31,8 +31,9 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
         console.error(`API Error from ${method} ${url}: ${errorMessage}`);
         throw new Error(errorMessage);
     }
-
-    return response.json();
+    
+    const responseText = await response.text();
+    return responseText ? JSON.parse(responseText) : {};
 }
 
 async function uploadAttachment(recordId: string, tableId: string, fieldId: string, imageDataUri: string, cookieHeader: string | null) {
@@ -51,23 +52,9 @@ async function uploadAttachment(recordId: string, tableId: string, fieldId: stri
         
         const url = `${API_ENDPOINT}/table/${tableId}/record/${recordId}/${fieldId}/uploadAttachment?fileName=dot-scan.jpg`;
 
-        const headers: HeadersInit = { 'Content-Type': 'image/jpeg' };
-        if (cookieHeader) {
-            headers['Cookie'] = cookieHeader;
-        }
+        await apiRequest(url, 'POST', cookieHeader, imageBuffer, 'image/jpeg');
 
-        const uploadResponse = await fetch(url, {
-            method: 'POST',
-            headers,
-            body: imageBuffer,
-        });
-
-        if (!uploadResponse.ok) {
-            const errorText = await uploadResponse.text();
-            console.error(`Failed to upload attachment for record ${recordId}:`, errorText);
-        } else {
-            console.log(`Successfully uploaded attachment for record ${recordId}`);
-        }
+        console.log(`Successfully requested attachment upload for record ${recordId}`);
     } catch (error) {
         console.error('Error during attachment upload:', error);
     }
@@ -81,7 +68,7 @@ async function fetchNoteDetails(tableId: string, noteId: string, filterField: st
     };
     const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
     const url = `${API_ENDPOINT}/table/${tableId}/record?filter=${filterQuery}&fieldKeyType=dbFieldName&take=1000`;
-    return apiRequest(url, 'GET', cookieHeader);
+    return apiRequest(url, 'GET', cookieHeader, JSON.stringify({}));
 }
 
 async function updateNoteStatusIfCompleted(noteType: 'import', noteId: string, cookieHeader: string | null) {
@@ -106,7 +93,7 @@ async function updateNoteStatusIfCompleted(noteType: 'import', noteId: string, c
             fieldKeyType: 'dbFieldName',
         };
         const updateUrl = `${API_ENDPOINT}/table/${noteTableId}/record`;
-        await apiRequest(updateUrl, 'PATCH', cookieHeader, updatePayload);
+        await apiRequest(updateUrl, 'PATCH', cookieHeader, JSON.stringify(updatePayload));
     }
 }
 
@@ -206,7 +193,7 @@ export async function POST(request: NextRequest) {
         };
         const updateUrl = `${API_ENDPOINT}/table/${detailTableId}/record`;
 
-        await apiRequest(updateUrl, 'PATCH', cookieHeader, updatePayload);
+        await apiRequest(updateUrl, 'PATCH', cookieHeader, JSON.stringify(updatePayload));
 
         // Upload the image
         await uploadAttachment(targetItem.id, detailTableId, imageFieldId, imageDataUri, cookieHeader);

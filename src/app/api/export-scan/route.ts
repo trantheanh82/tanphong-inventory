@@ -7,8 +7,11 @@ import { recognizeTireInfo } from '@/ai/flows/export-scan-flow';
 
 const { API_ENDPOINT, EXPORT_TBL_ID, EXPORT_DETAIL_TBL_ID, SERIES_IMAGE_FIELD_ID, DOT_IMAGE_FIELD_ID } = process.env;
 
-async function apiRequest(url: string, method: string, cookieHeader: string | null, body?: any) {
-    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+async function apiRequest(url: string, method: string, cookieHeader: string | null, body?: any, contentType: string = 'application/json') {
+    const headers: HeadersInit = {};
+     if (contentType) {
+        headers['Content-Type'] = contentType;
+    }
     if (cookieHeader) {
         headers['Cookie'] = cookieHeader;
     }
@@ -16,7 +19,7 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
     const response = await fetch(url, {
         method,
         headers,
-        body: body ? JSON.stringify(body) : undefined,
+        body: body,
     });
 
     if (!response.ok) {
@@ -30,8 +33,17 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
         console.error(`API Error from ${method} ${url}: ${errorMessage}`);
         throw new Error(errorMessage);
     }
-
-    return response.json();
+    
+    const responseText = await response.text();
+    // For GET requests that return JSON and POST for upload that returns nothing
+    if (responseText) {
+        try {
+            return JSON.parse(responseText);
+        } catch(e) {
+            return responseText; // Return text if not json
+        }
+    }
+    return {};
 }
 
 async function uploadAttachment(recordId: string, fieldId: string | undefined, imageDataUri: string, cookieHeader: string | null, fileName: string) {
@@ -50,23 +62,9 @@ async function uploadAttachment(recordId: string, fieldId: string | undefined, i
         
         const url = `${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record/${recordId}/${fieldId}/uploadAttachment?fileName=${fileName}`;
 
-        const headers: HeadersInit = { 'Content-Type': 'image/jpeg' };
-        if (cookieHeader) {
-            headers['Cookie'] = cookieHeader;
-        }
+        await apiRequest(url, 'POST', cookieHeader, imageBuffer, 'image/jpeg');
 
-        const uploadResponse = await fetch(url, {
-            method: 'POST',
-            headers,
-            body: imageBuffer,
-        });
-
-        if (!uploadResponse.ok) {
-            const errorText = await uploadResponse.text();
-            console.error(`Failed to upload attachment for record ${recordId} to field ${fieldId}:`, errorText);
-        } else {
-            console.log(`Successfully uploaded attachment for record ${recordId} to field ${fieldId}`);
-        }
+        console.log(`Successfully requested attachment upload for record ${recordId} to field ${fieldId}`);
     } catch (error) {
         console.error('Error during attachment upload:', error);
     }
@@ -132,7 +130,7 @@ async function updateNoteStatusIfCompleted(noteId: string, cookieHeader: string 
             fieldKeyType: 'dbFieldName',
         };
         const updateUrl = `${API_ENDPOINT}/table/${EXPORT_TBL_ID}/record`;
-        await apiRequest(updateUrl, 'PATCH', cookieHeader, updatePayload);
+        await apiRequest(updateUrl, 'PATCH', cookieHeader, JSON.stringify(updatePayload));
     }
 }
 
@@ -319,7 +317,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         records: [{ id: targetItem.id, fields: fieldsToUpdate }],
         fieldKeyType: "dbFieldName"
     };
-    await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
+    await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, JSON.stringify(updatePayload));
     
     if (imageDataUri && targetItem) {
         let fieldIdToUpdate: string | undefined;
