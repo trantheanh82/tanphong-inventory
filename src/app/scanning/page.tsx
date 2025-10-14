@@ -47,6 +47,7 @@ function ScanningComponent() {
   const [scannedSeriesForBoth, setScannedSeriesForBoth] = useState<string | null>(null);
   const [rescanningItemId, setRescanningItemId] = useState<string | null>(null);
 
+
   const noteId = searchParams.get('noteId');
   const noteType = searchParams.get('type') as 'import' | 'export' | 'warranty';
 
@@ -155,7 +156,6 @@ function ScanningComponent() {
             if (currentAvailableModes.length === 1) {
                 setActiveScanMode(currentAvailableModes[0]);
             } else if (currentAvailableModes.length > 1) {
-                // If a mode is already active and still available, keep it. Otherwise, prompt user to select.
                 if (!currentAvailableModes.includes(activeScanMode)) {
                      setActiveScanMode('none');
                 }
@@ -232,29 +232,17 @@ function ScanningComponent() {
 
     context.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
-    // Image processing
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
 
-    // Grayscale, Contrast, Sharpen
-    const contrast = 1.5; // (0-4)
-    const sharpenMatrix = [ 0, -1,  0,
-                           -1,  5, -1,
-                            0, -1,  0 ];
-    const sharpenFactor = 0.7; // How much to apply sharpness (0-1)
-
-    const originalData = Uint8ClampedArray.from(data);
-    const width = canvas.width;
-    const height = canvas.height;
+    const contrast = 1.5; 
 
     for (let i = 0; i < data.length; i += 4) {
-        // Grayscale
         const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
         data[i] = avg;
         data[i + 1] = avg;
         data[i + 2] = avg;
 
-        // Contrast
         let r = data[i];
         let g = data[i+1];
         let b = data[i+2];
@@ -268,31 +256,14 @@ function ScanningComponent() {
         data[i+2] = Math.max(0, Math.min(255, b));
     }
     
-    // Sharpen
-    for (let y = 1; y < height - 1; y++) {
-        for (let x = 1; x < width - 1; x++) {
-            const i = (y * width + x) * 4;
-            let r = 0, g = 0, b = 0;
-            for (let sy = -1; sy <= 1; sy++) {
-                for (let sx = -1; sx <= 1; sx++) {
-                    const k = sharpenMatrix[(sy + 1) * 3 + (sx + 1)];
-                    const pi = ((y + sy) * width + (x + sx)) * 4;
-                    r += originalData[pi] * k;
-                    g += originalData[pi+1] * k;
-                    b += originalData[pi+2] * k;
-                }
-            }
-            
-            data[i] = data[i] * (1-sharpenFactor) + Math.max(0, Math.min(255, r)) * sharpenFactor;
-            data[i+1] = data[i+1] * (1-sharpenFactor) + Math.max(0, Math.min(255, g)) * sharpenFactor;
-            data[i+2] = data[i+2] * (1-sharpenFactor) + Math.max(0, Math.min(255, b)) * sharpenFactor;
-        }
-    }
-
-
     context.putImageData(imageData, 0, 0);
     return canvas.toDataURL('image/jpeg', 0.9);
   }
+
+  const resetBothScanState = () => {
+    setScannedDotForBoth(null);
+    setScannedSeriesForBoth(null);
+  };
 
   const handleScanResponse = async (result: ScanResultData) => {
     if (result.success && !result.partial) {
@@ -304,8 +275,7 @@ function ScanningComponent() {
         
         if (rescanningItemId) setRescanningItemId(null);
         if (activeScanMode === 'both') {
-            setScannedDotForBoth(null);
-            setScannedSeriesForBoth(null);
+            resetBothScanState();
         }
 
         await fetchNoteDetails(); 
@@ -314,29 +284,34 @@ function ScanningComponent() {
         toast({ variant: 'destructive', title: "Thất bại", description: result.message });
         if (activeScanMode === 'both' && !result.partial) {
              if (scannedDotForBoth) {
-                // If DOT was scanned but Series failed, don't reset DOT
              } else {
-                setScannedDotForBoth(null);
-                setScannedSeriesForBoth(null);
+                resetBothScanState();
              }
         }
     }
   }
   
-  const submitCombinedScan = async (dot: string, series: string) => {
+  const submitCombinedScan = async (dot: string, series: string, imageUri: string) => {
     setIsSubmitting(true);
     try {
         const response = await fetch('/api/export-scan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ noteId, scanMode: 'both', dotNumber: dot, seriesNumber: series, rescanRecordId: rescanningItemId }),
+            body: JSON.stringify({ 
+                noteId, 
+                scanMode: 'both', 
+                scanType: 'series',
+                dotNumber: dot, 
+                seriesNumber: series, 
+                rescanRecordId: rescanningItemId, 
+                imageDataUri: imageUri 
+            }),
         });
         const result = await response.json();
         await handleScanResponse(result);
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
-        setScannedDotForBoth(null);
-        setScannedSeriesForBoth(null);
+        resetBothScanState();
     }
     setIsSubmitting(false);
   }
@@ -353,11 +328,19 @@ function ScanningComponent() {
     setIsSubmitting(true);
     
     let endpoint = '/api/scan';
-    let body: any = { noteId, noteType, imageDataUri };
+    let scanTypeForApi: 'dot' | 'series' | undefined = undefined;
+    if (activeScanMode === 'dot' || (activeScanMode === 'both' && !scannedSeriesForBoth)) {
+        scanTypeForApi = 'dot';
+    } else if (activeScanMode === 'series' || (activeScanMode === 'both' && !scannedDotForBoth)) {
+        scanTypeForApi = 'series';
+    }
+
+
+    let body: any = { noteId, noteType, imageDataUri, dotNumber: scannedDotForBoth, seriesNumber: scannedSeriesForBoth, rescanRecordId: rescanningItemId, scanType: scanTypeForApi };
 
     if (noteType === 'export') {
       endpoint = '/api/export-scan';
-      body = { noteId, imageDataUri, scanMode: activeScanMode, rescanRecordId: rescanningItemId, dotNumber: scannedDotForBoth, seriesNumber: scannedSeriesForBoth };
+      body.scanMode = activeScanMode;
     } else if (noteType === 'warranty') {
       await handleWarrantyScan({ imageDataUri });
       setIsSubmitting(false);
@@ -384,7 +367,7 @@ function ScanningComponent() {
               if (isValidDot) {
                   setScannedDotForBoth(result.fullDotNumber);
                   tempDot = result.fullDotNumber;
-                  toast({ title: "Thành công", description: `Đã nhận dạng DOT ${result.fullDotNumber}. Giờ hãy quét Series.` });
+                  toast({ title: "Thành công", description: `Đã nhận dạng và tải lên ảnh DOT ${result.fullDotNumber}. Giờ hãy quét Series.` });
               } else {
                   toast({ variant: 'destructive', title: "DOT không hợp lệ", description: `DOT ${twoDigitDot} không có trong phiếu hoặc đã quét đủ.` });
               }
@@ -397,7 +380,7 @@ function ScanningComponent() {
           }
 
           if (tempDot && tempSeries) {
-              await submitCombinedScan(tempDot, tempSeries);
+              await submitCombinedScan(tempDot, tempSeries, imageDataUri);
           } else if (!result.fullDotNumber && !result.series) {
                toast({ variant: 'destructive', title: "Không nhận dạng được", description: "Không tìm thấy DOT hay Series. Vui lòng thử lại." });
           }
@@ -472,8 +455,7 @@ function ScanningComponent() {
 
   const handleModeButtonClick = (mode: ActiveScanMode) => {
     setActiveScanMode(mode);
-    setScannedDotForBoth(null);
-    setScannedSeriesForBoth(null);
+    resetBothScanState();
   };
   
   const cancelScan = () => {
@@ -501,7 +483,24 @@ function ScanningComponent() {
   };
 
   const renderMainScanButtons = () => {
-    if (checkAllScanned() && !rescanningItemId) {
+    if (rescanningItemId) {
+      const isCaptureDisabled = isSubmitting || hasCameraPermission !== true;
+      return (
+            <div className="flex flex-col items-center gap-4">
+                 <Button
+                    onClick={handleCapture}
+                    disabled={isCaptureDisabled}
+                    className="h-20 w-20 bg-blue-600 text-white rounded-full text-xl font-bold flex items-center justify-center gap-3 hover:bg-blue-700 disabled:bg-gray-500 shadow-lg"
+                >
+                    {isSubmitting ? <LoaderCircle className="w-10 h-10 animate-spin" /> : <Camera className="w-10 h-10" />}
+                </Button>
+                <span className="text-white font-semibold">Quét lại</span>
+                <Button variant="ghost" size="sm" className="text-yellow-400" onClick={() => setRescanningItemId(null)}>Hủy quét lại</Button>
+            </div>
+      );
+    }
+    
+    if (checkAllScanned()) {
         return (
             <Button onClick={handleBack} className="bg-green-600 hover:bg-green-700 text-white rounded-lg p-3">
                 <CheckCircle className="w-5 h-5 mr-2" />
@@ -526,7 +525,7 @@ function ScanningComponent() {
                     )}
                 </Button>
                 <span className="text-white font-semibold">
-                    {rescanningItemId ? 'Quét lại' : 'Quét'}
+                    Quét
                 </span>
                 {noteType === 'export' && !rescanningItemId && availableScanModes.length > 1 && (
                      <Button variant="ghost" size="sm" className='text-white' onClick={() => { setActiveScanMode('none'); cancelScan(); }}>Chọn lại chế độ</Button>

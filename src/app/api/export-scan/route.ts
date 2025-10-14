@@ -5,11 +5,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { recognizeTireInfo } from '@/ai/flows/export-scan-flow';
 
-const { API_ENDPOINT, EXPORT_TBL_ID, EXPORT_DETAIL_TBL_ID } = process.env;
-const SERIES_IMAGE_FIELD_ID = 'fldhfktNc02xn9CoLkX';
+const { API_ENDPOINT, EXPORT_TBL_ID, EXPORT_DETAIL_TBL_ID, SERIES_IMAGE_FIELD_ID, DOT_IMAGE_FIELD_ID } = process.env;
 
-async function apiRequest(url: string, method: string, cookieHeader: string | null, body?: any) {
-    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+async function apiRequest(url: string, method: string, cookieHeader: string | null, body?: any, contentType: string = 'application/json') {
+    const headers: HeadersInit = {};
+     if (contentType) {
+        headers['Content-Type'] = contentType;
+    }
     if (cookieHeader) {
         headers['Cookie'] = cookieHeader;
     }
@@ -17,7 +19,7 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
     const response = await fetch(url, {
         method,
         headers,
-        body: body ? JSON.stringify(body) : undefined,
+        body: body,
     });
 
     if (!response.ok) {
@@ -31,42 +33,38 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
         console.error(`API Error from ${method} ${url}: ${errorMessage}`);
         throw new Error(errorMessage);
     }
-
-    return response.json();
+    
+    const responseText = await response.text();
+    // For GET requests that return JSON and POST for upload that returns nothing
+    if (responseText) {
+        try {
+            return JSON.parse(responseText);
+        } catch(e) {
+            return responseText; // Return text if not json
+        }
+    }
+    return {};
 }
 
-async function uploadAttachment(recordId: string, imageDataUri: string, cookieHeader: string | null) {
-    if (!API_ENDPOINT || !EXPORT_DETAIL_TBL_ID || !SERIES_IMAGE_FIELD_ID) {
-        console.error('Missing env vars for attachment upload');
+async function uploadAttachment(recordId: string, fieldId: string | undefined, imageDataUri: string, cookieHeader: string | null, fileName: string) {
+    if (!API_ENDPOINT || !EXPORT_DETAIL_TBL_ID || !fieldId) {
+        console.error('Missing env vars for attachment upload or fieldId not provided');
         return;
     }
 
     try {
-        const response = await fetch(imageDataUri);
-        const imageBlob = await response.blob();
+        const base64Data = imageDataUri.split(',')[1];
+        if (!base64Data) {
+            console.error('Invalid imageDataUri format for upload');
+            return;
+        }
+        const imageBuffer = Buffer.from(base64Data, 'base64');
         
-        const formData = new FormData();
-        formData.append('file', imageBlob, 'series-scan.jpg');
+        const url = `${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record/${recordId}/${fieldId}/uploadAttachment?fileName=${fileName}`;
 
-        const url = `${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record/${recordId}/${SERIES_IMAGE_FIELD_ID}/uploadAttachment`;
+        await apiRequest(url, 'POST', cookieHeader, imageBuffer, 'image/jpeg');
 
-        const headers: HeadersInit = {};
-        if (cookieHeader) {
-            headers['Cookie'] = cookieHeader;
-        }
-
-        const uploadResponse = await fetch(url, {
-            method: 'POST',
-            headers,
-            body: formData,
-        });
-
-        if (!uploadResponse.ok) {
-            const errorText = await uploadResponse.text();
-            console.error(`Failed to upload attachment for record ${recordId}:`, errorText);
-        } else {
-            console.log(`Successfully uploaded attachment for record ${recordId}`);
-        }
+        console.log(`Successfully requested attachment upload for record ${recordId} to field ${fieldId}`);
     } catch (error) {
         console.error('Error during attachment upload:', error);
     }
@@ -93,12 +91,11 @@ async function searchRecordBySeries(series: string, cookieHeader: string | null)
         return undefined;
     }
 
-    // Since 'contains' can have partial matches, we must verify the full series number.
     for (const record of response.records) {
         if (record.fields && record.fields.series) {
             const seriesList = record.fields.series.split(',').map((s: string) => s.trim());
             if (seriesList.includes(series)) {
-                return record; // Return the first record with an exact match
+                return record; 
             }
         }
     }
@@ -133,16 +130,15 @@ async function updateNoteStatusIfCompleted(noteId: string, cookieHeader: string 
             fieldKeyType: 'dbFieldName',
         };
         const updateUrl = `${API_ENDPOINT}/table/${EXPORT_TBL_ID}/record`;
-        await apiRequest(updateUrl, 'PATCH', cookieHeader, updatePayload);
+        await apiRequest(updateUrl, 'PATCH', cookieHeader, JSON.stringify(updatePayload));
     }
 }
 
-async function processScan(noteId: string, cookieHeader: string, payload: { imageDataUri?: string; scanMode: 'dot' | 'series' | 'both'; dotNumber?: string; seriesNumber?: string, rescanRecordId?: string }) {
-    const { imageDataUri, scanMode, dotNumber: payloadDot, seriesNumber: payloadSeries, rescanRecordId } = payload;
+async function processScan(noteId: string, cookieHeader: string, payload: { imageDataUri?: string; scanMode: 'dot' | 'series' | 'both'; scanType?: 'dot' | 'series', dotNumber?: string; seriesNumber?: string, rescanRecordId?: string }) {
+    const { imageDataUri, scanMode, scanType, dotNumber: payloadDot, seriesNumber: payloadSeries, rescanRecordId } = payload;
     
     let seriesNumber: string | undefined;
     let fullDotNumber: string | undefined;
-    let wasSeriesFromImage = false;
 
     // --- Step 1: Get DOT and Series info ---
     if (scanMode === 'both' && payloadDot && payloadSeries) {
@@ -154,19 +150,13 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
             
             if (payloadDot) {
                 fullDotNumber = payloadDot;
-                if (recognizedInfo?.seriesNumber) {
-                    seriesNumber = recognizedInfo.seriesNumber;
-                    wasSeriesFromImage = true;
-                }
+                seriesNumber = recognizedInfo?.seriesNumber;
             } else if (payloadSeries) {
                 seriesNumber = payloadSeries;
                 fullDotNumber = recognizedInfo?.dotNumber;
             } else {
                 fullDotNumber = recognizedInfo?.dotNumber;
-                if (recognizedInfo?.seriesNumber) {
-                    seriesNumber = recognizedInfo.seriesNumber;
-                    wasSeriesFromImage = true;
-                }
+                seriesNumber = recognizedInfo?.seriesNumber;
             }
             
             if (seriesNumber && seriesNumber.length > 10) {
@@ -190,7 +180,6 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
                  return NextResponse.json({ success: false, message: 'Không nhận dạng được DOT hay Series.' }, { status: 400 });
             }
 
-
         } catch (aiError) {
             console.error("AI recognition error:", aiError);
             return NextResponse.json({ success: false, message: 'AI processing failed. Please try again.' }, { status: 500 });
@@ -205,14 +194,26 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
 
     const twoDigitDot = fullDotNumber ? fullDotNumber.slice(-2) : undefined;
     
-    if (scanMode === 'both' && imageDataUri && (!payloadDot || !payloadSeries)) {
+    if (scanMode === 'both' && imageDataUri && (!payloadSeries || !payloadDot)) {
+         if (imageDataUri && scanType === 'dot' && fullDotNumber) {
+             const detailsResponse = await fetchNoteDetails(EXPORT_DETAIL_TBL_ID!, noteId, 'export_note', cookieHeader);
+             const twoDigitDotForCheck = fullDotNumber.slice(-2);
+             const targetItemForUpload = detailsResponse.records.find((item: any) => 
+                item.fields.has_dot &&
+                String(item.fields.dot) === twoDigitDotForCheck &&
+                (item.fields.scanned || 0) < item.fields.quantity
+             );
+             if (targetItemForUpload) {
+                await uploadAttachment(targetItemForUpload.id, DOT_IMAGE_FIELD_ID, imageDataUri, cookieHeader, "dot-scan.jpg");
+             }
+         }
          return NextResponse.json({
             success: true,
             dot: twoDigitDot,
             fullDotNumber: fullDotNumber,
             series: seriesNumber,
             message: "Partial scan recognized.",
-            partial: true
+            partial: true,
         });
     }
     
@@ -229,7 +230,6 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     let targetItem: any = null;
     let message = "";
 
-    // --- Step 3: Find the target item to update ---
     if (rescanRecordId) {
         targetItem = details.find((item: any) => item.id === rescanRecordId);
         if (!targetItem) {
@@ -278,7 +278,10 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     }
 
 
-    // --- Step 4: Prepare fields for update based on scan mode ---
+    if (!targetItem) {
+        return NextResponse.json({ success: false, message: "Không tìm thấy lốp phù hợp để cập nhật." }, { status: 404 });
+    }
+
     const fieldsToUpdate: any = {};
     const isRescan = !!rescanRecordId;
     
@@ -316,16 +319,32 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         message += ` (${newCount}/${targetItem.fields.quantity})`;
     }
 
-
     const updatePayload = {
         records: [{ id: targetItem.id, fields: fieldsToUpdate }],
         fieldKeyType: "dbFieldName"
     };
-    await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
+    await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, JSON.stringify(updatePayload));
     
-    // Always check if an image should be uploaded if a series number is present
-    if (seriesNumber && imageDataUri) {
-        await uploadAttachment(targetItem.id, imageDataUri, cookieHeader);
+    if (imageDataUri && targetItem) {
+        let fieldIdToUpdate: string | undefined;
+        let fileName = "scan.jpg"
+        
+        if (scanMode === 'dot') {
+            fieldIdToUpdate = DOT_IMAGE_FIELD_ID;
+            fileName = "dot-scan.jpg";
+        } else if (scanMode === 'series') {
+            fieldIdToUpdate = SERIES_IMAGE_FIELD_ID;
+            fileName = "series-scan.jpg";
+        } else if (scanMode === 'both') {
+             if (scanType === 'series') {
+                fieldIdToUpdate = SERIES_IMAGE_FIELD_ID;
+                fileName = "series-scan.jpg";
+             }
+        }
+        
+        if (fieldIdToUpdate) {
+            await uploadAttachment(targetItem.id, fieldIdToUpdate, imageDataUri, cookieHeader, fileName);
+        }
     }
     
     if (!isRescan) {

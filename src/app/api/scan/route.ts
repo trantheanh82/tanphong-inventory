@@ -5,10 +5,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { recognizeDotNumber } from '@/ai/flows/scan-flow';
 
-const API_ENDPOINT = process.env.API_ENDPOINT;
+const { API_ENDPOINT, DOT_IMAGE_FIELD_ID, IMPORT_DETAIL_TBL_ID, IMPORT_TBL_ID } = process.env;
 
-async function apiRequest(url: string, method: string, cookieHeader: string | null, body?: any) {
-    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+
+async function apiRequest(url: string, method: string, cookieHeader: string | null, body?: any, contentType: string = 'application/json') {
+    const headers: HeadersInit = { 'Content-Type': contentType };
     if (cookieHeader) {
         headers['Cookie'] = cookieHeader;
     }
@@ -16,7 +17,7 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
     const response = await fetch(url, {
         method,
         headers,
-        body: body ? JSON.stringify(body) : undefined,
+        body: body,
     });
 
     if (!response.ok) {
@@ -30,9 +31,35 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
         console.error(`API Error from ${method} ${url}: ${errorMessage}`);
         throw new Error(errorMessage);
     }
-
-    return response.json();
+    
+    const responseText = await response.text();
+    return responseText ? JSON.parse(responseText) : {};
 }
+
+async function uploadAttachment(recordId: string, tableId: string, fieldId: string, imageDataUri: string, cookieHeader: string | null) {
+    if (!API_ENDPOINT || !tableId || !fieldId) {
+        console.error('Missing env vars for attachment upload');
+        return;
+    }
+
+    try {
+        const base64Data = imageDataUri.split(',')[1];
+        if (!base64Data) {
+            console.error('Invalid imageDataUri format');
+            return;
+        }
+        const imageBuffer = Buffer.from(base64Data, 'base64');
+        
+        const url = `${API_ENDPOINT}/table/${tableId}/record/${recordId}/${fieldId}/uploadAttachment?fileName=dot-scan.jpg`;
+
+        await apiRequest(url, 'POST', cookieHeader, imageBuffer, 'image/jpeg');
+
+        console.log(`Successfully requested attachment upload for record ${recordId}`);
+    } catch (error) {
+        console.error('Error during attachment upload:', error);
+    }
+}
+
 
 async function fetchNoteDetails(tableId: string, noteId: string, filterField: string, cookieHeader: string | null) {
     const filterObject = {
@@ -41,7 +68,7 @@ async function fetchNoteDetails(tableId: string, noteId: string, filterField: st
     };
     const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
     const url = `${API_ENDPOINT}/table/${tableId}/record?filter=${filterQuery}&fieldKeyType=dbFieldName&take=1000`;
-    return apiRequest(url, 'GET', cookieHeader);
+    return apiRequest(url, 'GET', cookieHeader, JSON.stringify({}));
 }
 
 async function updateNoteStatusIfCompleted(noteType: 'import', noteId: string, cookieHeader: string | null) {
@@ -66,7 +93,7 @@ async function updateNoteStatusIfCompleted(noteType: 'import', noteId: string, c
             fieldKeyType: 'dbFieldName',
         };
         const updateUrl = `${API_ENDPOINT}/table/${noteTableId}/record`;
-        await apiRequest(updateUrl, 'PATCH', cookieHeader, updatePayload);
+        await apiRequest(updateUrl, 'PATCH', cookieHeader, JSON.stringify(updatePayload));
     }
 }
 
@@ -97,17 +124,17 @@ export async function POST(request: NextRequest) {
     
     const valueToScan = fullRecognizedDot.slice(-2); // CORRECT: Use last 2 digits for matching
 
-    const { IMPORT_DETAIL_TBL_ID } = process.env;
-
     let detailTableId: string | undefined;
     let noteLinkField: string | undefined;
     let dotField: string | undefined;
+    let imageFieldId: string | undefined;
 
     switch (noteType) {
         case 'import':
             detailTableId = IMPORT_DETAIL_TBL_ID;
             noteLinkField = 'import_note';
             dotField = 'dot';
+            imageFieldId = DOT_IMAGE_FIELD_ID;
             break;
         case 'warranty':
              return NextResponse.json({ message: 'Warranty scanning not yet implemented via this endpoint.' }, { status: 400 });
@@ -115,7 +142,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: 'Invalid note type.' }, { status: 400 });
     }
 
-    if (!detailTableId || !noteLinkField || !dotField) {
+    if (!detailTableId || !noteLinkField || !dotField || !imageFieldId) {
         return NextResponse.json({ message: 'Server configuration error for the given note type.' }, { status: 500 });
     }
 
@@ -166,7 +193,10 @@ export async function POST(request: NextRequest) {
         };
         const updateUrl = `${API_ENDPOINT}/table/${detailTableId}/record`;
 
-        await apiRequest(updateUrl, 'PATCH', cookieHeader, updatePayload);
+        await apiRequest(updateUrl, 'PATCH', cookieHeader, JSON.stringify(updatePayload));
+
+        // Upload the image
+        await uploadAttachment(targetItem.id, detailTableId, imageFieldId, imageDataUri, cookieHeader);
 
         if (isItemCompleted) {
             await updateNoteStatusIfCompleted(noteType, noteId, cookieHeader);
@@ -193,5 +223,3 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message }, { status: 500 });
     }
 }
-
-    
