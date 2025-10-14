@@ -142,7 +142,6 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     
     let seriesNumber: string | undefined;
     let fullDotNumber: string | undefined;
-    let wasSeriesFromImage = false;
 
     // --- Step 1: Get DOT and Series info ---
     if (scanMode === 'both' && payloadDot && payloadSeries) {
@@ -154,19 +153,13 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
             
             if (payloadDot) {
                 fullDotNumber = payloadDot;
-                if (recognizedInfo?.seriesNumber) {
-                    seriesNumber = recognizedInfo.seriesNumber;
-                    wasSeriesFromImage = true;
-                }
+                seriesNumber = recognizedInfo?.seriesNumber;
             } else if (payloadSeries) {
                 seriesNumber = payloadSeries;
                 fullDotNumber = recognizedInfo?.dotNumber;
             } else {
                 fullDotNumber = recognizedInfo?.dotNumber;
-                if (recognizedInfo?.seriesNumber) {
-                    seriesNumber = recognizedInfo.seriesNumber;
-                    wasSeriesFromImage = true;
-                }
+                seriesNumber = recognizedInfo?.seriesNumber;
             }
             
             if (seriesNumber && seriesNumber.length > 10) {
@@ -216,7 +209,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
         });
     }
     
-    if (seriesNumber && !imageDataUri) { 
+    if (seriesNumber && !imageDataUri) { // This handles manual entry for series
         const existingRecord = await searchRecordBySeries(seriesNumber, cookieHeader);
         if (existingRecord && existingRecord.id !== rescanRecordId) {
             return NextResponse.json({ success: false, message: `Series ${seriesNumber} đã có trong hệ thống, vui lòng quét lại` }, { status: 409 });
@@ -356,5 +349,3 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: error.message || 'An internal server error occurred.' }, { status: 500 });
     }
 }
-
-    
