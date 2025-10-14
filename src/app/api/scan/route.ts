@@ -48,14 +48,10 @@ async function uploadAttachment(recordId: string, tableId: string, fieldId: stri
             return;
         }
         const imageBuffer = Buffer.from(base64Data, 'base64');
-        const imageBlob = new Blob([imageBuffer], { type: 'image/jpeg' });
         
-        const formData = new FormData();
-        formData.append('file', imageBlob, 'dot-scan.jpg');
+        const url = `${API_ENDPOINT}/table/${tableId}/record/${recordId}/${fieldId}/uploadAttachment?fileName=dot-scan.jpg`;
 
-        const url = `${API_ENDPOINT}/table/${tableId}/record/${recordId}/${fieldId}/uploadAttachment`;
-
-        const headers: HeadersInit = {};
+        const headers: HeadersInit = { 'Content-Type': 'image/jpeg' };
         if (cookieHeader) {
             headers['Cookie'] = cookieHeader;
         }
@@ -63,7 +59,7 @@ async function uploadAttachment(recordId: string, tableId: string, fieldId: stri
         const uploadResponse = await fetch(url, {
             method: 'POST',
             headers,
-            body: formData,
+            body: imageBuffer,
         });
 
         if (!uploadResponse.ok) {

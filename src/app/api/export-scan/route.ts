@@ -34,7 +34,7 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
     return response.json();
 }
 
-async function uploadAttachment(recordId: string, fieldId: string | undefined, imageDataUri: string, cookieHeader: string | null) {
+async function uploadAttachment(recordId: string, fieldId: string | undefined, imageDataUri: string, cookieHeader: string | null, fileName: string) {
     if (!API_ENDPOINT || !EXPORT_DETAIL_TBL_ID || !fieldId) {
         console.error('Missing env vars for attachment upload or fieldId not provided');
         return;
@@ -47,14 +47,10 @@ async function uploadAttachment(recordId: string, fieldId: string | undefined, i
             return;
         }
         const imageBuffer = Buffer.from(base64Data, 'base64');
-        const imageBlob = new Blob([imageBuffer], { type: 'image/jpeg' });
         
-        const formData = new FormData();
-        formData.append('file', imageBlob, 'scan.jpg');
+        const url = `${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record/${recordId}/${fieldId}/uploadAttachment?fileName=${fileName}`;
 
-        const url = `${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record/${recordId}/${fieldId}/uploadAttachment`;
-
-        const headers: HeadersInit = {};
+        const headers: HeadersInit = { 'Content-Type': 'image/jpeg' };
         if (cookieHeader) {
             headers['Cookie'] = cookieHeader;
         }
@@ -62,7 +58,7 @@ async function uploadAttachment(recordId: string, fieldId: string | undefined, i
         const uploadResponse = await fetch(url, {
             method: 'POST',
             headers,
-            body: formData,
+            body: imageBuffer,
         });
 
         if (!uploadResponse.ok) {
@@ -210,7 +206,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
                 (item.fields.scanned || 0) < item.fields.quantity
              );
              if (targetItemForUpload) {
-                await uploadAttachment(targetItemForUpload.id, DOT_IMAGE_FIELD_ID, imageDataUri, cookieHeader);
+                await uploadAttachment(targetItemForUpload.id, DOT_IMAGE_FIELD_ID, imageDataUri, cookieHeader, "dot-scan.jpg");
              }
          }
          return NextResponse.json({
@@ -327,20 +323,23 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
     
     if (imageDataUri && targetItem) {
         let fieldIdToUpdate: string | undefined;
-        // In 'both' mode, we now distinguish which image to upload based on what was scanned.
-        if (scanMode === 'both') {
-            if (scanType === 'series') {
-                fieldIdToUpdate = SERIES_IMAGE_FIELD_ID;
-            } 
-            // The DOT image for 'both' mode is handled during the partial scan response.
-        } else if (scanMode === 'dot') {
+        let fileName = "scan.jpg"
+        
+        if (scanMode === 'dot') {
             fieldIdToUpdate = DOT_IMAGE_FIELD_ID;
+            fileName = "dot-scan.jpg";
         } else if (scanMode === 'series') {
             fieldIdToUpdate = SERIES_IMAGE_FIELD_ID;
+            fileName = "series-scan.jpg";
+        } else if (scanMode === 'both') {
+             if (scanType === 'series') {
+                fieldIdToUpdate = SERIES_IMAGE_FIELD_ID;
+                fileName = "series-scan.jpg";
+             }
         }
         
         if (fieldIdToUpdate) {
-            await uploadAttachment(targetItem.id, fieldIdToUpdate, imageDataUri, cookieHeader);
+            await uploadAttachment(targetItem.id, fieldIdToUpdate, imageDataUri, cookieHeader, fileName);
         }
     }
     
