@@ -281,10 +281,10 @@ function ScanningComponent() {
         setRecordIdForBoth(result.recordId!);
         if (result.dot) {
             setScannedDotForBoth(result.dot);
-            toast({ title: "Bước 1 Thành công", description: `Đã ghi nhận DOT ${result.dot}. Bây giờ hãy quét Series.` });
+            toast({ title: "Bước 1 Thành công", description: result.message });
         } else if (result.series) {
             setScannedSeriesForBoth(result.series);
-             toast({ title: "Bước 1 Thành công", description: `Đã ghi nhận Series ${result.series}. Bây giờ hãy quét DOT.` });
+             toast({ title: "Bước 1 Thành công", description: result.message });
         }
         if(result.dotImageUploaded) toast({ title: 'Thông báo', description: 'Đã tải lên hình ảnh DOT.' });
         if(result.seriesImageUploaded) toast({ title: 'Thông báo', description: 'Đã tải lên hình ảnh Series.' });
@@ -306,18 +306,19 @@ function ScanningComponent() {
     let endpoint = '/api/scan';
     let scanTypeForApi: 'dot' | 'series' | undefined = undefined;
 
-    // Determine scanType for 'both' mode second step
-    if (data.scanMode === 'both' && (scannedDotForBoth || scannedSeriesForBoth)) {
-        if (scannedDotForBoth) scanTypeForApi = 'series';
-        if (scannedSeriesForBoth) scanTypeForApi = 'dot';
+    // This is the second step of a "both" scan.
+    const isSecondStepOfBoth = data.scanMode === 'both' && (scannedDotForBoth || scannedSeriesForBoth);
+    
+    if (isSecondStepOfBoth) {
+      scanTypeForApi = scannedDotForBoth ? 'series' : 'dot';
     }
-
+    
     let body: any = { 
         noteId, 
         noteType, 
         imageDataUri: data.imageUri, 
         dotNumber: data.scannedDot || scannedDotForBoth, 
-        seriesNumber: data.scannedSeries || scannedSeriesForBoth, 
+        seriesNumber: data.scannedSeries || scannedSeriesForBoth,
         rescanRecordId: rescanningItemId,
         scanType: scanTypeForApi,
         recordId: recordIdForBoth,
@@ -376,34 +377,71 @@ function ScanningComponent() {
 
       let expectedDot: string | null = null;
       let isMatch: boolean | null = null;
+      
+      let isReadyToProceed = false;
 
-      // Logic for DOT modes
-      if (activeScanMode === 'dot' || (activeScanMode === 'both' && !scannedSeriesForBoth)) {
-        if (!scannedDot) {
-            throw new Error('Không nhận dạng được DOT 4 chữ số.');
-        }
-        const lastTwoDigits = scannedDot.slice(-2);
-        const targetItem = items.find(item => String(item.dot) === lastTwoDigits && item.scanned < item.quantity);
-        
-        if (targetItem) {
-            expectedDot = String(targetItem.dot);
-            isMatch = true;
-        } else {
-             const anyItemWithDot = items.find(item => String(item.dot) === lastTwoDigits);
-             expectedDot = anyItemWithDot ? String(anyItemWithDot.dot) : lastTwoDigits;
-             isMatch = false;
-        }
+      // Handle the first scan of a "both" process
+      if (activeScanMode === 'both' && !scannedDotForBoth && !scannedSeriesForBoth) {
+          if (scannedDot) {
+              const lastTwoDigits = scannedDot.slice(-2);
+              const targetItem = items.find(item => item.has_dot && String(item.dot) === lastTwoDigits && item.scanned < item.quantity);
+              isMatch = !!targetItem;
+              expectedDot = targetItem ? String(targetItem.dot) : lastTwoDigits;
+              isReadyToProceed = true;
+          } else if (scannedSeries) {
+              isMatch = true; // For series, we can't pre-match, so we assume it's okay to proceed
+              isReadyToProceed = true;
+          } else {
+               throw new Error('Không nhận dạng được DOT hay Series.');
+          }
+      // Handle the second scan of a "both" process
+      } else if (activeScanMode === 'both' && (scannedDotForBoth || scannedSeriesForBoth)) {
+          if (scannedDotForBoth && scannedSeries) { // Have DOT, now scanning Series
+               isMatch = true; // Can't pre-match series
+               isReadyToProceed = true;
+          } else if (scannedSeriesForBoth && scannedDot) { // Have Series, now scanning DOT
+              const lastTwoDigits = scannedDot.slice(-2);
+              const targetItem = items.find(item => item.id === recordIdForBoth);
+              expectedDot = targetItem ? String(targetItem.dot) : null;
+              isMatch = expectedDot === lastTwoDigits;
+              isReadyToProceed = true;
+          } else {
+               throw new Error('Không nhận dạng được thông tin cần thiết cho bước 2.');
+          }
       }
-
-      setConfirmationData({
-          imageUri: imageDataUri,
-          scannedDot: scannedDot,
-          scannedSeries: scannedSeries,
-          expectedDot: expectedDot,
-          isMatch: isMatch,
-          scanMode: activeScanMode
-      });
-      setIsConfirmationOpen(true);
+      // Handle single DOT scan modes
+      else if (activeScanMode === 'dot') {
+          if (!scannedDot) {
+              throw new Error('Không nhận dạng được DOT 4 chữ số.');
+          }
+          const lastTwoDigits = scannedDot.slice(-2);
+          const targetItem = items.find(item => String(item.dot) === lastTwoDigits && item.scanned < item.quantity);
+          expectedDot = targetItem ? String(targetItem.dot) : lastTwoDigits;
+          isMatch = !!targetItem;
+          isReadyToProceed = true;
+      }
+      // Handle single Series scan modes or warranty
+      else if (activeScanMode === 'series') {
+          if (!scannedSeries) {
+              throw new Error('Không nhận dạng được Series.');
+          }
+          isMatch = true; // Can't pre-match series
+          isReadyToProceed = true;
+      }
+      
+      if (isReadyToProceed) {
+          setConfirmationData({
+              imageUri: imageDataUri,
+              scannedDot: scannedDot,
+              scannedSeries: scannedSeries,
+              expectedDot: expectedDot,
+              isMatch: isMatch,
+              scanMode: activeScanMode
+          });
+          setIsConfirmationOpen(true);
+      } else {
+          throw new Error('Chế độ quét không hợp lệ hoặc không có thông tin nhận dạng.');
+      }
 
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Lỗi Nhận Dạng', description: error.message });
