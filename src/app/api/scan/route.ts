@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { recognizeDotNumber } from '@/ai/flows/scan-flow';
 
-const { API_ENDPOINT, DOT_IMAGE_FIELD_ID, IMPORT_DETAIL_TBL_ID, IMPORT_TBL_ID } = process.env;
+const { API_ENDPOINT, IMPORT_DOT_IMAGE_FIELD_ID, IMPORT_DETAIL_TBL_ID, IMPORT_TBL_ID } = process.env;
 
 
 async function apiRequest(url: string, method: string, cookieHeader: string | null, body?: any, contentType: string = 'application/json') {
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
             detailTableId = IMPORT_DETAIL_TBL_ID;
             noteLinkField = 'import_note';
             dotField = 'dot';
-            imageFieldId = DOT_IMAGE_FIELD_ID;
+            imageFieldId = IMPORT_DOT_IMAGE_FIELD_ID;
             break;
         case 'warranty':
              return NextResponse.json({ message: 'Warranty scanning not yet implemented via this endpoint.' }, { status: 400 });
