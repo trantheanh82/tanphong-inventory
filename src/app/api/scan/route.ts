@@ -10,7 +10,7 @@ const { API_ENDPOINT, DOT_IMAGE_FIELD_ID, IMPORT_DETAIL_TBL_ID, IMPORT_TBL_ID } 
 
 async function apiRequest(url: string, method: string, cookieHeader: string | null, body?: any, contentType: string = 'application/json') {
     const headers: HeadersInit = {};
-     if (contentType === 'application/json') {
+     if (contentType === 'application/json' && body) {
         headers['Content-Type'] = 'application/json';
     }
     if (cookieHeader) {
@@ -89,7 +89,7 @@ async function fetchNoteDetails(tableId: string, noteId: string, filterField: st
     };
     const filterQuery = encodeURIComponent(JSON.stringify(filterObject));
     const url = `${API_ENDPOINT}/table/${tableId}/record?filter=${filterQuery}&fieldKeyType=dbFieldName&take=1000`;
-    return apiRequest(url, 'GET', cookieHeader, JSON.stringify({}));
+    return apiRequest(url, 'GET', cookieHeader);
 }
 
 async function updateNoteStatusIfCompleted(noteType: 'import', noteId: string, cookieHeader: string | null) {
