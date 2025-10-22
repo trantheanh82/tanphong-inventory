@@ -32,15 +32,11 @@ interface ScanResultData {
   fullDotNumber?: string;
 }
 
-interface ConfirmationData {
-  imageUri: string;
-  scannedDot: string | null;
-  scannedSeries: string | null;
-  expectedDot: string | null;
-  isMatch: boolean | null;
-  scanMode: ActiveScanMode;
+interface BothScanState {
+    recordId: string | null;
+    dot: string | null;
+    series: string | null;
 }
-
 
 function ScanningComponent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,15 +50,9 @@ function ScanningComponent() {
   const trackRef = useRef<MediaStreamTrack | null>(null);
 
   const [activeScanMode, setActiveScanMode] = useState<ActiveScanMode>('none');
-  const [scannedDotForBoth, setScannedDotForBoth] = useState<string | null>(null);
-  const [scannedSeriesForBoth, setScannedSeriesForBoth] = useState<string | null>(null);
+  const [bothScanState, setBothScanState] = useState<BothScanState>({ recordId: null, dot: null, series: null });
   const [rescanningItemId, setRescanningItemId] = useState<string | null>(null);
-  const [recordIdForBoth, setRecordIdForBoth] = useState<string | null>(null);
-
-  const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
-  const [confirmationData, setConfirmationData] = useState<ConfirmationData | null>(null);
-
-
+  
   const noteId = searchParams.get('noteId');
   const noteType = searchParams.get('type') as 'import' | 'export' | 'warranty';
 
@@ -250,26 +240,21 @@ function ScanningComponent() {
   }
 
   const resetBothScanState = () => {
-    setScannedDotForBoth(null);
-    setScannedSeriesForBoth(null);
-    setRecordIdForBoth(null);
+    setBothScanState({ recordId: null, dot: null, series: null });
   };
 
   const handleScanResponse = async (result: ScanResultData) => {
-    if (result.success && (result.isCompleted || result.partial)) {
+    if (result.success) {
         if (result.dotImageUploaded) toast({ title: 'Thông báo', description: 'Đã tải lên hình ảnh DOT.' });
         if (result.seriesImageUploaded) toast({ title: 'Thông báo', description: 'Đã tải lên hình ảnh Series.' });
         
         if (result.partial) {
-            // This is for the first step of a 'both' scan
-            setRecordIdForBoth(result.recordId!);
-            if (result.dot) {
-                setScannedDotForBoth(result.dot);
-                toast({ title: "Bước 1 Thành công", description: result.message });
-            } else if (result.series) {
-                setScannedSeriesForBoth(result.series);
-                 toast({ title: "Bước 1 Thành công", description: result.message });
-            }
+            setBothScanState({
+                recordId: result.recordId || null,
+                dot: result.fullDotNumber || null,
+                series: result.series || null
+            });
+            toast({ title: "Bước 1 Thành công", description: result.message });
         } else {
              toast({
                 title: result.warning ? 'Quét thành công (Đã đủ)' : 'Quét thành công',
@@ -280,33 +265,39 @@ function ScanningComponent() {
             if (activeScanMode === 'both') resetBothScanState();
             await fetchNoteDetails(); 
         }
-    } else if (!result.success) {
+    } else { // !result.success
         toast({ variant: 'destructive', title: "Thất bại", description: result.message });
-        if (activeScanMode === 'both' && !result.partial && !scannedDotForBoth) {
+        if (activeScanMode === 'both' && !result.partial && !bothScanState.recordId) {
              resetBothScanState();
         }
     }
   }
 
-  const proceedWithScan = async (data: ConfirmationData) => {
+  const handleCapture = async () => {
+    if (isSubmitting || hasCameraPermission !== true || (activeScanMode === 'none' && !rescanningItemId)) return;
+    
+    const imageDataUri = captureImage();
+    if (!imageDataUri) {
+        toast({ variant: 'destructive', title: "Lỗi", description: "Không thể xử lý hình ảnh." });
+        return;
+    }
+    
     setIsSubmitting(true);
-    let endpoint = '/api/scan';
+    let endpoint = '/api/scan'; // Default for import
     
     let body: any = { 
         noteId, 
         noteType, 
-        imageDataUri: data.imageUri, 
-        rescanRecordId: rescanningItemId,
-        recordId: recordIdForBoth,
+        imageDataUri: imageDataUri, 
     };
 
     if (noteType === 'export') {
-      endpoint = '/api/export-scan';
-      body.scanMode = data.scanMode;
+        endpoint = '/api/export-scan';
+        body.scanMode = rescanningItemId ? 'both' : activeScanMode; // Rescan always uses 'both' logic
+        body.rescanRecordId = rescanningItemId;
+        body.recordId = bothScanState.recordId;
     } else if (noteType === 'warranty') {
-      await handleWarrantyScan({ imageDataUri: data.imageUri });
-      setIsSubmitting(false);
-      return;
+      endpoint = '/api/warranty-scan';
     }
     
     try {
@@ -323,61 +314,12 @@ function ScanningComponent() {
       setIsSubmitting(false);
     }
   };
-
-
-  const handleCapture = async () => {
-    if (isSubmitting || hasCameraPermission !== true || activeScanMode === 'none') return;
-    
-    const imageDataUri = captureImage();
-    if (!imageDataUri) {
-        toast({ variant: 'destructive', title: "Lỗi", description: "Không thể xử lý hình ảnh." });
-        return;
-    }
-    
-    const dataToProceed: ConfirmationData = {
-        imageUri: imageDataUri,
-        scannedDot: null,
-        scannedSeries: null,
-        expectedDot: null,
-        isMatch: null,
-        scanMode: activeScanMode
-    };
-
-    await proceedWithScan(dataToProceed);
-  };
-  
-  const handleWarrantyScan = async (scanPayload: { imageDataUri?: string; seriesNumber?: string }) => {
-    try {
-      const response = await fetch('/api/warranty-scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ noteId, ...scanPayload }),
-      });
-      const result = await response.json();
-
-      if (!response.ok) throw new Error(result.message || 'Quét bảo hành thất bại');
-      
-      await handleScanResponse(result);
-
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Lỗi hệ thống', description: error.message });
-    }
-  };
   
   const handleRescanClick = (item: ScanItem) => {
     setRescanningItemId(item.id);
-    let description = "";
-    if (item.has_dot) {
-      setActiveScanMode('both');
-      description = "Vui lòng quét lại DOT & Series cho mục đã chọn.";
-    } else if (item.tire_type === 'Nước ngoài' && !item.has_dot) {
-      setActiveScanMode('series');
-      description = "Vui lòng quét lại Series cho mục đã chọn.";
-    } else {
-      setActiveScanMode('dot');
-      description = "Vui lòng quét lại DOT cho mục đã chọn.";
-    }
-
+    let description = "Vui lòng quét lại thông tin (DOT hoặc Series) cho mục đã chọn.";
+    setActiveScanMode('both'); // Rescan for export always uses the flexible 'both' logic.
+    
     toast({
         title: "Chế độ quét lại",
         description: description,
@@ -387,18 +329,15 @@ function ScanningComponent() {
   const getPageTitle = () => {
       if (checkAllScanned() && !rescanningItemId) return "Đã hoàn tất";
       if (rescanningItemId) {
-          const item = items.find(i => i.id === rescanningItemId);
-          if (item?.has_dot) return 'Quét lại DOT & Series';
-          if (item?.tire_type === 'Nước ngoài' && !item.has_dot) return 'Quét lại Series';
-          return 'Quét lại DOT';
+          return 'Quét lại lốp';
       }
       if (noteType === 'export') {
           if (activeScanMode === 'none') return 'Chọn Chế Độ Quét';
           if (activeScanMode === 'dot') return 'Quét DOT';
           if (activeScanMode === 'series') return 'Quét Series';
           if (activeScanMode === 'both') {
-              if (scannedDotForBoth) return 'Bước 2: Quét Series';
-              if (scannedSeriesForBoth) return 'Bước 2: Quét DOT';
+              if (bothScanState.dot) return 'Bước 2: Quét Series';
+              if (bothScanState.series) return 'Bước 2: Quét DOT';
               return 'Bước 1: Quét DOT hoặc Series';
           }
       }
@@ -415,13 +354,14 @@ function ScanningComponent() {
   const cancelScan = () => {
     if (rescanningItemId) {
       setRescanningItemId(null);
+      // Revert activeScanMode based on what's available
       const currentAvailableModes = availableScanModes;
       if (currentAvailableModes.length === 1) {
           setActiveScanMode(currentAvailableModes[0]);
       } else {
           setActiveScanMode('none');
       }
-    } else if (activeScanMode === 'both' && (scannedDotForBoth || scannedSeriesForBoth)) {
+    } else if (activeScanMode === 'both' && (bothScanState.dot || bothScanState.series)) {
       resetBothScanState();
     }
   }
@@ -435,24 +375,7 @@ function ScanningComponent() {
   };
 
   const renderMainScanButtons = () => {
-    if (rescanningItemId) {
-      const isCaptureDisabled = isSubmitting || hasCameraPermission !== true;
-      return (
-            <div className="flex flex-col items-center gap-4">
-                 <Button
-                    onClick={handleCapture}
-                    disabled={isCaptureDisabled}
-                    className="h-20 w-20 bg-blue-600 text-white rounded-full text-xl font-bold flex items-center justify-center gap-3 hover:bg-blue-700 disabled:bg-gray-500 shadow-lg"
-                >
-                    {isSubmitting ? <LoaderCircle className="w-10 h-10 animate-spin" /> : <Camera className="w-10 h-10" />}
-                </Button>
-                <span className="text-white font-semibold">Quét lại</span>
-                <Button variant="ghost" size="sm" className="text-yellow-400" onClick={() => setRescanningItemId(null)}>Hủy quét lại</Button>
-            </div>
-      );
-    }
-    
-    if (checkAllScanned()) {
+    if (checkAllScanned() && !rescanningItemId) {
         return (
             <Button onClick={handleBack} className="bg-green-600 hover:bg-green-700 text-white rounded-lg p-3">
                 <CheckCircle className="w-5 h-5 mr-2" />
@@ -460,8 +383,9 @@ function ScanningComponent() {
             </Button>
         );
     }
-
-    if (activeScanMode !== 'none') {
+    
+    const isScanActive = activeScanMode !== 'none' || rescanningItemId;
+    if (isScanActive) {
         const isCaptureDisabled = isSubmitting || hasCameraPermission !== true;
         return (
             <div className="flex flex-col items-center gap-4">
@@ -482,7 +406,7 @@ function ScanningComponent() {
                 {noteType === 'export' && !rescanningItemId && availableScanModes.length > 1 && (
                      <Button variant="ghost" size="sm" className='text-white' onClick={() => { setActiveScanMode('none'); cancelScan(); }}>Chọn lại chế độ</Button>
                 )}
-                {(rescanningItemId || (activeScanMode === 'both' && (scannedDotForBoth || scannedSeriesForBoth))) && (
+                {(rescanningItemId || (activeScanMode === 'both' && (bothScanState.dot || bothScanState.series))) && (
                     <Button variant="ghost" size="sm" className="text-yellow-400" onClick={cancelScan}>Hủy</Button>
                 )}
             </div>
@@ -556,14 +480,14 @@ function ScanningComponent() {
         </div>
 
         <div className='p-4 space-y-4'>
-             {(scannedDotForBoth || scannedSeriesForBoth) && (
+             {(bothScanState.dot || bothScanState.series) && (
                 <Alert variant="default" className="bg-blue-500/10 border-blue-500/30 text-blue-300 flex justify-between items-center">
                     <div>
                         <AlertTitle>Đã ghi nhận:</AlertTitle>
                         <AlertDescription>
-                            {scannedDotForBoth && `DOT: ${scannedDotForBoth}`}
-                            {scannedDotForBoth && scannedSeriesForBoth && <br />}
-                            {scannedSeriesForBoth && `Series: ${scannedSeriesForBoth}`}
+                            {bothScanState.dot && `DOT: ${bothScanState.dot}`}
+                            {bothScanState.dot && bothScanState.series && <br />}
+                            {bothScanState.series && `Series: ${bothScanState.series}`}
                         </AlertDescription>
                     </div>
                     <Button variant="ghost" size="icon" className="text-blue-300" onClick={cancelScan}>
@@ -638,34 +562,6 @@ function ScanningComponent() {
       <footer className="p-4 flex justify-center sticky bottom-0 z-20">
         {renderMainScanButtons()}
       </footer>
-
-      {confirmationData && (
-        <Dialog open={isConfirmationOpen} onOpenChange={setIsConfirmationOpen}>
-            <DialogContent className="bg-white/80 backdrop-blur-md rounded-xl shadow-lg border-white/50 text-gray-800">
-                <DialogHeader>
-                    <DialogTitle className="text-2xl text-[#333]">Xác Nhận Thông Tin Quét</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                    <div className="relative w-full aspect-video rounded-md overflow-hidden border">
-                        <Image src={confirmationData.imageUri} alt="Captured scan" layout="fill" objectFit="contain" />
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button variant="ghost" onClick={() => setIsConfirmationOpen(false)}>Hủy</Button>
-                    <Button 
-                        onClick={() => {
-                            setIsConfirmationOpen(false);
-                            proceedWithScan(confirmationData);
-                        }}
-                        className="bg-gray-800 hover:bg-gray-900 text-white"
-                    >
-                        Xác nhận
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-      )}
-
     </div>
   );
 }

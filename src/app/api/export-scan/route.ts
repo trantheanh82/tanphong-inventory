@@ -270,7 +270,7 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
                 message: `Đã ghi nhận DOT ${recognizedDot}. Bây giờ hãy quét Series.`,
                 partial: true,
                 recordId: targetItem.id,
-                dot: recognizedDot,
+                fullDotNumber: recognizedDot,
                 series: null,
                 dotImageUploaded,
             });
@@ -283,22 +283,21 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
             targetItem = details.find((item: any) => 
                 item.fields.has_dot && 
                 (item.fields.scanned || 0) < item.fields.quantity &&
-                !item.fields.series 
+                (!item.fields.series || item.fields.series.split(',').filter(Boolean).length < item.fields.quantity)
             );
             if (!targetItem) return NextResponse.json({ success: false, message: `Không tìm thấy lốp phù hợp (cần series) hoặc đã quét đủ.` }, { status: 404 });
 
             seriesImageUploaded = await uploadAttachment(targetItem.id, imageDataUri, SERIES_IMAGE_FIELD_ID!, cookieHeader);
             
-            // For series-first scan, we update the series right away to "claim" the record
-            const updatePayload = { records: [{ id: targetItem.id, fields: { series: recognizedSeries } }], fieldKeyType: "dbFieldName" };
-            await apiRequest(`${API_ENDPOINT}/table/${EXPORT_DETAIL_TBL_ID}/record`, 'PATCH', cookieHeader, updatePayload);
-
+            // For series-first scan, we don't update the series yet to avoid race conditions.
+            // We return the recognized series and the found recordId. The client will hold this
+            // and send it back with the DOT scan.
             return NextResponse.json({
                 success: true,
                 message: `Đã ghi nhận Series ${recognizedSeries}. Bây giờ hãy quét DOT.`,
                 partial: true,
                 recordId: targetItem.id,
-                dot: null,
+                fullDotNumber: null,
                 series: recognizedSeries,
                 seriesImageUploaded,
             });
