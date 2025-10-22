@@ -29,6 +29,7 @@ interface ScanResultData {
   dotImageUploaded?: boolean;
   seriesImageUploaded?: boolean;
   recordId?: string;
+  fullDotNumber?: string;
 }
 
 interface ConfirmationData {
@@ -333,15 +334,16 @@ function ScanningComponent() {
         return;
     }
     
-    setIsConfirmationOpen(true);
-    setConfirmationData({
+    const dataToProceed: ConfirmationData = {
         imageUri: imageDataUri,
         scannedDot: null,
         scannedSeries: null,
         expectedDot: null,
         isMatch: null,
         scanMode: activeScanMode
-    });
+    };
+
+    await proceedWithScan(dataToProceed);
   };
   
   const handleWarrantyScan = async (scanPayload: { imageDataUri?: string; seriesNumber?: string }) => {
