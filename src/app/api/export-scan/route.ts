@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { recognizeTireInfo } from '@/ai/flows/export-scan-flow';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 const { API_ENDPOINT, EXPORT_TBL_ID, EXPORT_DETAIL_TBL_ID, SERIES_IMAGE_FIELD_ID, DOT_IMAGE_FIELD_ID } = process.env;
 
@@ -16,7 +17,7 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
         headers['Cookie'] = cookieHeader;
     }
 
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
         method,
         headers,
         body: body instanceof FormData ? body : JSON.stringify(body),
@@ -71,7 +72,7 @@ async function uploadAttachment(recordId: string, imageDataUri: string, fieldId:
             headers['Cookie'] = cookieHeader;
         }
 
-        const response = await fetch(url, {
+        const response = await fetchWithTimeout(url, {
             method: 'POST',
             headers: headers,
             body: formData,

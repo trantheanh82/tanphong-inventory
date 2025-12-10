@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 async function fetchTableData(tableId: string, cookieHeader: string | null, searchQuery?: string | null) {
     const url = new URL(`${process.env.API_ENDPOINT}/table/${tableId}/record`);
@@ -32,7 +33,7 @@ async function fetchTableData(tableId: string, cookieHeader: string | null, sear
     }
 
     try {
-        const response = await fetch(url.toString(), { method: 'GET', headers });
+        const response = await fetchWithTimeout(url.toString(), { method: 'GET', headers });
         if (!response.ok) {
             const errorText = await response.text();
             console.error(`Error fetching data for table ${tableId}:`, errorText);
@@ -63,7 +64,7 @@ async function fetchWarrantyDetails(noteId: string, cookieHeader: string | null)
     }
 
     try {
-        const response = await fetch(url.toString(), { method: 'GET', headers });
+        const response = await fetchWithTimeout(url.toString(), { method: 'GET', headers });
         if (!response.ok) return [];
         const data = await response.json();
         return data.records || [];

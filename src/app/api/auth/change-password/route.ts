@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 export async function PATCH(request: NextRequest) {
     try {
@@ -11,7 +12,7 @@ export async function PATCH(request: NextRequest) {
             return NextResponse.json({ message: 'Current and new passwords are required.' }, { status: 400 });
         }
 
-        const apiResponse = await fetch(`${process.env.API_ENDPOINT}/auth/change-password`, {
+        const apiResponse = await fetchWithTimeout(`${process.env.API_ENDPOINT}/auth/change-password`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',

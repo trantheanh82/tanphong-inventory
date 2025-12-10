@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 export async function GET(request: NextRequest) {
     const cookieHeader = cookies().toString();
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const response = await fetch(url.toString(), { method: 'GET', headers });
+        const response = await fetchWithTimeout(url.toString(), { method: 'GET', headers });
         if (!response.ok) {
             const errorText = await response.text();
             console.error(`Error fetching data for table ${EMPLOYEE_TBL_ID}:`, errorText);

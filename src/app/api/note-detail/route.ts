@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 const API_ENDPOINT = process.env.API_ENDPOINT;
 
@@ -27,7 +28,7 @@ async function fetchNoteDetails(tableId: string, noteId: string, filterField: st
     }
 
     try {
-        const response = await fetch(url, { method: 'GET', headers });
+        const response = await fetchWithTimeout(url, { method: 'GET', headers });
         if (!response.ok) {
             const errorText = await response.text();
             console.error(`Error fetching details for note ${noteId} from table ${tableId}:`, errorText);

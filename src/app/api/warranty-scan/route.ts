@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { recognizeSeriesNumber } from '@/ai/flows/warranty-scan-flow';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 const { API_ENDPOINT, EXPORT_DETAIL_TBL_ID, WARRANTY_DETAIL_TBL_ID, WARRANTY_TBL_ID } = process.env;
 
@@ -13,7 +14,7 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
         headers['Cookie'] = cookieHeader;
     }
 
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
         method,
         headers,
         body: body ? JSON.stringify(body) : undefined,

@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 const API_ENDPOINT = process.env.API_ENDPOINT;
 const WARRANTY_TBL_ID = process.env.WARRANTY_TBL_ID;
@@ -15,7 +16,7 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
         headers['Cookie'] = cookieHeader;
     }
 
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
         method,
         headers,
         body: body ? JSON.stringify(body) : undefined,

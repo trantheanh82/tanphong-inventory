@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 const API_ENDPOINT = process.env.API_ENDPOINT;
 const IMPORT_TBL_ID = process.env.IMPORT_TBL_ID;
@@ -14,7 +15,7 @@ async function apiRequest(url: string, method: string, body: any, cookieHeader: 
         headers['Cookie'] = cookieHeader;
     }
 
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
         method,
         headers,
         body: JSON.stringify(body),

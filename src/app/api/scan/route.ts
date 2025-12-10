@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { recognizeDotNumber } from '@/ai/flows/scan-flow';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 const { API_ENDPOINT, IMPORT_DOT_IMAGE_FIELD_ID, IMPORT_DETAIL_TBL_ID, IMPORT_TBL_ID } = process.env;
 
@@ -17,7 +18,7 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
         headers['Cookie'] = cookieHeader;
     }
 
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
         method,
         headers,
         body: body,
@@ -64,7 +65,7 @@ async function uploadAttachment(recordId: string, tableId: string, fieldId: stri
             headers['Cookie'] = cookieHeader;
         }
 
-        const response = await fetch(url, {
+        const response = await fetchWithTimeout(url, {
             method: 'POST',
             headers: headers,
             body: formData,

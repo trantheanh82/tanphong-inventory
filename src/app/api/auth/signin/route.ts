@@ -1,12 +1,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 export async function POST(request: NextRequest) {
     try {
         const { email, password } = await request.json();
 
-        const apiResponse = await fetch(`${process.env.API_ENDPOINT}/auth/signin`, {
+        const apiResponse = await fetchWithTimeout(`${process.env.API_ENDPOINT}/auth/signin`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
