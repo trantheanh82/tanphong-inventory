@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState, useMemo, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ScanLine, ShieldCheck, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { ScanLine, ShieldCheck, Search, ChevronLeft, ChevronRight, Inbox } from "lucide-react";
 import Link from "next/link";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -58,22 +58,23 @@ function ListingComponent() {
     const fetchData = useCallback(async (type: string | null, search: string) => {
         if (!type) return;
 
-        if (search && search.length > 0 && search.length < 3) {
-            setInventoryItems([]);
-            setLoading(false);
-            return;
-        }
-
         setLoading(true);
         try {
-            const url = search ? `/api/listing?type=${type}&search=${search}` : `/api/listing?type=${type}`;
-            const response = await fetch(url);
+            const url = new URL('/api/listing', window.location.origin);
+            url.searchParams.append('type', type);
+            if (search && search.length >= 3) {
+                 url.searchParams.append('search', search);
+            }
+            const response = await fetch(url.toString());
             if (response.ok) {
                 const data = await response.json();
                 setInventoryItems(data);
+            } else {
+                 setInventoryItems([]);
             }
         } catch (error) {
             console.error("Failed to fetch listing data:", error);
+            setInventoryItems([]);
         } finally {
             setLoading(false);
         }
@@ -178,16 +179,16 @@ function ListingComponent() {
     }
 
   return (
-    <div className="p-4 pb-20 animate-in fade-in-0 duration-500 flex flex-col">
+    <div className="p-4 pb-20 animate-in fade-in-0 duration-500 flex flex-col h-full">
       <Card className="bg-white rounded-xl shadow-lg overflow-hidden flex-grow flex flex-col">
         <div className="p-4 border-b">
             <SearchInput 
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
-                placeholder="Tìm kiếm phiếu (tối thiểu 3 ký tự)..."
+                placeholder="Tìm phiếu theo tên (tối thiểu 3 ký tự)"
             />
         </div>
-        <div>
+        <div className="flex-grow">
             {loading ? (
                  <div className="p-6 space-y-2">
                     <Skeleton className="h-12 w-full" />
@@ -196,7 +197,7 @@ function ListingComponent() {
                     <Skeleton className="h-12 w-full" />
                     <Skeleton className="h-12 w-full" />
                 </div>
-            ) : (
+            ) : paginatedData.length > 0 ? (
             <Table>
                 <TableHeader>
                     <TableRow className="bg-gray-800 hover:bg-gray-800 border-b-2 border-gray-700">
@@ -236,6 +237,12 @@ function ListingComponent() {
                 ))}
                 </TableBody>
             </Table>
+            ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center p-8 text-gray-500">
+                    <Inbox className="w-16 h-16 mb-4"/>
+                    <h3 className="text-xl font-semibold text-gray-700">Không có phiếu nào.</h3>
+                    <p className="mt-2">Thử thay đổi bộ lọc hoặc tạo một phiếu mới.</p>
+                </div>
             )}
         </div>
       </Card>
