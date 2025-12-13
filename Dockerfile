@@ -13,7 +13,7 @@ RUN adduser --system --uid 1001 nextjs
 
 # Copy package files and install dependencies
 COPY --chown=nextjs:nextjs package.json package-lock.json* ./
-RUN npm ci
+RUN npm install --force
 
 # Copy the rest of the application code
 COPY --chown=nextjs:nextjs . .
