@@ -73,7 +73,8 @@ async function fetchWarrantyDetails(noteId: string, cookieHeader: string | null)
 }
 
 export async function GET(request: NextRequest) {
-    const cookieHeader = cookies().toString();
+    const cookieStore = cookies();
+    const cookieHeader = cookieStore.toString();
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get('type');
     const query = searchParams.get('search');

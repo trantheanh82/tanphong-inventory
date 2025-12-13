@@ -120,7 +120,8 @@ async function updateNoteStatusIfCompleted(noteType: 'import', noteId: string, c
 
 
 export async function POST(request: NextRequest) {
-    const cookieHeader = cookies().toString();
+    const cookieStore = cookies();
+    const cookieHeader = cookieStore.toString();
     const { noteId, noteType, imageDataUri } = await request.json();
 
     if (noteType === 'export') {

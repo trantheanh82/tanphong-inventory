@@ -110,7 +110,8 @@ async function countTotalWarrantyDetails(noteId: string, cookieHeader: string | 
 
 
 export async function POST(request: NextRequest) {
-    const cookieHeader = cookies().toString();
+    const cookieStore = cookies();
+    const cookieHeader = cookieStore.toString();
     const { noteId, imageDataUri, seriesNumber: manualSeriesNumber } = await request.json();
 
     if (!noteId || (!imageDataUri && !manualSeriesNumber)) {

@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
-    const cookieHeader = cookies().toString();
+    const cookieStore = cookies();
+    const cookieHeader = cookieStore.toString();
     const { EMPLOYEE_TBL_ID, API_ENDPOINT } = process.env;
 
     if (!EMPLOYEE_TBL_ID || !API_ENDPOINT) {

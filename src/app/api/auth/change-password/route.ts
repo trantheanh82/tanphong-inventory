@@ -5,7 +5,8 @@ import { cookies } from 'next/headers';
 export async function PATCH(request: NextRequest) {
     try {
         const { currentPassword, newPassword } = await request.json();
-        const cookieHeader = cookies().toString();
+        const cookieStore = cookies();
+        const cookieHeader = cookieStore.toString();
 
         if (!currentPassword || !newPassword) {
             return NextResponse.json({ message: 'Current and new passwords are required.' }, { status: 400 });

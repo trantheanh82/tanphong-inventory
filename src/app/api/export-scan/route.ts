@@ -359,7 +359,8 @@ async function processScan(noteId: string, cookieHeader: string, payload: { imag
 }
 
 export async function POST(request: NextRequest) {
-    const cookieHeader = cookies().toString();
+    const cookieStore = cookies();
+    const cookieHeader = cookieStore.toString();
     
     let body;
     try {

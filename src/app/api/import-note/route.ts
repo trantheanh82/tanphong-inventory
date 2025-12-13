@@ -40,7 +40,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: 'Environment variables for API endpoint and table IDs are not set.' }, { status: 500 });
     }
 
-    const cookieHeader = cookies().toString();
+    const cookieStore = cookies();
+    const cookieHeader = cookieStore.toString();
 
     try {
         const { name, customer, items } = await request.json();
