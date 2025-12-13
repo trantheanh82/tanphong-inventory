@@ -8,21 +8,6 @@ import { BottomNav } from '@/components/bottom-nav';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PwaUpdater } from './pwa-updater';
 
-const useAuth = () => {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const pathname = usePathname();
-
-    useEffect(() => {
-        setLoading(true);
-        const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
-        setIsAuthenticated(loggedIn);
-        setLoading(false);
-    }, [pathname]);
-
-    return { isAuthenticated, loading };
-};
-
 function AuthLayout({ children }: { children: React.ReactNode }) {
     return (
         <div className="relative min-h-screen font-sans overflow-hidden">
@@ -80,31 +65,44 @@ function LoadingScreen() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAuthenticated, loading } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   const isLoginPage = pathname === '/login';
   const isScanningPage = pathname === '/scanning';
 
   useEffect(() => {
-    if (!loading && !isAuthenticated && !isLoginPage) {
-        router.push('/login');
+    setLoading(true);
+    const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
+    setIsAuthenticated(loggedIn);
+    setLoading(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!loading) {
+        if (!isAuthenticated && !isLoginPage) {
+            router.push('/login');
+        }
+        if (isAuthenticated && isLoginPage) {
+            router.push('/');
+        }
     }
-    if (!loading && isAuthenticated && isLoginPage) {
-        router.push('/');
-    }
-  }, [loading, isAuthenticated, isLoginPage, router]);
+  }, [loading, isAuthenticated, isLoginPage, router, pathname]);
   
   if (isLoginPage) {
     return <PublicLayout>{children}</PublicLayout>;
   }
 
   if(isScanningPage) {
-    return <SpecialPageLayout>{children}</SpecialPageLayout>
+    return <SpecialPageLayout>{children}</SpecialPageLayout>;
   }
 
+  // While loading, or if unauthenticated and not on the login page yet, show a loading screen.
+  // This prevents rendering the page content before the redirect can happen.
   if (loading || (!isAuthenticated && !isLoginPage)) {
     return <LoadingScreen />;
   }
 
+  // If authenticated and not on the login/scanning page, show the main authenticated layout.
   return <AuthLayout>{children}</AuthLayout>;
 }
