@@ -14,33 +14,16 @@ const useAuth = () => {
     const pathname = usePathname();
 
     useEffect(() => {
-        const checkAuth = () => {
-            setLoading(true);
-            const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
-            setIsAuthenticated(loggedIn);
-            setLoading(false);
-        };
-        checkAuth();
+        setLoading(true);
+        const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
+        setIsAuthenticated(loggedIn);
+        setLoading(false);
     }, [pathname]);
 
     return { isAuthenticated, loading };
 };
 
 function AuthLayout({ children }: { children: React.ReactNode }) {
-    const pathname = usePathname();
-    const isScanningPage = pathname === '/scanning';
-
-    if (isScanningPage) {
-        return (
-             <div className="relative min-h-screen font-sans overflow-hidden">
-                <div className="relative bg-white/30 backdrop-blur-md w-full h-screen overflow-hidden flex flex-col shadow-2xl z-10">
-                    {children}
-                    <PwaUpdater />
-                </div>
-            </div>
-        );
-    }
-    
     return (
         <div className="relative min-h-screen font-sans overflow-hidden">
             <div className="relative bg-white/30 backdrop-blur-md w-full h-screen overflow-hidden flex flex-col shadow-2xl z-10">
@@ -55,6 +38,28 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
     );
 }
 
+function SpecialPageLayout({ children }: { children: React.ReactNode }) {
+    return (
+        <div className="relative min-h-screen font-sans overflow-hidden">
+            <div className="relative bg-white/30 backdrop-blur-md w-full h-screen overflow-hidden flex flex-col shadow-2xl z-10">
+                {children}
+                <PwaUpdater />
+            </div>
+        </div>
+    );
+}
+
+
+function PublicLayout({ children }: { children: React.ReactNode }) {
+    return (
+        <div className="relative min-h-screen font-sans overflow-hidden">
+            <div className="relative bg-white/30 backdrop-blur-md w-full h-screen overflow-hidden flex flex-col shadow-2xl z-10 justify-center">
+                {children}
+                 <PwaUpdater />
+            </div>
+        </div>
+    );
+}
 
 function LoadingScreen() {
      return (
@@ -76,30 +81,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { isAuthenticated, loading } = useAuth();
+  
   const isLoginPage = pathname === '/login';
+  const isScanningPage = pathname === '/scanning';
 
   useEffect(() => {
-    if (!loading) {
-      if (isAuthenticated && isLoginPage) {
-        router.push('/');
-      } else if (!isAuthenticated && !isLoginPage) {
+    if (!loading && !isAuthenticated && !isLoginPage) {
         router.push('/login');
-      }
+    }
+    if (!loading && isAuthenticated && isLoginPage) {
+        router.push('/');
     }
   }, [loading, isAuthenticated, isLoginPage, router]);
   
   if (isLoginPage) {
-    return (
-        <div className="relative min-h-screen font-sans overflow-hidden">
-            <div className="relative bg-white/30 backdrop-blur-md w-full h-screen overflow-hidden flex flex-col shadow-2xl z-10 justify-center">
-                {children}
-                 <PwaUpdater />
-            </div>
-        </div>
-    );
+    return <PublicLayout>{children}</PublicLayout>;
   }
 
-  if (loading || !isAuthenticated) {
+  if(isScanningPage) {
+    return <SpecialPageLayout>{children}</SpecialPageLayout>
+  }
+
+  if (loading || (!isAuthenticated && !isLoginPage)) {
     return <LoadingScreen />;
   }
 
