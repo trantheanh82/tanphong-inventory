@@ -10,55 +10,27 @@ import { PwaUpdater } from './pwa-updater';
 
 function AuthLayout({ children }: { children: React.ReactNode }) {
     return (
-        <div className="relative min-h-screen font-sans overflow-hidden">
-            <div className="relative bg-white/30 backdrop-blur-md w-full h-screen overflow-hidden flex flex-col shadow-2xl z-10">
-                <AppHeader />
-                <main className="flex-grow overflow-y-auto">
-                    {children}
-                </main>
-                <BottomNav />
-                <PwaUpdater />
-            </div>
-        </div>
-    );
-}
-
-function SpecialPageLayout({ children }: { children: React.ReactNode }) {
-    return (
-        <div className="relative min-h-screen font-sans overflow-hidden">
-            <div className="relative bg-white/30 backdrop-blur-md w-full h-screen overflow-hidden flex flex-col shadow-2xl z-10">
+        <>
+            <AppHeader />
+            <main className="flex-grow overflow-y-auto">
                 {children}
-                <PwaUpdater />
-            </div>
-        </div>
-    );
-}
-
-
-function PublicLayout({ children }: { children: React.ReactNode }) {
-    return (
-        <div className="relative min-h-screen font-sans overflow-hidden">
-            <div className="relative bg-white/30 backdrop-blur-md w-full h-screen overflow-hidden flex flex-col shadow-2xl z-10 justify-center">
-                {children}
-                 <PwaUpdater />
-            </div>
-        </div>
+            </main>
+            <BottomNav />
+        </>
     );
 }
 
 function LoadingScreen() {
      return (
-        <div className="relative min-h-screen font-sans overflow-hidden">
-            <div className="relative bg-white/30 backdrop-blur-md w-full h-screen overflow-hidden flex flex-col shadow-2xl z-10">
-                <AppHeader />
-                <main className="flex-grow overflow-y-auto p-4 space-y-4">
-                    <Skeleton className="h-24 w-full" />
-                    <Skeleton className="h-64 w-full" />
-                    <Skeleton className="h-64 w-full" />
-                </main>
-                <BottomNav />
-            </div>
-        </div>
+        <>
+            <AppHeader />
+            <main className="flex-grow overflow-y-auto p-4 space-y-4">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-64 w-full" />
+                <Skeleton className="h-64 w-full" />
+            </main>
+            <BottomNav />
+        </>
     );
 }
 
@@ -72,37 +44,49 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isScanningPage = pathname === '/scanning';
 
   useEffect(() => {
-    setLoading(true);
+    // This effect runs once on mount to check the initial auth status.
     const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
     setIsAuthenticated(loggedIn);
     setLoading(false);
-  }, [pathname]);
+  }, []);
 
   useEffect(() => {
-    if (!loading) {
-        if (!isAuthenticated && !isLoginPage) {
-            router.push('/login');
-        }
-        if (isAuthenticated && isLoginPage) {
-            router.push('/');
-        }
+    // This effect handles redirection after the initial loading is complete.
+    if (loading) {
+      return; // Do nothing while loading to prevent premature redirects
     }
-  }, [loading, isAuthenticated, isLoginPage, router, pathname]);
-  
-  if (isLoginPage) {
-    return <PublicLayout>{children}</PublicLayout>;
+    if (!isAuthenticated && !isLoginPage) {
+        router.push('/login');
+    }
+    if (isAuthenticated && isLoginPage) {
+        router.push('/');
+    }
+  }, [loading, isAuthenticated, isLoginPage, router]);
+
+  let content: React.ReactNode;
+
+  if (loading) {
+    // Show a loading screen, but only if not on the login page,
+    // to avoid layout shifts during the initial check.
+    content = isLoginPage ? children : <LoadingScreen />;
+  } else if (isLoginPage) {
+    content = children;
+  } else if (isScanningPage) {
+    content = children;
+  } else if (isAuthenticated) {
+    content = <AuthLayout>{children}</AuthLayout>;
+  } else {
+    // If not authenticated and not on login/scanning, show a loading screen
+    // while the redirect is in progress.
+    content = <LoadingScreen />;
   }
 
-  if(isScanningPage) {
-    return <SpecialPageLayout>{children}</SpecialPageLayout>;
-  }
-
-  // While loading, or if unauthenticated and not on the login page yet, show a loading screen.
-  // This prevents rendering the page content before the redirect can happen.
-  if (loading || (!isAuthenticated && !isLoginPage)) {
-    return <LoadingScreen />;
-  }
-
-  // If authenticated and not on the login/scanning page, show the main authenticated layout.
-  return <AuthLayout>{children}</AuthLayout>;
+  return (
+    <div className="relative min-h-screen font-sans overflow-hidden">
+        <div className="relative bg-white/30 backdrop-blur-md w-full h-screen overflow-hidden flex flex-col shadow-2xl z-10">
+            {content}
+            <PwaUpdater />
+        </div>
+    </div>
+  );
 }
