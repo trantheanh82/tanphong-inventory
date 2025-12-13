@@ -71,8 +71,7 @@ async function updateNoteStatusIfCompleted(noteType: 'import' | 'export', noteId
 
 
 export async function POST(request: NextRequest) {
-    const cookieStore = cookies();
-    const cookieHeader = cookieStore.toString();
+    const cookieHeader = (await cookies()).toString();
     const { noteId, noteType, valueToScan } = await request.json();
 
     if (!noteId || !noteType || !valueToScan) {
