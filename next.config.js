@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 
-const withPWAInit = require('@ducanh2912/next-pwa');
+const withPWAInit = require('@ducanh2912/next-pwa').default;
 
 const withPWA = withPWAInit({
   dest: 'public',
