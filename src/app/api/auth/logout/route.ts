@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
     try {
-        const cookieStore = cookies();
+        const cookieStore = await cookies();
         const cookie = cookieStore.get('auth_session');
 
         const response = NextResponse.json({ success: true, message: 'Logged out successfully.' });
