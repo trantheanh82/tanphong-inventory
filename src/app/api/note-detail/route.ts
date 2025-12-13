@@ -43,7 +43,7 @@ async function fetchNoteDetails(tableId: string, noteId: string, filterField: st
 }
 
 export async function GET(request: NextRequest) {
-    const cookieHeader = cookies().toString();
+    const cookieHeader = (await cookies()).toString();
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get('type');
     const noteId = searchParams.get('noteId');

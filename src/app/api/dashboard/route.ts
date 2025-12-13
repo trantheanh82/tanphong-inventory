@@ -61,7 +61,7 @@ async function fetchWarrantyDetails(noteId: string, cookieHeader: string | null)
 
 
 export async function GET(request: NextRequest) {
-    const cookieHeader = cookies().toString();
+    const cookieHeader = (await cookies()).toString();
     
     const { IMPORT_TBL_ID, EXPORT_TBL_ID, WARRANTY_TBL_ID } = process.env;
 

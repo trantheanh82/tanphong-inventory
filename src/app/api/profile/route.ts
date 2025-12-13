@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 export async function GET(request: NextRequest) {
-    const cookieHeader = cookies().toString();
+    const cookieHeader = (await cookies()).toString();
     const { EMPLOYEE_TBL_ID, API_ENDPOINT } = process.env;
 
     if (!EMPLOYEE_TBL_ID || !API_ENDPOINT) {

@@ -7,9 +7,6 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   images: {
     remotePatterns: [
       {
@@ -20,11 +17,15 @@ const nextConfig = {
       },
     ],
   },
+  experimental: {
+    // turbopack is now a top-level option
+  },
+  turbopack: {},
 };
 
 module.exports = withPWA({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development',
+  disable: true,
 })(nextConfig);

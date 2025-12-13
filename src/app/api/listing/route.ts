@@ -6,20 +6,20 @@ import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 async function fetchTableData(tableId: string, cookieHeader: string | null, searchQuery?: string | null) {
     const url = new URL(`${process.env.API_ENDPOINT}/table/${tableId}/record`);
     url.searchParams.append('fieldKeyType', 'dbFieldName');
+    url.searchParams.append('take', '1000'); // Fetch up to 1000 records
 
-    if (searchQuery) {
-        url.searchParams.append('search[]', `${searchQuery}`);
-        url.searchParams.append('search[]', `name`);
-        url.searchParams.append('search[]', `true`);
-        // The backend expects projection as a JSON string array
-        url.searchParams.append('projection[]', 'name');
-        url.searchParams.append('projection[]', 'total_quantity');
-        url.searchParams.append('projection[]', 'id');
-        url.searchParams.append('projection[]', 'status');
-        url.searchParams.append('projection[]', 'createdTime');
-        url.searchParams.append('projection[]', 'total_warranty_note');
-        url.searchParams.append('projection[]', 'scanned');
-        url.searchParams.append('projection[]', 'customer');
+    if (searchQuery && searchQuery.length >= 3) {
+        const filter = {
+            conjunction: 'or',
+            filterSet: [
+                {
+                    fieldId: 'name',
+                    operator: 'contains',
+                    value: searchQuery
+                }
+            ]
+        };
+        url.searchParams.append('filter', JSON.stringify(filter));
     }
 
     const orderBy = JSON.stringify([{ fieldId: 'createdAt', order: 'desc' }]);
@@ -74,7 +74,7 @@ async function fetchWarrantyDetails(noteId: string, cookieHeader: string | null)
 }
 
 export async function GET(request: NextRequest) {
-    const cookieHeader = cookies().toString();
+    const cookieHeader = (await cookies()).toString();
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get('type');
     const query = searchParams.get('search');

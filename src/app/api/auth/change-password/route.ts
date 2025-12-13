@@ -6,7 +6,7 @@ import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 export async function PATCH(request: NextRequest) {
     try {
         const { currentPassword, newPassword } = await request.json();
-        const cookieHeader = cookies().toString();
+        const cookieHeader = (await cookies()).toString();
 
         if (!currentPassword || !newPassword) {
             return NextResponse.json({ message: 'Current and new passwords are required.' }, { status: 400 });

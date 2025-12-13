@@ -40,7 +40,7 @@ async function apiRequest(url: string, method: string, cookieHeader: string | nu
 
 
 export async function POST(request: NextRequest) {
-    const cookieHeader = cookies().toString();
+    const cookieHeader = (await cookies()).toString();
     const { name, quantity } = await request.json();
 
     if (!name || !quantity || quantity < 1) {
