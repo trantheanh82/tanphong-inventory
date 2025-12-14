@@ -11,6 +11,7 @@ services:
       - .env
     environment:
       - NODE_ENV=production
+      - NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=hlR7qW5K3V/guuVTXfQZKCYxinu7+ETxgTj/Mpjtu0k=
     restart: unless-stopped
     networks:
       - traefik-networks
