@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 9002",
+    "dev": "next dev -H 0.0.0.0 -p 9002 --experimental-https --experimental-https-key ./certificates/localhost-key.pem --experimental-https-cert ./certificates/localhost.pem",
+    "dev:http": "next dev -H 0.0.0.0 -p 9002",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
@@ -75,8 +76,5 @@
     "@types/react": "19.2.7",
     "react-dom": "19.2.3",
     "@types/react-dom": "19.2.3"
-  },
-  "scripts": {
-    "dev": "next dev --experimental-https"
   }
 }
